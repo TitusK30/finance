@@ -32,8 +32,8 @@ function showBalances(settings) {
   const { checking_balance, savings_balance } = settings.starting_balances;
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
     <div class="tile"><div class="small">Checking now</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
-    <div class="tile"><div class="small">Savings</div><div class="big-number">${formatMoney(savings_balance)}</div></div>
-    <div class="tile"><div class="small">Retirement</div><div class="big-number">${editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div></div>
+    <div class="tile"><div class="small">Savings</div><div class="big-number">${editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
+    <div class="tile"><div class="small">Retirement</div><div class="big-number">${formatMoney(settings.retirement.balance || 0)}</div></div>
     <div class="tile"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div><div class="small">counts only what is filled in</div></div></div>`;
 }
 
