@@ -199,7 +199,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   saveSettings(incomingSettings);
@@ -245,3 +245,64 @@ document.getElementById("what-if-result").addEventListener("click", (event) => {
 });
 
 showEverything();
+
+// ---- Refresh from the bank (through the relay) ----
+
+const RELAY_ADDRESS_KEY = "finance_relay_address";
+const RELAY_APP_KEY_KEY = "finance_relay_key";
+const BEFORE_REFRESH_KEY = "finance_os_before_refresh";
+
+function connectToRelay() {
+  const address = prompt("Relay address", localStorage.getItem(RELAY_ADDRESS_KEY) || "https://");
+  if (!address) return;
+  const appKey = prompt("App key");
+  if (!appKey) return;
+  localStorage.setItem(RELAY_ADDRESS_KEY, address.trim());
+  localStorage.setItem(RELAY_APP_KEY_KEY, appKey.trim());
+  document.getElementById("refresh-note").textContent = "Connected. Tap Refresh balances.";
+}
+
+async function refreshFromBank() {
+  const say = (text) => { document.getElementById("refresh-note").textContent = text; document.getElementById("data-status").textContent = text; };
+  const relayAddress = localStorage.getItem(RELAY_ADDRESS_KEY);
+  const relayAppKey = localStorage.getItem(RELAY_APP_KEY_KEY);
+  if (!relayAddress || !relayAppKey) { say("Connect to the relay first (Settings)."); return; }
+  say("Refreshing...");
+  let refresh;
+  try {
+    const response = await fetch(relayAddress.replace(/\/$/, "") + "/refresh", { headers: { "x-finance-key": relayAppKey } });
+    refresh = await response.json();
+    if (!response.ok) throw new Error(refresh.error);
+  } catch (error) { say("Refresh failed: " + error.message); return; }
+
+  const settings = loadSettings();
+  localStorage.setItem(BEFORE_REFRESH_KEY, JSON.stringify(settings));
+  let result = applyRefresh(settings, refresh, todayText());
+  if (result.needChoice.length > 0) {
+    // Ask once which account is which. The answer is remembered by last four digits.
+    const withAnswers = structuredClone(settings);
+    for (const question of result.needChoice) {
+      const list = question.candidates.map((account, position) => `${position + 1}. ${account.name} (${account.mask})`).join("\n");
+      const chosen = question.candidates[Number(prompt(`Which one is ${question.label}? Enter its number, or cancel to skip.\n${list}`)) - 1];
+      if (chosen) withAnswers[question.maskGroup] = { ...withAnswers[question.maskGroup], [question.slot]: chosen.mask };
+    }
+    result = applyRefresh(withAnswers, refresh, todayText());
+  }
+  saveSettings(result.settings);
+  const problems = (refresh.problems || []).map((problem) => `${problem.login}: ${problem.error}`);
+  say(`Updated ${result.changed.length} items at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
+    + (result.skipped.length ? " Skipped: " + result.skipped.join(", ") + "." : "")
+    + (problems.length ? " Problems: " + problems.join(", ") + "." : ""));
+  showEverything();
+}
+
+document.getElementById("connect-relay-button").addEventListener("click", connectToRelay);
+document.getElementById("refresh-button").addEventListener("click", refreshFromBank);
+document.getElementById("refresh-top-button").addEventListener("click", refreshFromBank);
+document.getElementById("undo-refresh-button").addEventListener("click", () => {
+  const before = localStorage.getItem(BEFORE_REFRESH_KEY);
+  if (!before) { document.getElementById("refresh-note").textContent = "Nothing to undo."; return; }
+  saveSettings(JSON.parse(before));
+  document.getElementById("refresh-note").textContent = "Put back what you had before the last refresh.";
+  showEverything();
+});

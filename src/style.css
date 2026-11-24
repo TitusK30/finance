@@ -60,6 +60,7 @@ input[hidden] { display: none; }
 input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; height: 44px; }
 #top-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; margin: 0 -16px 8px; padding: calc(10px + max(env(safe-area-inset-top), 44px)) 16px 10px; background: var(--page-background); }
 #top-bar h1 { margin: 0; }
+#refresh-top-button { margin: 0 0 0 auto; padding: 6px 12px; font-size: 22px; line-height: 1; background: var(--tile-background); color: var(--main-text); border: 1px solid var(--bar-track); }
 #menu-button { margin: 0; padding: 6px 12px; font-size: 22px; line-height: 1; background: var(--tile-background); color: var(--main-text); border: 1px solid var(--bar-track); }
 #menu-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, 0.55); }
 #menu-overlay[hidden] { display: none; }
