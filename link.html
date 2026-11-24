@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Link a bank</title>
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<main style="padding: 24px 16px; max-width: 480px; margin: 0 auto;">
+  <h2>Link a bank</h2>
+  <div class="tile">
+    <div class="small">Relay address</div>
+    <input id="relay-address" placeholder="https://your-relay.workers.dev" style="width:100%">
+    <div class="small">App key</div>
+    <input id="app-key" type="password" style="width:100%">
+    <div class="small">Name for this login (Chase, Capital One, Citi, Empower)</div>
+    <input id="login-label" style="width:100%">
+    <div class="small">Type</div>
+    <select id="login-kind" style="width:100%">
+      <option value="bank">Bank or credit card</option>
+      <option value="investments">Retirement / investments</option>
+    </select>
+    <button id="link-button" class="list-row" style="margin-top:12px">Link</button>
+    <div id="link-status" class="small"></div>
+  </div>
+</main>
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script src="src/link.js"></script>
+</body>
+</html>
