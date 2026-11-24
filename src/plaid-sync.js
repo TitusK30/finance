@@ -3,7 +3,7 @@
 
 const syncTools = typeof module !== "undefined" ? { ...require("./forecast.js"), ...require("./summaries.js") } : { dueDateForCharge, nextStatementCloseDate };
 
-const BANK_WORDS = ["capital", "one", "chase", "citi", "citibank", "card", "credit", "visa", "mastercard"];
+const BANK_WORDS = ["bank", "of", "america", "wells", "fargo", "capital", "one", "chase", "citi", "citibank", "american", "express", "amex", "discover", "usaa", "barclays", "card", "credit", "visa", "mastercard"];
 
 function cents(amount) {
   return Math.round(amount * 100) / 100;
@@ -13,7 +13,7 @@ function plainWords(text) {
   return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean);
 }
 
-// "Capital One Venture X" -> ["venture"]. The bank's own name for the card has to contain every one.
+// "Example Bank Premier Card" -> ["premier"]. The bank's own name for the card has to contain every one.
 function findCardAccount(card, creditAccounts, savedMask) {
   const bySavedMask = savedMask && creditAccounts.find((account) => account.mask === savedMask);
   if (bySavedMask) return bySavedMask;

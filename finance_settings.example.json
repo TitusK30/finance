@@ -1,0 +1,42 @@
+{
+  "_note": "Example only. Every name and number here is made up. Copy this file, rename it, and replace the values with yours. Keep your real copy private.",
+  "starting_balances": { "as_of_date": "2026-01-01", "checking_balance": 2500, "savings_balance": 5000 },
+  "minimum_checking_floor": 500,
+  "paycheck": { "usual_take_home_amount": 1800, "frequency": "weekly", "pay_weekday": "Friday", "one_time_amount_overrides": {} },
+  "credit_cards": {
+    "example_card_a": {
+      "display_name": "Example Card A",
+      "credit_limit": 10000,
+      "current_balance": 0,
+      "balances_by_statement": [],
+      "statement_close_day": 10,
+      "payment_due_day": 5,
+      "payment_due_in_following_month": true
+    },
+    "example_card_b": {
+      "display_name": "Example Card B",
+      "credit_limit": 5000,
+      "current_balance": 0,
+      "balances_by_statement": [],
+      "statement_close_day": 22,
+      "payment_due_day": 18,
+      "payment_due_in_following_month": true
+    }
+  },
+  "monthly_bills_paid_from_checking": [
+    { "name": "Rent", "amount": 1200, "day_of_month": 1 },
+    { "name": "Phone", "amount": 60, "day_of_month": 15 }
+  ],
+  "subscriptions_charged_to_cards": [
+    { "name": "Streaming", "amount": 15.99, "card": "example_card_a", "day_of_month": 12 }
+  ],
+  "optional_monthly_variable_spending_allowance": null,
+  "card_benefits": [],
+  "card_expirations": { "example_card_a": "01/30", "example_card_b": "06/29" },
+  "annual_card_fees": [],
+  "other_cards": [],
+  "car_loan": null,
+  "todo_items": [],
+  "overtime": { "gross_hourly_rate": null, "take_home_per_overtime_hour": null, "paid_days_after_period_ends": 7 },
+  "hsa": { "provider": "", "balance": null, "weekly_contribution": null, "monthly_bill_payment": null, "medical_bill_remaining": null }
+}
