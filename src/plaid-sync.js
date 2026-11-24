@@ -70,6 +70,19 @@ function applyRefresh(settings, refresh, todayText) {
     }
   }
 
+  // Retirement = every investment account that is not an HSA. HSA = any account the bank calls an HSA.
+  const investments = refresh.accounts.filter((account) => account.type === "investment" || account.subtype === "hsa");
+  const hsaAccounts = investments.filter((account) => account.subtype === "hsa");
+  const retirementAccounts = investments.filter((account) => account.subtype !== "hsa");
+  if (retirementAccounts.length > 0) {
+    updated.retirement = { ...updated.retirement, balance: cents(retirementAccounts.reduce((sum, account) => sum + (account.current || 0), 0)) };
+    result.changed.push("retirement");
+  }
+  if (hsaAccounts.length > 0) {
+    updated.hsa = { ...updated.hsa, balance: cents(hsaAccounts.reduce((sum, account) => sum + (account.current || 0), 0)) };
+    result.changed.push("HSA");
+  }
+
   const claimedMasks = [];
   for (const [cardKey, card] of Object.entries(updated.credit_cards)) {
     const account = findCardAccount(card, credits, updated.card_masks[cardKey]);
