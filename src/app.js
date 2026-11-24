@@ -251,6 +251,8 @@ showEverything();
 const RELAY_ADDRESS_KEY = "finance_relay_address";
 const RELAY_APP_KEY_KEY = "finance_relay_key";
 const BEFORE_REFRESH_KEY = "finance_os_before_refresh";
+const LAST_REFRESH_KEY = "finance_last_refresh_ms";
+const AUTO_REFRESH_AFTER_MINUTES = 30;
 
 function connectToRelay() {
   const address = prompt("Relay address", localStorage.getItem(RELAY_ADDRESS_KEY) || "https://");
@@ -262,23 +264,23 @@ function connectToRelay() {
   document.getElementById("refresh-note").textContent = "Connected. Tap Refresh balances.";
 }
 
-async function refreshFromBank() {
+async function refreshFromBank(quiet = false) {
   const say = (text) => { document.getElementById("refresh-note").textContent = text; document.getElementById("data-status").textContent = text; };
   const relayAddress = localStorage.getItem(RELAY_ADDRESS_KEY);
   const relayAppKey = localStorage.getItem(RELAY_APP_KEY_KEY);
-  if (!relayAddress || !relayAppKey) { say("Connect to the relay first (Settings)."); return; }
-  say("Refreshing...");
+  if (!relayAddress || !relayAppKey) { if (!quiet) say("Connect to the relay first (Settings)."); return; }
+  if (!quiet) say("Refreshing...");
   let refresh;
   try {
     const response = await fetch(relayAddress.replace(/\/$/, "") + "/refresh", { headers: { "x-finance-key": relayAppKey } });
     refresh = await response.json();
     if (!response.ok) throw new Error(refresh.error);
-  } catch (error) { say("Refresh failed: " + error.message); return; }
+  } catch (error) { if (!quiet) say("Refresh failed: " + error.message); return; }
 
   const settings = loadSettings();
   localStorage.setItem(BEFORE_REFRESH_KEY, JSON.stringify(settings));
   let result = applyRefresh(settings, refresh, todayText());
-  if (result.needChoice.length > 0) {
+  if (result.needChoice.length > 0 && !quiet) {
     // Ask once which account is which. The answer is remembered by last four digits.
     const withAnswers = structuredClone(settings);
     for (const question of result.needChoice) {
@@ -291,6 +293,7 @@ async function refreshFromBank() {
   // Each refresh also records today's net worth, so the Track history builds itself.
   if (result.changed.length > 0) result.settings.net_worth_history = addEntryForDate(result.settings.net_worth_history, { date: todayText(), net_worth: netWorth(result.settings) });
   saveSettings(result.settings);
+  localStorage.setItem(LAST_REFRESH_KEY, String(Date.now()));
   const problems = (refresh.problems || []).map((problem) => `${problem.login}: ${problem.error}`);
   say(`Updated ${result.changed.length} items at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
     + (result.skipped.length ? " Skipped: " + result.skipped.join(", ") + "." : "")
@@ -299,8 +302,8 @@ async function refreshFromBank() {
 }
 
 document.getElementById("connect-relay-button").addEventListener("click", connectToRelay);
-document.getElementById("refresh-button").addEventListener("click", refreshFromBank);
-document.getElementById("refresh-top-button").addEventListener("click", refreshFromBank);
+document.getElementById("refresh-button").addEventListener("click", () => refreshFromBank());
+document.getElementById("refresh-top-button").addEventListener("click", () => refreshFromBank());
 document.getElementById("undo-refresh-button").addEventListener("click", () => {
   const before = localStorage.getItem(BEFORE_REFRESH_KEY);
   if (!before) { document.getElementById("refresh-note").textContent = "Nothing to undo."; return; }
@@ -308,3 +311,11 @@ document.getElementById("undo-refresh-button").addEventListener("click", () => {
   document.getElementById("refresh-note").textContent = "Put back what you had before the last refresh.";
   showEverything();
 });
+
+// Refresh by itself when the app opens or comes back to the front, at most every 30 minutes. Never asks questions.
+function refreshIfStale() {
+  const minutesSince = (Date.now() - Number(localStorage.getItem(LAST_REFRESH_KEY) || 0)) / 60000;
+  if (document.visibilityState === "visible" && minutesSince >= AUTO_REFRESH_AFTER_MINUTES) refreshFromBank(true);
+}
+document.addEventListener("visibilitychange", refreshIfStale);
+refreshIfStale();
