@@ -288,6 +288,8 @@ async function refreshFromBank() {
     }
     result = applyRefresh(withAnswers, refresh, todayText());
   }
+  // Each refresh also records today's net worth, so the Track history builds itself.
+  if (result.changed.length > 0) result.settings.net_worth_history = addEntryForDate(result.settings.net_worth_history, { date: todayText(), net_worth: netWorth(result.settings) });
   saveSettings(result.settings);
   const problems = (refresh.problems || []).map((problem) => `${problem.login}: ${problem.error}`);
   say(`Updated ${result.changed.length} items at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
