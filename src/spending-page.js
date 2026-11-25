@@ -123,6 +123,8 @@ function showSpendingPage(settings) {
     <div class="tile"><div class="small">Spent this month</div><div class="big-number">${formatMoney(month.total)}</div>
       ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
       <div class="small">Bills and subscriptions are left out.</div></div>
+    <div class="tile"><div class="small">Total spent</div><div class="big-number">${formatMoney(Math.round((month.total + billsTotal) * 100) / 100)}</div>
+      <div class="small">Spending plus ${formatMoney(billsTotal)} of bills and subscriptions that have already been charged</div></div>
     ${earnedTile}
     ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
