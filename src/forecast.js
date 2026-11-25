@@ -184,9 +184,36 @@ function spendingRoom(forecast, floor, weeklySavings) {
   return { week, month, perDayThisWeek: roundToCents(week.room / week.days), mostPerWeek };
 }
 
+// How much you can put on each card today. A card purchase leaves checking on the due date of the statement it lands on,
+// so a card is limited by the lowest checking day from that due date onward (floor kept, weekly savings still moving out).
+// The card whose bill is due farthest away comes first: it gives the longest wait and never allows less than a nearer one.
+function spendToday(settings, forecast, floor, weeklySavings, todayDate) {
+  const savingsPerDay = weeklySavings / 7;
+  const lastDate = forecast.days[forecast.days.length - 1].date;
+  function allowedFrom(payDate, perDay) {
+    const from = payDate > lastDate ? lastDate : payDate;
+    let tightest = { room: Infinity, date: null };
+    forecast.days.forEach((day, position) => {
+      if (day.date < from) return;
+      const room = day.checking_balance - floor - perDay * (position + 1);
+      if (room < tightest.room) tightest = { room, date: day.date };
+    });
+    return { amount: roundToCents(Math.max(0, tightest.room)), tightestDate: tightest.date };
+  }
+  const cards = Object.entries(settings.credit_cards).map(([cardKey, card]) => {
+    const payDate = dueDateForCharge(card, todayDate);
+    const creditLeft = card.credit_limit ? roundToCents(card.credit_limit - (card.current_balance || 0)) : null;
+    const capped = (amount) => (creditLeft === null ? amount : Math.max(0, Math.min(amount, creditLeft)));
+    const withoutPlan = allowedFrom(payDate, 0);
+    const withPlan = allowedFrom(payDate, savingsPerDay);
+    return { cardKey, name: card.display_name, payDate, creditLeft, noPlan: capped(withoutPlan.amount), withPlan: capped(withPlan.amount), tightestDate: withPlan.tightestDate };
+  }).sort((a, b) => (a.payDate < b.payDate ? 1 : a.payDate > b.payDate ? -1 : b.noPlan - a.noPlan));
+  return { cards, best: cards[0] };
+}
+
 function balanceOn(forecast, dateText) {
   return forecast.days.find((day) => day.date === dateText)?.checking_balance;
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, withExpectedExpenses, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, withExpectedExpenses, spendToday, balanceOn, dueDateForCharge };
