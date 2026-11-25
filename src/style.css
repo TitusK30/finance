@@ -470,3 +470,4 @@ html, body { overflow-x: hidden; }
 .score-home[open] .score-chevron { transform: rotate(180deg); }
 .score-history { display: grid; gap: 4px; padding: 0 16px 14px 20px; }
 .score-history .tile-row { padding: 8px 0; border-top: 1px solid var(--bar-track); }
+.facts-grid { grid-template-columns: 1fr 1fr; }

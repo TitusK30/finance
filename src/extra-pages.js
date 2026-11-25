@@ -303,6 +303,7 @@ function showCarPage(settings) {
       <div class="small">${escapeHtml(baseline.waivedPayment.reason)}. The ${monthAndYear(baseline.waivedPayment.date)} payment is null.</div></div>` : ""}
     <div class="tile car-tile"><b>Loan facts</b>
       <div class="facts-grid">
+        <div><span class="fact-icon">&#128663;</span><b>${formatMoney(loan.amount)}</b><span class="small">Loan amount</span></div>
         <div><span class="fact-icon">&#128200;</span><b>${loan.annual_rate_percent}%</b><span class="small">Rate</span></div>
         <div><span class="fact-icon">&#128197;</span><b>${totalPayments}</b><span class="small">Payments</span></div>
         <div><span class="fact-icon">&#128184;</span><b>${formatMoney(status.interestPaid + baseline.interestRemaining)}</b><span class="small">Total interest</span></div>
