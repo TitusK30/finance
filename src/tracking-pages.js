@@ -168,14 +168,15 @@ function showTodoPage(settings) {
   const tiles = sortedTodoItems(settings.todo_items).map((item) => {
     const { level, daysLeft } = item.done ? { level: "done", daysLeft: null } : dueUrgency(item.due_date, today);
     const countdown = daysLeft === null ? "" : daysLeft < 0 ? `${-daysLeft} days overdue` : daysLeft === 0 ? "due today" : `${daysLeft} days left`;
-    return `<div class="tile todo-${level}">
-      <div class="tile-row"><b class="${item.done ? "todo-finished" : ""}">${escapeHtml(item.name)}</b>
-        <button class="remove-link" data-remove-todo="${item.position}">remove</button></div>
-      <div class="tile-row small"><span class="editable" data-todo-date="${item.position}">${item.due_date ? formatDate(item.due_date) : "Tap to set a date"}</span><span>${item.done ? "done" : countdown}</span></div>
-      <button class="small-button" data-toggle-todo="${item.position}">${item.done ? "Mark not done" : "Mark done"}</button></div>`;
+    return `<div class="tile todo-tile todo-${level}">
+      <button class="todo-check ${item.done ? "is-done" : ""}" data-toggle-todo="${item.position}" aria-label="${item.done ? "Mark not done" : "Mark done"}"><span>&#10003;</span></button>
+      <div class="todo-body"><b class="todo-name ${item.done ? "todo-finished" : ""}">${escapeHtml(item.name)}</b>
+        <div class="todo-meta"><span class="todo-date editable" data-todo-date="${item.position}">${item.due_date ? formatDate(item.due_date) : "Tap to set a date"}</span>
+          ${item.done ? `<span class="todo-pill">done</span>` : countdown ? `<span class="todo-pill">${countdown}</span>` : ""}</div></div>
+      <button class="remove-link" data-remove-todo="${item.position}">remove</button></div>`;
   }).join("");
   document.getElementById("page-todo").innerHTML = `<h2>To do</h2>
-    <div class="small legend"><span class="dot todo-dot-soon"></span>within 7 days or overdue <span class="dot todo-dot-upcoming"></span>within 30 days <span class="dot todo-dot-later"></span>later</div>
+    <div class="small legend"><span class="legend-pill"><span class="dot todo-dot-soon"></span>within 7 days or overdue</span><span class="legend-pill"><span class="dot todo-dot-upcoming"></span>within 30 days</span><span class="legend-pill"><span class="dot todo-dot-later"></span>later</span></div>
     ${tiles || `<div class="tile small">Nothing on the list.</div>`}
     <button id="add-todo-button">Add item</button>`;
 }
@@ -206,6 +207,16 @@ function showTrackingPages(settings) {
   showGoalsPage(settings);
   showTrackPage(settings);
 }
+
+// Ticking a task off: the circle fills and the name is struck through first, then the task moves to done.
+document.addEventListener("click", (event) => {
+  const checkButton = event.target.closest(".todo-check");
+  if (!checkButton || checkButton.classList.contains("is-done") || checkButton.dataset.ticked) return;
+  event.stopPropagation();
+  checkButton.dataset.ticked = "yes";
+  checkButton.closest(".todo-tile").classList.add("todo-ticking");
+  setTimeout(() => checkButton.click(), 380);
+}, true);
 
 document.addEventListener("click", async (event) => {
   const settings = loadSettings();
