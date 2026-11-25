@@ -57,7 +57,7 @@ function applyTransactionChanges(store, relayReply, todayText) {
 }
 
 // Store names that override the bank's category. Names are compared with punctuation removed ("Trader Joe's" becomes "trader joes").
-const GROCERY_STORES = /sprouts|trader joes?|whole foods|brookshire|kroger|walmart|target|\bheb\b|tom thumb|walgreens/;
+const GROCERY_STORES = /sprouts|trader joes?|whole foods|brookshire|kroger|walmart|target|\bheb\b|tom thumb|walgreens|family dollar/;
 const FOOD_STORES = /bucees/;
 const TOLL_TEXT = /toll/;
 
@@ -72,7 +72,8 @@ function categoryOf(transaction) {
   if (GROCERY_STORES.test(text)) return "GROCERIES";
   if (FOOD_STORES.test(text)) return "FOOD_AND_DRINK";
   if (/sephora/.test(text) || transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
-  if (/csc serviceworks/.test(text)) return "TRANSPORTATION";
+  if (/csc serviceworks|airup/.test(text)) return "TRANSPORTATION";
+  if (/onxmaps/.test(text)) return "GENERAL_SERVICES";
   if (transaction.category === "GOVERNMENT_AND_NON_PROFIT") return "GENERAL_SERVICES";
   return transaction.category && CATEGORY_NAMES[transaction.category] ? transaction.category : "OTHER";
 }
