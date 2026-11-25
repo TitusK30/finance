@@ -56,6 +56,9 @@ function monthLabel(yearMonth) {
   return new Date(yearMonth + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+// One color per spending category, used for the tile edge and its bar.
+const CATEGORY_COLORS = { GROCERIES: "#4ade80", AMAZON: "#fb923c", TOLLS: "#2dd4bf", FOOD_AND_DRINK: "#f87171", GENERAL_MERCHANDISE: "#a78bfa", TRANSPORTATION: "#5aa2ff", TRAVEL: "#22d3ee", ENTERTAINMENT: "#f472b6", RENT_AND_UTILITIES: "#fbbf24", GENERAL_SERVICES: "#818cf8", PERSONAL_CARE: "#fb7185", MEDICAL: "#ef4444", BANK_FEES: "#9ca3af", OTHER: "#9ca3af" };
+
 // Charges that are not bills, with refill-style subscription charges (the toll tag) moved to the Tolls category.
 function nonBillCharges(settings, store, billMatches) {
   const refillBills = recurringBills(settings).filter((bill) => bill.anyDay);
@@ -148,7 +151,7 @@ function showSpendingPage(settings) {
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
-  const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
+  const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
     ${billRows.map((charge) => {
       const markedByHand = billMatches.billCharges[charge.transaction_id] === "Marked by you";
@@ -158,10 +161,10 @@ function showSpendingPage(settings) {
     ${notSeen.length ? `<div class="small not-seen"><b>Not seen yet this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge));
-  const pendingTile = pending.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
+  const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
 </summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
-  const categoryRows = month.categories.map((entry) => `<details class="tile category-tile">
+  const categoryRows = month.categories.map((entry) => `<details class="tile category-tile spending-accent" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}</div></summary>
@@ -173,7 +176,7 @@ function showSpendingPage(settings) {
   const expectedPayLeft = ahead.amount;
   const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
-  const earnedTile = `<details class="tile category-tile"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
+  const earnedTile = `<details class="tile category-tile spending-accent" style="--tile-accent:var(--good)"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
     <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"}</div>
     ${paydaysLine}</summary>${depositRows}</details>`;
 
@@ -182,17 +185,19 @@ function showSpendingPage(settings) {
   const estimatedEarned = earned.total + expectedPayLeft;
   const estimatedSpent = everythingElseTotal + billsTotal + (isCurrentMonth ? stillToPay : 0);
   const leftToSpend = Math.round((estimatedEarned - estimatedSpent) * 100) / 100;
-  const leftTile = `<div class="tile"><div class="small">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
+  const leftTile = `<div class="tile ${leftToSpend >= 0 ? "good" : "warning"}"><div class="small">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
     <div class="big-number ${leftToSpend >= 0 ? "positive" : "negative"}">${formatMoney(leftToSpend)}</div>
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
     <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
 
   const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
   const netTransfers = Math.round((transfers.totalIn - transfers.totalOut) * 100) / 100;
-  const transfersTile = transfers.items.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
+  const transfersTile = transfers.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:${netTransfers >= 0 ? "var(--good)" : "var(--bad)"}"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
     <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}</div></summary>${transferRows}</details>` : "";
 
-  const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
+  const biggestMerchant = Math.max(1, ...month.topMerchants.map((merchant) => merchant.amount));
+  const merchantRows = month.topMerchants.map((merchant, position) => `<div class="place-row"><div class="tile-row"><span><span class="place-rank">${position + 1}</span>${escapeHtml(merchant.name)}</span><b>${formatMoney(merchant.amount)}</b></div>
+    <div class="bar"><div class="bar-fill" style="width:${Math.round((merchant.amount / biggestMerchant) * 100)}%"></div></div></div>`).join("");
 
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>

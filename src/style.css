@@ -218,3 +218,22 @@ html, body { overflow-x: hidden; }
 .timeline-balance b { color: var(--main-text); }
 
 .amount-nowrap { white-space: nowrap; margin-left: 8px; }
+
+/* Spending tab polish (the Total spent tile is left as it was) */
+#page-spending .month-nav { background: var(--tile-background); border-radius: 14px; padding: 6px; margin: 4px 0 10px; }
+#page-spending .month-nav b { font-size: 17px; }
+#page-spending .month-nav .small-button { border-radius: 10px; font-size: 18px; padding: 8px 14px; }
+#page-spending .spending-accent { position: relative; overflow: hidden; padding-left: 16px; background-image: linear-gradient(135deg, color-mix(in srgb, var(--tile-accent) 14%, transparent), transparent 65%); }
+#page-spending .spending-accent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tile-accent); }
+#page-spending .spending-accent .bar-fill { background: var(--tile-accent); }
+#page-spending .spending-accent .bar { height: 8px; border-radius: 4px; }
+#page-spending .spending-accent .bar-fill { border-radius: 4px; }
+#page-spending .category-tile summary { position: relative; padding-right: 20px; }
+#page-spending .category-tile summary::after { content: "\203A"; position: absolute; right: 0; top: 50%; margin-top: -14px; font-size: 22px; color: var(--muted-text); transition: transform 0.15s ease; }
+#page-spending .category-tile[open] summary::after { transform: rotate(90deg); }
+#page-spending .charge-row { padding: 8px 0; font-size: 14px; }
+#page-spending .charge-row span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+#page-spending .category-tile[open] summary { margin-bottom: 6px; }
+#page-spending .place-row { margin-top: 10px; }
+#page-spending .place-row .bar { height: 5px; margin: 5px 0 0; }
+.place-rank { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--bar-track); font-size: 12px; margin-right: 8px; color: var(--muted-text); }
