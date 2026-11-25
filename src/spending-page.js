@@ -56,6 +56,66 @@ function monthLabel(yearMonth) {
   return new Date(yearMonth + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+// Charges that are not bills, with refill-style subscription charges (the toll tag) moved to the Tolls category.
+function nonBillCharges(settings, store, billMatches) {
+  const refillBills = recurringBills(settings).filter((bill) => bill.anyDay);
+  return spendingCharges(store).filter((charge) => !billMatches.billCharges[charge.transaction_id])
+    .map((charge) => refillBills.some((bill) => textMatches(bill, charge)) ? { ...charge, category: "TOLLS" } : charge);
+}
+
+// Pay weekdays still ahead (after today) in the current month, each worth your usual bank pay deposit (no overtime).
+function paydaysAhead(settings, store, yearMonth) {
+  const payWeekdayNumber = PAY_WEEKDAY_NUMBERS[settings.paycheck && settings.paycheck.pay_weekday];
+  const usualPay = usualPayDeposit(store, settings) ?? settings.paycheck.usual_take_home_amount;
+  const result = { count: 0, amount: 0, usualPay, known: payWeekdayNumber !== undefined && yearMonth === todayText().slice(0, 7) };
+  if (!result.known) return result;
+  const lastDayOfMonth = new Date(Date.UTC(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)), 0)).getUTCDate();
+  for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
+    if (new Date(`${yearMonth}-${String(day).padStart(2, "0")}T00:00:00Z`).getUTCDay() === payWeekdayNumber) { result.count++; result.amount += usualPay; }
+  }
+  return result;
+}
+
+// Home: this month at a glance. Earned and expected pay against everything spent plus bills still to pay.
+function showMonthOutlook(settings) {
+  const box = document.getElementById("month-outlook");
+  const store = loadTransactionStore();
+  const yearMonth = todayText().slice(0, 7);
+  if (spendingCharges(store).length === 0) { box.innerHTML = ""; return; }
+  const billMatches = matchBills(settings, store, loadBillMarks(), todayText());
+  const everythingElse = monthlyBreakdown(nonBillCharges(settings, store, billMatches), yearMonth).total;
+  const billsCharged = Object.values(store.transactions).filter((charge) => billMatches.billCharges[charge.transaction_id] && charge.date.startsWith(yearMonth) && charge.amount > 0).reduce((sum, charge) => sum + charge.amount, 0);
+  const billsUnpaid = ((billMatches.byMonth[yearMonth] || { unseen: [] }).unseen).reduce((sum, bill) => sum + bill.amount, 0);
+  const earnedSoFar = earnedInMonth(store, yearMonth, settings).total;
+  const ahead = paydaysAhead(settings, store, yearMonth);
+  const money = (amount) => formatMoney(Math.round(amount * 100) / 100);
+  const estimatedEarned = earnedSoFar + ahead.amount;
+  const estimatedSpent = everythingElse + billsCharged + billsUnpaid;
+  const left = estimatedEarned - estimatedSpent;
+  const scale = Math.max(estimatedEarned, estimatedSpent, 1);
+  const percent = (amount) => Math.max(0, Math.min(100, (amount / scale) * 100));
+  const legend = (className, label, amount) => `<div class="outlook-legend-item"><span class="dot ${className}"></span><span class="small">${label}</span><b>${money(amount)}</b></div>`;
+  box.innerHTML = `<div class="tile outlook-tile ${left >= 0 ? "good" : "warning"}">
+    <div class="small">Left to spend this month (estimate)</div>
+    <div class="huge-number ${left >= 0 ? "positive" : "negative"}">${money(left)}</div>
+    <div class="outlook-bar">
+      <div class="seg seg-else" style="width:${percent(everythingElse)}%"></div>
+      <div class="seg seg-bills" style="width:${percent(billsCharged)}%"></div>
+      <div class="seg seg-unpaid" style="width:${percent(billsUnpaid)}%"></div>
+      <div class="seg seg-left" style="width:${percent(left)}%"></div>
+    </div>
+    <div class="outlook-legend">
+      ${legend("dot-else", "Spent", everythingElse)}${legend("dot-bills", "Bills paid", billsCharged)}
+      ${legend("dot-unpaid", "Bills to pay", billsUnpaid)}${legend("dot-left", "Left", Math.max(left, 0))}
+    </div>
+    <div class="outlook-rows">
+      <div class="tile-row"><span>Earned so far</span><b class="positive">${money(earnedSoFar)}</b></div>
+      <div class="tile-row"><span>${ahead.known ? `${ahead.count} more payday${ahead.count === 1 ? "" : "s"} (${money(ahead.usualPay)} each)` : "More paydays"}</span><b>+${money(ahead.amount)}</b></div>
+      <div class="tile-row outlook-total"><span>Estimated earned</span><b>${money(estimatedEarned)}</b></div>
+      <div class="tile-row"><span>Estimated spent, with bills still to pay</span><b>&minus;${money(estimatedSpent)}</b></div>
+    </div></div>`;
+}
+
 function showSpendingPage(settings) {
   const page = document.getElementById("page-spending");
   const store = loadTransactionStore();
@@ -63,9 +123,7 @@ function showSpendingPage(settings) {
   const billMatches = matchBills(settings, store, marks, todayText());
   const isBill = (charge) => Boolean(billMatches.billCharges[charge.transaction_id]);
   const allCharges = spendingCharges(store);
-  // Charges that fit your refill-style subscription (the toll tag) by text go to the Tolls category.
-  const refillBills = recurringBills(settings).filter((bill) => bill.anyDay);
-  const charges = allCharges.filter((charge) => !isBill(charge)).map((charge) => refillBills.some((bill) => textMatches(bill, charge)) ? { ...charge, category: "TOLLS" } : charge);
+  const charges = nonBillCharges(settings, store, billMatches);
   if (allCharges.length === 0) {
 
   page.innerHTML = `<h2>Spending</h2><div class="tile small">${localStorage.getItem("finance_relay_address") ? "No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on." : "This page fills in from your bank, so it stays empty until you link one. Linking is optional; Settings and the README explain how."}</div>`;
@@ -115,22 +173,10 @@ function showSpendingPage(settings) {
     ${comparison.categories.filter((entry) => entry.difference !== 0).slice(0, 5).map((entry) => `<div class="tile-row small"><span>${entry.name}</span><span class="${changeClass(entry.difference)}">${changeText(entry.difference)}</span></div>`).join("")}</div>` : "";
 
   const earned = earnedInMonth(store, spendingMonthShown, settings);
-  // Pay weekdays still ahead (after today) in the month being shown, only for the current month.
-  const payWeekdayNumber = PAY_WEEKDAY_NUMBERS[settings.paycheck && settings.paycheck.pay_weekday];
-  let paydaysLeft = 0;
-  let expectedPayLeft = 0;
-  const usualPay = usualPayDeposit(store, settings) ?? settings.paycheck.usual_take_home_amount;
-  if (spendingMonthShown === todayText().slice(0, 7) && payWeekdayNumber !== undefined) {
-    const lastDayOfMonth = new Date(Date.UTC(Number(spendingMonthShown.slice(0, 4)), Number(spendingMonthShown.slice(5, 7)), 0)).getUTCDate();
-    for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
-      const dayText = `${spendingMonthShown}-${String(day).padStart(2, "0")}`;
-      if (new Date(dayText + "T00:00:00Z").getUTCDay() === payWeekdayNumber) {
-        paydaysLeft++;
-        expectedPayLeft += usualPay;
-      }
-    }
-  }
-  const paydaysLine = spendingMonthShown === todayText().slice(0, 7) && payWeekdayNumber !== undefined ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
+  const ahead = paydaysAhead(settings, store, spendingMonthShown);
+  const paydaysLeft = ahead.count;
+  const expectedPayLeft = ahead.amount;
+  const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
   const earnedTile = `<details class="tile category-tile"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
     <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div>

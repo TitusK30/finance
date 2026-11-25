@@ -267,6 +267,7 @@ function showEverything() {
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   showStatusLine(settings);
   showBalances(settings);
+  try { showMonthOutlook(settings); } catch (error) { document.getElementById("month-outlook").innerHTML = ""; }
   showSpendingPlan(settings, forecast);
   showTransferAdvice(settings, forecast);
   showHorizonCards(settings, forecast);

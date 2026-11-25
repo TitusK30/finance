@@ -178,3 +178,17 @@ html, body { overflow-x: hidden; }
 .dot-bills { background: var(--warning); }
 .dot-else { background: var(--accent); }
 .split-columns + .small { margin-top: 10px; }
+
+.outlook-bar { display: flex; height: 16px; background: var(--bar-track); border-radius: 8px; overflow: hidden; margin: 4px 0 12px; }
+.seg { height: 100%; }
+.seg-else { background: var(--accent); }
+.seg-bills { background: var(--warning); }
+.seg-unpaid { background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 3px, transparent 3px, transparent 6px); }
+.seg-left { background: var(--good); }
+.dot-unpaid { background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 2px, transparent 2px, transparent 4px); }
+.dot-left { background: var(--good); }
+.outlook-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 12px; }
+.outlook-legend-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 0; }
+.outlook-legend-item b { grid-column: 2; font-size: 16px; }
+.outlook-rows { border-top: 1px solid var(--bar-track); padding-top: 10px; display: grid; gap: 6px; font-size: 14px; }
+.outlook-total { border-top: 1px dashed var(--bar-track); padding-top: 6px; }
