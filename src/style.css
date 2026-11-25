@@ -167,3 +167,14 @@ html, body { overflow-x: hidden; }
 .date-buttons { display: flex; gap: 8px; }
 .date-buttons button { flex: 1; margin: 0; }
 .date-buttons .primary { background: #4a9eff; color: #04111f; font-weight: 600; }
+
+.huge-number { font-size: 34px; font-weight: 700; margin: 2px 0 10px; }
+.split-bar { display: flex; height: 10px; background: var(--accent); border-radius: 5px; overflow: hidden; margin-bottom: 12px; }
+.split-bills { background: var(--warning); height: 100%; }
+.split-columns { display: flex; justify-content: space-between; gap: 12px; }
+.split-right { text-align: right; }
+.split-number { font-size: 20px; font-weight: 600; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.dot-bills { background: var(--warning); }
+.dot-else { background: var(--accent); }
+.split-columns + .small { margin-top: 10px; }

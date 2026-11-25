@@ -84,6 +84,7 @@ function showSpendingPage(settings) {
   const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
   const notSeen = (billMatches.byMonth[spendingMonthShown] || { unseen: [] }).unseen;
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
+  const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + month.total)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
   const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}, not counted in the totals above</div></summary>
@@ -143,17 +144,19 @@ function showSpendingPage(settings) {
   const leftTile = `<div class="tile"><div class="small">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
     <div class="big-number ${leftToSpend >= 0 ? "positive" : "negative"}">${formatMoney(leftToSpend)}</div>
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
-    <div class="tile-row small"><span>Spent, bills and subscriptions${isCurrentMonth ? ", including unpaid" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
+    <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>
-    <div class="tile"><div class="small">Spent this month</div><div class="big-number">${formatMoney(month.total)}</div>
-      ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
-      <div class="small">Bills and subscriptions are left out.</div></div>
-    <div class="tile"><div class="small">Total spent</div><div class="big-number">${formatMoney(Math.round((month.total + billsTotal) * 100) / 100)}</div>
-      <div class="small">Spending plus ${formatMoney(billsTotal)} of bills and subscriptions that have already been charged</div>
+    <div class="tile"><div class="small">Total spent this month</div>
+      <div class="huge-number">${formatMoney(Math.round((month.total + billsTotal) * 100) / 100)}</div>
+      <div class="split-bar"><div class="split-bills" style="width:${billsSharePercent}%"></div></div>
+      <div class="split-columns">
+        <div><div class="small"><span class="dot dot-bills"></span>Bills and subscriptions</div><div class="split-number">${formatMoney(billsTotal)}</div></div>
+        <div class="split-right"><div class="small"><span class="dot dot-else"></span>Everything else</div><div class="split-number">${formatMoney(month.total)}</div>${month.pendingTotal > 0 ? `<div class="small">incl. ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
+      </div>
       ${stillToPayLine}</div>
     ${earnedTile}
     ${leftTile}
