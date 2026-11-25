@@ -122,14 +122,16 @@ function showCards(settings) {
     const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating);
     const open = card.balances_by_statement.filter((statement) => statement.still_accumulating);
     const closedTotal = closed.reduce((sum, statement) => sum + statement.amount, 0);
-    const openTotal = open.reduce((sum, statement) => sum + statement.amount, 0);
+    const pendingAmount = pendingAmountOnCard(card);
+    const openTotal = open.reduce((sum, statement) => sum + statement.amount, 0) - pendingAmount; // posted only; pending shows on its own line
+    const pendingRow = pendingAmount > 0 ? `<div class="date-row"><span>Pending</span><b class="amber">+${formatMoney(pendingAmount)}</b></div>` : "";
     const closedDueRow = closed.length ? dateRow("Due", closed[0].due_date, today, 7, 14) : `<div class="date-row"><span>Nothing due</span></div>`;
     const openDueRow = open.length ? dateRow("Due", open[0].due_date, today, -1, -1) : "";
     return `<div class="tile card-tile"><div class="tile-row"><b>${card.display_name}</b><b class="big-number">${formatMoney(card.current_balance)}</b></div>
       <div class="statement-pair">
         <div class="statement-panel closed-panel"><div class="stat-label">CLOSED</div><div class="big-number">${formatMoney(closedTotal)}</div>${closedDueRow}</div>
         <div class="statement-panel open-panel"><div class="stat-label">OPEN</div><div class="big-number">${formatMoney(openTotal)}</div>
-          ${dateRow("Closes", closeDate, today, -1, 7)}${openDueRow}</div></div></div>`;
+          ${pendingRow}${dateRow("Closes", closeDate, today, -1, 7)}${openDueRow}</div></div></div>`;
   });
   document.getElementById("card-list").innerHTML = html.join("");
 }
@@ -277,9 +279,27 @@ async function refreshFromBank(quiet = false) {
     if (!response.ok) throw new Error(refresh.error);
   } catch (error) { if (!quiet) say("Refresh failed: " + error.message); return; }
 
+  // Transactions come in a second call. If it fails, balances still refresh and pending falls back to the bank's available credit.
+  let transactionStore = loadTransactionStore();
+  let transactionProblems = [];
+  try {
+    const transactionResponse = await fetch(relayAddress.replace(/\/$/, "") + "/transactions", {
+      method: "POST", headers: { "x-finance-key": relayAppKey, "Content-Type": "application/json" }, body: JSON.stringify({ cursors: transactionStore.cursors }),
+    });
+    const transactionReply = await transactionResponse.json();
+    if (transactionResponse.ok) {
+      transactionStore = applyTransactionChanges(transactionStore, transactionReply, todayText());
+      saveTransactionStore(transactionStore);
+      transactionProblems = transactionReply.problems || [];
+    }
+  } catch (error) {
+    // Keep going without transactions.
+  }
+  const pendingTotals = pendingTotalsByAccount(transactionStore);
+
   const settings = loadSettings();
   localStorage.setItem(BEFORE_REFRESH_KEY, JSON.stringify(settings));
-  let result = applyRefresh(settings, refresh, todayText());
+  let result = applyRefresh(settings, refresh, todayText(), pendingTotals);
   if (result.needChoice.length > 0 && !quiet) {
     // Ask once which account is which. The answer is remembered by last four digits.
     const withAnswers = structuredClone(settings);
@@ -288,13 +308,13 @@ async function refreshFromBank(quiet = false) {
       const chosen = question.candidates[Number(prompt(`Which one is ${question.label}? Enter its number, or cancel to skip.\n${list}`)) - 1];
       if (chosen) withAnswers[question.maskGroup] = { ...withAnswers[question.maskGroup], [question.slot]: chosen.mask };
     }
-    result = applyRefresh(withAnswers, refresh, todayText());
+    result = applyRefresh(withAnswers, refresh, todayText(), pendingTotals);
   }
   // Each refresh also records today's net worth, so the Track history builds itself.
   if (result.changed.length > 0) result.settings.net_worth_history = addEntryForDate(result.settings.net_worth_history, { date: todayText(), net_worth: netWorth(result.settings) });
   saveSettings(result.settings);
   localStorage.setItem(LAST_REFRESH_KEY, String(Date.now()));
-  const problems = (refresh.problems || []).map((problem) => `${problem.login}: ${problem.error}`);
+  const problems = [...(refresh.problems || []), ...transactionProblems].map((problem) => `${problem.login}: ${problem.error}`);
   say(`Updated ${result.changed.length} items at ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}.`
     + (result.skipped.length ? " Skipped: " + result.skipped.join(", ") + "." : "")
     + (problems.length ? " Problems: " + problems.join(", ") + "." : ""));

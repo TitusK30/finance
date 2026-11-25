@@ -94,3 +94,14 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 .date-row b { color: var(--main-text); font-weight: 600; }
 .date-row b.negative { color: var(--bad); }
 .date-row b.amber { color: var(--warning); }
+
+.amber-text { color: var(--warning); }
+.pending-tag { color: var(--warning); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+.month-nav { align-items: center; margin: 8px 0; }
+.month-nav .small-button { margin: 0; min-width: 44px; }
+.category-tile summary { cursor: pointer; list-style: none; }
+.category-tile summary::-webkit-details-marker, .pending-details summary::-webkit-details-marker { display: none; }
+.charge-row { padding: 6px 0; border-top: 1px solid var(--bar-track); }
+.charge-card { color: var(--muted-text); font-size: 12px; }
+.pending-details { margin-top: 6px; }
+.pending-details summary { cursor: pointer; color: var(--warning); }

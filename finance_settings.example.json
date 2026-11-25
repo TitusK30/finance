@@ -32,7 +32,7 @@
   ],
   "optional_monthly_variable_spending_allowance": null,
   "card_benefits": [],
-  "card_expirations": { "example_card_a": "01/30", "example_card_b": "06/29" },
+  "card_expirations": { "example_card_a": "2030-01", "example_card_b": "2029-06" },
   "annual_card_fees": [],
   "other_cards": [],
   "car_loan": null,

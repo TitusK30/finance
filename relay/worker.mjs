@@ -146,6 +146,7 @@ async function refreshEverything(env) {
       for (const account of itemAccounts) {
         accounts.push({
           login: item.label,
+          account_id: account.account_id,
           name: account.name,
           official_name: account.official_name,
           mask: account.mask,
@@ -162,6 +163,62 @@ async function refreshEverything(env) {
     }
   }
   return { as_of: new Date().toISOString(), accounts, problems };
+}
+
+// Plaid errors that only mean "this login has no transactions" (for example a retirement login).
+const LOGINS_WITHOUT_TRANSACTIONS = ["INVALID_PRODUCT", "PRODUCTS_NOT_SUPPORTED"];
+
+function slimTransaction(transaction) {
+  return {
+    transaction_id: transaction.transaction_id,
+    account_id: transaction.account_id,
+    date: transaction.date,
+    authorized_date: transaction.authorized_date,
+    name: transaction.name,
+    merchant_name: transaction.merchant_name,
+    amount: transaction.amount, // Plaid: positive = money out, negative = money in
+    pending: transaction.pending,
+    pending_transaction_id: transaction.pending_transaction_id,
+    category: transaction.personal_finance_category?.primary || null,
+    category_detail: transaction.personal_finance_category?.detailed || null,
+  };
+}
+
+// Pulls everything new since the cursor the phone sends. Nothing is stored here: the phone keeps the history.
+async function transactionChanges(env, accessToken, startingCursor) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const changes = { added: [], modified: [], removed: [], accounts: [], next_cursor: startingCursor || null };
+    try {
+      for (let page = 0; page < 20; page++) {
+        const reply = await callPlaid(env, "/transactions/sync", { access_token: accessToken, cursor: changes.next_cursor || undefined, count: 500 });
+        changes.added.push(...reply.added.map(slimTransaction));
+        changes.modified.push(...reply.modified.map(slimTransaction));
+        changes.removed.push(...reply.removed.map((entry) => entry.transaction_id));
+        changes.accounts = reply.accounts.map((account) => ({ account_id: account.account_id, mask: account.mask, name: account.name, type: account.type, subtype: account.subtype }));
+        changes.next_cursor = reply.next_cursor;
+        if (!reply.has_more) return changes;
+      }
+      return changes; // very large backlog: the next refresh continues from this cursor
+    } catch (error) {
+      if (error.message !== "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION" || attempt === 1) throw error;
+    }
+  }
+}
+
+async function allTransactionChanges(env, cursorsByItem) {
+  const stored = await env.TOKENS.list({ prefix: "item:" });
+  const items = [];
+  const problems = [];
+  for (const entry of stored.keys) {
+    const itemId = entry.name.slice("item:".length);
+    const item = JSON.parse(await env.TOKENS.get(entry.name));
+    try {
+      items.push({ item_id: itemId, login: item.label, ...(await transactionChanges(env, item.access_token, cursorsByItem[itemId])) });
+    } catch (error) {
+      if (!LOGINS_WITHOUT_TRANSACTIONS.includes(error.message)) problems.push({ login: item.label, error: error.message });
+    }
+  }
+  return { items, problems };
 }
 
 export default {
@@ -192,6 +249,10 @@ export default {
         return jsonReply({ plaid_env: env.PLAID_ENV, client_id_length: clientId.length, secret_length: secret.length, client_id_has_space: clientId !== clientId.trim(), secret_has_space: secret !== secret.trim() });
       }
       if (path === "/refresh" && request.method === "GET") return jsonReply(await refreshEverything(env));
+      if (path === "/transactions" && request.method === "POST") {
+        const { cursors } = await request.json();
+        return jsonReply(await allTransactionChanges(env, cursors || {}));
+      }
       return jsonReply({ error: "not found" }, 404);
     } catch (error) {
       return jsonReply({ error: error.message }, 502);

@@ -64,6 +64,7 @@ The public app is a blank shell. Your data comes from a settings file that you l
    - Each entry in `credit_cards`: `credit_limit`, `statement_close_day`, `payment_due_day`, and `payment_due_in_following_month` (true when the due date falls in the month after the close).
    - `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` (`card` is a key from `credit_cards`).
    - Optional: `card_benefits`, `annual_card_fees`, `car_loan`, `todo_items`, `overtime`, `hsa`. Use `null` for things you do not have.
+   - Formats: dates are `YYYY-MM-DD`, card expiry months are `YYYY-MM` (for example `2030-01`).
 3. Get the file to your phone privately (AirDrop or the Files app). Do not email it or put it in a public folder.
 4. In the app: **menu → Settings → Load settings file**.
 5. Optional but recommended: **Settings → Set / change PIN**. It keeps casual snoopers out. It does not encrypt your data.
@@ -150,6 +151,7 @@ Do this in **Safari**, not in the Home Screen app. The bank hand-off back to the
 | Retirement | Sum of every linked investment account that is not an HSA |
 | HSA | Any linked account the bank labels HSA |
 | Net worth | Recomputed, and today's value is saved to the Track history |
+| Transactions | Pulled in a second call and saved on the phone (see Spending and pending below) |
 
 Everything else (forecast, 10/20/30/40-day cards, chart, Next 40 days, Cards, Goals, Track) is calculated from those saved numbers, so it all updates together.
 
@@ -160,9 +162,16 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Next 40 days, Cards, Go
 - A web app cannot refresh while it is closed. That is an iPhone limit.
 - Still manual: bills, subscriptions, expenses, rewards, benefits, car loan, goals, credit score, PTO, tasks, and any account you did not link.
 
+**Spending page and pending charges**
+- The **Spending** page groups every charge by month and category (tap a category to see its charges), lists top places, and lists pending charges. Card payments, transfers and paychecks are left out; refunds count against their category. Categories come from Plaid and are sometimes wrong.
+- Transactions are kept **only on the phone**, in storage separate from your settings, and the relay never stores them. The app sends back a bookmark (cursor) per login so each refresh only downloads what is new. Anything older than about 400 days is dropped.
+- **History is limited.** Plaid requests 90 days when a login is first linked (it can be set up to 730 at link time, but only then). Capital One only shares 90 days, so the app keeps charges from the first refresh onward.
+- **Pending charges** are charges the bank has seen but not added to your balance. They are counted in the card's Open statement (so the forecast and utilization include them) and shown as a separate "+ pending" line. The app works out the pending total from the bank's available credit (`limit - balance - available`), which also works for banks that do not share pending details. If available credit is missing it falls back to the pending charges in the transaction feed. If the bank already counts pending charges in the balance, nothing is added twice. Capital One does not provide pending transactions, so you may see an amount without a charge list.
+- If the transactions call fails, balances still refresh.
+
 **How Closed and Open are worked out**
 - **Closed** = the last statement balance, minus any payment made since that statement was issued. Shown only if it is still due.
-- **Open** = current balance minus the unpaid closed amount. This is an estimate, because banks do not report it directly.
+- **Open** = current balance minus the unpaid closed amount, plus pending charges. This is an estimate, because banks do not report it directly. The big Open number on screen is the posted part, and pending sits under it.
 - Open's close and due dates come from your `statement_close_day` and `payment_due_day`, which the refresh leaves alone.
 
 ---
@@ -174,7 +183,7 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Next 40 days, Cards, Go
 | Public GitHub repo | App code and the relay code only. No keys, balances, names or settings |
 | Cloudflare secrets and KV | Plaid keys, app key, bank links |
 | Plaid | Your bank connections (read-only) |
-| Your phone | Settings file contents, relay address, app key, PIN hash |
+| Your phone | Settings file contents, transactions, relay address, app key, PIN hash |
 | Your computer (private) | `finance_settings.json`, backups, notes |
 
 Rules that kept this safe:
@@ -199,6 +208,7 @@ Rules that kept this safe:
 | Cloudflare editor will not accept edits | Select the newest version first |
 | Deploy button greyed out | Nothing changed, or an old version is selected |
 | App shows old layout after you publish | Bump the `?v=` tag, wait about 10 minutes, tap **Update app** |
+| Spending page is empty | The relay is missing the `/transactions` route. Paste the latest `relay/worker.mjs` and Deploy, then refresh |
 | A card is not updating | Its statement details are missing from the bank. The refresh reports it as skipped and leaves it alone |
 | Wrong account matched | Run a manual refresh. It asks which is which when it cannot tell |
 | A number is a day behind | Some banks (for example Capital One cards) cache balances |
@@ -217,6 +227,8 @@ At the time of writing (late 2026) every piece used here was free for personal u
 index.html               app shell and menu (bump the ?v= tag when you publish)
 src/forecast.js          day-by-day cash forecast
 src/summaries.js         statements, utilization, net worth
+src/spending.js          transactions: merge, monthly categories, pending math
+src/spending-page.js     Spending page and the phone's transaction copy
 src/plaid-sync.js        turns relay data into your settings (pure math)
 src/app.js               pages, storage, refresh, auto-refresh
 src/lock.js              4-digit PIN lock

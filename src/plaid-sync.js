@@ -33,23 +33,35 @@ function findDepositAccount(subtype, depositAccounts, savedMask) {
   return sameKind.length === 1 ? sameKind[0] : null;
 }
 
-// Closed = last statement still owed. Open = everything charged since.
-function statementsFromBank(card, account, todayText) {
+// Charges the bank has seen but not added to the balance yet. The bank's available credit is the best guide:
+// limit - balance - available = pending. Without it, fall back to the pending charges the transaction feed lists.
+function pendingAmountFor(account, listedPendingTotal) {
+  const hasAvailableCredit = account.limit != null && account.available != null;
+  if (hasAvailableCredit) return Math.max(0, cents(account.limit - account.current - account.available));
+  return Math.max(0, cents(listedPendingTotal || 0));
+}
+
+// Closed = last statement still owed. Open = everything charged since, with pending charges included.
+// The open entry's amount includes pending so the forecast and utilization see it; pending_amount says how much of it is pending.
+function statementsFromBank(card, account, todayText, pendingAmount = 0) {
   const paidSinceStatement = account.last_payment_date && account.last_payment_date >= account.statement_issue_date ? account.last_payment_amount || 0 : 0;
   const closedOwed = cents(Math.max(0, account.statement_balance - paidSinceStatement));
   const closedIsStillDue = closedOwed > 0.005 && Boolean(account.next_due_date) && account.next_due_date >= todayText;
   const statements = [];
   if (closedIsStillDue) statements.push({ amount: closedOwed, statement_closed_on: account.statement_issue_date, due_date: account.next_due_date });
-  const openAmount = cents(Math.max(0, account.current - (closedIsStillDue ? closedOwed : 0)));
-  if (openAmount > 0.005) {
+  const postedOpen = cents(Math.max(0, account.current - (closedIsStillDue ? closedOwed : 0)));
+  if (postedOpen + pendingAmount > 0.005) {
     const closeDate = syncTools.nextStatementCloseDate(card, todayText);
-    statements.push({ amount: openAmount, statement_closes_on: closeDate, due_date: syncTools.dueDateForCharge(card, closeDate), still_accumulating: true });
+    const openEntry = { amount: cents(postedOpen + pendingAmount), statement_closes_on: closeDate, due_date: syncTools.dueDateForCharge(card, closeDate), still_accumulating: true };
+    if (pendingAmount > 0.005) openEntry.pending_amount = pendingAmount;
+    statements.push(openEntry);
   }
   return statements;
 }
 
 // Returns the updated settings, plus questions for anything the app could not match on its own.
-function applyRefresh(settings, refresh, todayText) {
+// pendingTotalsByAccount: { accountId: total pending charges from the transaction feed } (optional).
+function applyRefresh(settings, refresh, todayText, pendingTotalsByAccount = {}) {
   const updated = structuredClone(settings);
   updated.account_masks = updated.account_masks || {};
   updated.card_masks = updated.card_masks || {};
@@ -92,7 +104,7 @@ function applyRefresh(settings, refresh, todayText) {
     updated.card_masks[cardKey] = account.mask;
     card.current_balance = account.current;
     if (account.limit) card.credit_limit = account.limit;
-    card.balances_by_statement = statementsFromBank(card, account, todayText);
+    card.balances_by_statement = statementsFromBank(card, account, todayText, pendingAmountFor(account, pendingTotalsByAccount[account.account_id]));
     result.changed.push(card.display_name);
   }
   const leftoverCredits = credits.filter((account) => !claimedMasks.includes(account.mask));

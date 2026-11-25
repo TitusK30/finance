@@ -1,6 +1,6 @@
 // Tab bar, plus the Subscriptions, Rewards and HSA pages. Taps on dotted numbers edit them.
 
-const PAGE_NAMES = ["home", "planner", "bills", "cards", "car", "goals", "track", "hsa", "pto", "todo", "settings"];
+const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goals", "track", "hsa", "pto", "todo", "settings"];
 
 const DEFAULT_EXTRA_SETTINGS = {
   rewards: {},
@@ -137,12 +137,26 @@ function annualFeeText(settings, cardKey) {
 function closedAndOpenBlocks(card) {
   const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating);
   const open = card.balances_by_statement.filter((statement) => statement.still_accumulating);
-  const blockFor = (label, statements) => {
-    const total = statements.reduce((sum, statement) => sum + statement.amount, 0);
+  const pendingAmount = pendingAmountOnCard(card);
+  const blockFor = (label, statements, pendingExtra) => {
+    // Pending charges are inside the open statement's amount, so the big number shows what is posted and pending sits under it.
+    const total = statements.reduce((sum, statement) => sum + statement.amount, 0) - pendingExtra;
     const dueText = statements.length ? `due ${shortMonthDay(statements[0].due_date)}` : "nothing due";
-    return `<div><div class="stat-label">${label}</div><div class="big-number">${formatMoney(total)}</div><div class="small">${dueText}</div></div>`;
+    const pendingText = pendingExtra > 0 ? `<div class="small amber-text">+${formatMoney(pendingExtra)} pending</div>` : "";
+    return `<div><div class="stat-label">${label}</div><div class="big-number">${formatMoney(total)}</div><div class="small">${dueText}</div>${pendingText}</div>`;
   };
-  return `<div class="big-pair">${blockFor("Closed", closed)}${blockFor("Open", open)}</div>`;
+  return `<div class="big-pair">${blockFor("Closed", closed, 0)}${blockFor("Open", open, pendingAmount)}</div>`;
+}
+
+// The pending charges behind a card's pending amount, when the bank shares them.
+function pendingDetailsHtml(settings, cardKey) {
+  const card = settings.credit_cards[cardKey];
+  const pendingAmount = pendingAmountOnCard(card);
+  if (pendingAmount <= 0) return "";
+  const store = loadTransactionStore();
+  const listed = pendingChargesForCard(store, settings, cardKey);
+  if (listed.length === 0) return `<div class="small">Pending charges are counted in this card's open amount. The bank does not share the details.</div>`;
+  return `<details class="pending-details"><summary class="small">${listed.length} pending charge${listed.length === 1 ? "" : "s"}, counted in open</summary>${listed.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>`;
 }
 
 function shortMonthDay(dateText) {
@@ -162,6 +176,7 @@ function showCreditPage(settings) {
     return `<div class="tile"><div class="tile-row"><b>${card.display_name}</b><b class="${percentClass}">${plan.projectedPercent}%</b></div>
       <div class="bar target-bar"><div class="bar-fill" style="width:${barWidth}%"></div></div>
       ${closedAndOpenBlocks(card)}
+      ${pendingDetailsHtml(settings, cardKey)}
       <div class="verdict">${verdict}</div>
       <div class="stat-grid">
         <div><div class="stat-label">Plus subs</div>${formatMoney(plan.projectedStatement)}${estimateMark}</div>
@@ -298,6 +313,7 @@ function showExtraPages(settings) {
   showHsaPage(settings);
   showPtoPage(settings);
   showCarPage(settings);
+  showSpendingPage(settings);
   showTrackingPages(settings);
   showOvertimePlanner(settings);
 }
