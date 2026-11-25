@@ -1,22 +1,29 @@
 // Goals tab (savings goals) and Track tab (net worth history, credit score log, monthly recap).
 
 function showGoalsPage(settings) {
-  const goals = settings.savings_goals;
   const savingsBalance = settings.starting_balances.savings_balance;
-  const setAside = goals.reduce((sum, goal) => sum + goal.saved, 0);
-  const notAssigned = Math.round((savingsBalance - setAside) * 100) / 100;
+  const goals = goalsWithSaved(settings.savings_goals, savingsBalance);
+  const followsSavings = goals.some((goal) => goal.tracks_savings);
+  // A goal that follows savings holds the whole balance, so nothing is left unassigned.
+  const setAside = followsSavings ? savingsBalance : goals.reduce((sum, goal) => sum + goal.saved, 0);
+  const notAssigned = followsSavings ? 0 : Math.round((savingsBalance - setAside) * 100) / 100;
+  const setAsideShare = savingsBalance > 0 ? Math.max(0, Math.min(100, Math.round((setAside / savingsBalance) * 100))) : 0;
   const tiles = goals.map((goal, position) => {
     const { percent, remaining } = goalProgress(goal);
-    return `<div class="tile"><div class="tile-row"><b>${escapeHtml(goal.name)}</b><button class="remove-link" data-remove-goal="${position}">remove</button></div>
-      <div class="tile-row"><span>${editableNumber(`savings_goals.${position}.saved`, goal.name + ": saved so far ($)", goal.saved, true)}</span>
+    const savedText = goal.tracks_savings ? formatMoney(goal.saved) : editableNumber(`savings_goals.${position}.saved`, goal.name + ": saved so far ($)", goal.saved, true);
+    return `<div class="tile goal-tile"><div class="tile-row"><b class="goal-name">${escapeHtml(goal.name)}</b><span class="goal-percent">${percent}%</span>
+        <button class="remove-link" data-remove-goal="${position}">remove</button></div>
+      <div class="goal-amounts"><span class="goal-saved">${savedText}</span>
         <span class="small">of ${editableNumber(`savings_goals.${position}.target`, goal.name + ": goal amount ($)", goal.target, true)}</span></div>
-      <div class="bar"><div class="bar-fill" style="width:${percent}%"></div></div>
-      <div class="small">${percent}% there, ${formatMoney(remaining)} to go</div></div>`;
+      <div class="bar goal-bar"><div class="bar-fill" style="width:${percent}%"></div></div>
+      <div class="tile-row small"><span>${percent}% there, ${formatMoney(remaining)} to go</span>
+        <button class="goal-mode" data-toggle-goal-tracking="${position}">${goal.tracks_savings ? "Follows my savings" : "Separate tally"}</button></div></div>`;
   }).join("");
   document.getElementById("goals-list").innerHTML = `<h2>Savings goals</h2>
-    <div class="tile"><div class="small">In savings</div><div class="big-number">${formatMoney(savingsBalance)}</div>
-      <div class="tile-row small"><span>Set aside for goals</span><span>${formatMoney(setAside)}</span></div>
-      <div class="tile-row small"><span>Not assigned to a goal</span><span class="${notAssigned < 0 ? "negative" : ""}">${formatMoney(notAssigned)}</span></div>
+    <div class="tile savings-hero"><div class="small">In savings</div><div class="huge-number">${formatMoney(savingsBalance)}</div>
+      <div class="payer-bar"><div class="seg" style="width:${setAsideShare}%;background:var(--accent)"></div></div>
+      <div class="tile-row small"><span><span class="dot" style="background:var(--accent)"></span>Set aside for goals</span><span>${formatMoney(setAside)}</span></div>
+      <div class="tile-row small"><span><span class="dot" style="background:var(--bar-track)"></span>Not assigned to a goal</span><span class="${notAssigned < 0 ? "negative" : ""}">${formatMoney(notAssigned)}</span></div>
       ${notAssigned < 0 ? `<div class="small negative">Your goals add up to more than what is in savings.</div>` : ""}</div>
     ${tiles || `<div class="tile small">No goals yet.</div>`}
     <button id="add-goal-button">Add goal</button>`;
@@ -40,7 +47,7 @@ function showWhatIfSaving(settings) {
   const weeklyAmount = parseFloat(weeklyBox.value) || 0;
   const endDate = document.getElementById("plan-end-date").value;
   if (weeklyAmount <= 0 || !endDate) { resultBox.innerHTML = ""; return; }
-  const goal = settings.savings_goals[document.getElementById("goal-plan-goal").value];
+  const goal = goalsWithSaved(settings.savings_goals, settings.starting_balances.savings_balance)[document.getElementById("goal-plan-goal").value];
   const result = savingsUntilDate(settings.starting_balances.savings_balance, weeklyAmount, endDate, todayText(), settings.expected_money, goal);
   if (!result) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
   const weeks = result.weeks;
@@ -55,12 +62,16 @@ function showWhatIfSaving(settings) {
 // The list of money you know is coming in (goes to savings) or going out (leaves checking).
 function showExpectedMoney(settings) {
   const items = (settings.expected_money || []).map((item, position) => ({ ...item, position })).sort((a, b) => (a.date < b.date ? -1 : 1));
-  const rows = items.map((item) => `<div class="tile"><div class="tile-row"><b>${escapeHtml(item.label || (item.kind === "out" ? "Money going out" : "Money coming in"))}</b>
-      <button class="remove-link" data-remove-expected="${item.position}">remove</button></div>
-    <div class="tile-row small"><span>${formatDate(item.date)}${item.kind === "out" ? " (out of checking)" : " (into savings)"}${item.date <= todayText() ? " - date has passed, not counted" : ""}</span>
-      <span class="${item.kind === "out" ? "negative" : "positive"}">${item.kind === "out" ? "-" : "+"}${formatMoney(item.amount)}</span></div></div>`).join("");
+  const rows = items.map((item) => {
+    const isOut = item.kind === "out";
+    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
+      <div class="expected-body"><b>${escapeHtml(item.label || (isOut ? "Money going out" : "Money coming in"))}</b>
+        <div class="small">${formatDate(item.date)}${isOut ? " (out of checking)" : " (into savings)"}${item.date <= todayText() ? " - date has passed, not counted" : ""}</div></div>
+      <b class="${isOut ? "negative" : "positive"}">${isOut ? "-" : "+"}${formatMoney(item.amount)}</b>
+      <button class="remove-link" data-remove-expected="${item.position}">remove</button></div>`;
+  }).join("");
   document.getElementById("expected-money-list").innerHTML = `${rows || `<div class="tile small">Nothing listed. Add a bonus, gift, tuition or any amount with a known date.</div>`}
-    <button id="add-expected-in-button">Add money coming in</button> <button id="add-expected-out-button">Add money going out</button>`;
+    <div class="expected-buttons"><button id="add-expected-in-button">Add money coming in</button><button id="add-expected-out-button">Add money going out</button></div>`;
 }
 
 for (const inputId of ["plan-weekly-amount", "plan-end-date"]) {
@@ -77,7 +88,7 @@ function showGoalDatePlanner(settings) {
   goalMenu.innerHTML = settings.savings_goals.map((goal, position) => `<option value="${position}">${escapeHtml(goal.name)}</option>`).join("");
   if (previousChoice && goalMenu.options[previousChoice]) goalMenu.value = previousChoice;
   const resultBox = document.getElementById("goal-plan-result");
-  const goal = settings.savings_goals[goalMenu.value];
+  const goal = goalsWithSaved(settings.savings_goals, settings.starting_balances.savings_balance)[goalMenu.value];
   const targetDate = document.getElementById("goal-plan-date").value;
   if (!goal) { resultBox.innerHTML = `<div class="small">Add a goal first.</div>`; return; }
   if (!targetDate) { resultBox.innerHTML = ""; return; }
@@ -135,7 +146,7 @@ function showTrackPage(settings) {
   const fixedCosts = totalsForItems(monthlyItemsForTab(settings, "subscriptions")).monthlyTotal
     + totalsForItems(monthlyItemsForTab(settings, "expenses")).monthlyTotal + totalAnnualFees(settings) / 12;
   const recap = monthlyRecap({
-    netWorthHistory: history, creditScores: scores, goals: settings.savings_goals,
+    netWorthHistory: history, creditScores: scores, goals: goalsWithSaved(settings.savings_goals, settings.starting_balances.savings_balance),
     monthlyIncome: (settings.paycheck.usual_take_home_amount * 52) / 12, monthlyFixedCosts: fixedCosts, yearMonth,
   });
   const recapRows = [
@@ -237,8 +248,12 @@ document.addEventListener("click", async (event) => {
     if (!name) return;
     const target = parseFloat(prompt("Goal amount ($)"));
     if (!target || target <= 0) return;
-    const saved = parseFloat(prompt("Already saved toward it ($)", "0")) || 0;
-    settings.savings_goals.push({ name, target, saved });
+    if (confirm("Should this goal follow your savings account balance?\n\nOK = follows my savings\nCancel = keep a separate tally")) {
+      settings.savings_goals.push({ name, target, saved: settings.starting_balances.savings_balance, tracks_savings: true });
+    } else {
+      const saved = parseFloat(prompt("Already saved toward it ($)", "0")) || 0;
+      settings.savings_goals.push({ name, target, saved });
+    }
   } else if (event.target.id === "add-todo-button") {
     const name = prompt("What do you need to do?");
     if (!name) return;
@@ -255,6 +270,10 @@ document.addEventListener("click", async (event) => {
   } else if (event.target.closest("[data-remove-todo]")) {
     if (!confirm("Remove this item?")) return;
     settings.todo_items.splice(Number(event.target.closest("[data-remove-todo]").dataset.removeTodo), 1);
+  } else if (event.target.closest("[data-toggle-goal-tracking]")) {
+    const goal = settings.savings_goals[Number(event.target.closest("[data-toggle-goal-tracking]").dataset.toggleGoalTracking)];
+    // Switching to a separate tally keeps today's amount, so the number does not jump.
+    if (goal.tracks_savings) { goal.saved = settings.starting_balances.savings_balance; goal.tracks_savings = false; } else { goal.tracks_savings = true; }
   } else if (event.target.closest("[data-remove-goal]")) {
     if (!confirm("Remove this goal?")) return;
     settings.savings_goals.splice(Number(event.target.closest("[data-remove-goal]").dataset.removeGoal), 1);

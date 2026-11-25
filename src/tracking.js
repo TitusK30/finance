@@ -4,6 +4,11 @@ function roundTrackedMoney(amount) {
   return Math.round(amount * 100) / 100;
 }
 
+// A goal can follow your savings account (goal.tracks_savings): its saved amount is then the savings balance, not a separate tally.
+function goalsWithSaved(goals, savingsBalance) {
+  return (goals || []).map((goal) => goal.tracks_savings ? { ...goal, saved: savingsBalance } : goal);
+}
+
 function goalProgress(goal) {
   const percent = goal.target > 0 ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0;
   return { percent, remaining: Math.max(0, roundTrackedMoney(goal.target - goal.saved)) };
@@ -103,5 +108,5 @@ function monthlyRecap({ netWorthHistory, creditScores, goals, monthlyIncome, mon
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { expectedMoneyBetween, goalProgress, weeklySavingsNeeded, savingsUntilDate, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
+  module.exports = { goalsWithSaved, expectedMoneyBetween, goalProgress, weeklySavingsNeeded, savingsUntilDate, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
 }
