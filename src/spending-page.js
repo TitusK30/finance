@@ -93,8 +93,8 @@ function showSpendingPage(settings) {
     ${notSeen.length ? `<div class="small not-seen"><b>Not seen yet this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge));
-  const pendingTile = pending.length ? `<div class="tile"><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
-    <div class="small">Charged, but not on your balance yet. Some banks do not share these.</div>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</div>` : "";
+  const pendingTile = pending.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
+    <div class="small">Charged, but not on your balance yet. Some banks do not share these.</div></summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
   const categoryRows = month.categories.map((entry) => `<details class="tile category-tile">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
