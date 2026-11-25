@@ -72,7 +72,7 @@ function categoryOf(transaction) {
   if (GROCERY_STORES.test(text)) return "GROCERIES";
   if (FOOD_STORES.test(text)) return "FOOD_AND_DRINK";
   if (/sephora/.test(text) || transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
-  if (/csc serviceworks|airup/.test(text)) return "TRANSPORTATION";
+  if (/csc serviceworks|airup|7eleven/.test(text)) return "TRANSPORTATION";
   if (/onxmaps/.test(text)) return "GENERAL_SERVICES";
   if (transaction.category === "GOVERNMENT_AND_NON_PROFIT") return "GENERAL_SERVICES";
   return transaction.category && CATEGORY_NAMES[transaction.category] ? transaction.category : "OTHER";
