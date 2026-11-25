@@ -208,7 +208,23 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   localStorage.setItem(STORAGE_KEY + "_file_name", chosenFile.name);
   event.target.value = "";
   showEverything();
+  showDataNote(`Settings file "${chosenFile.name}" loaded at ${timeNowText()}.`);
 });
+
+function timeNowText() {
+  return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+// Message under the Data section of Settings.
+function showDataNote(text) {
+  document.getElementById("data-note").textContent = text;
+}
+
+// "Update app" reloads with ?fresh=...; say so once the new files are in, then tidy the address.
+if (location.search.includes("fresh=")) {
+  showDataNote(`App updated at ${timeNowText()}.`);
+  history.replaceState(null, "", location.pathname);
+}
 
 // A new web address makes iOS fetch the latest files. Your saved data is not touched.
 document.getElementById("update-app-button").addEventListener("click", () => {
