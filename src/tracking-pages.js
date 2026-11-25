@@ -135,15 +135,26 @@ function historyRows(entries, valueKey, listName, isMoney, labelFor) {
   }).join("");
 }
 
-// The latest credit score as a tile on Home, with a button to log a new one.
+// The latest credit score on Home. Tap the number to log a new one; open the tile for one entry per month (the last log of that month).
 function showCreditScoreTile(settings) {
   const scores = settings.credit_scores;
   const latest = scores[scores.length - 1];
   const band = !latest ? "" : latest.score >= 740 ? "score-great" : latest.score >= 670 ? "score-good" : "score-low";
-  document.getElementById("credit-score-tile").innerHTML = `<div class="tile score-home ${band}">
-    <div><div class="small">Credit score</div>
-      ${latest ? `<div class="huge-number">${latest.score}</div><div class="small">${latest.source ? escapeHtml(latest.source) + " &middot; " : ""}${formatDate(latest.date)}</div>` : `<div class="small">No scores logged yet.</div>`}</div>
-    <button id="add-score-button" class="score-button">Log a score</button></div>`;
+  const lastLogOfMonth = {};
+  for (const entry of [...scores].sort((a, b) => (a.date < b.date ? -1 : 1))) lastLogOfMonth[entry.date.slice(0, 7)] = entry;
+  const months = Object.keys(lastLogOfMonth).sort().reverse();
+  const monthRows = months.map((month, position) => {
+    const entry = lastLogOfMonth[month];
+    const earlier = lastLogOfMonth[months[position + 1]];
+    const monthName = new Date(month + "-15T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    return `<div class="tile-row small"><span>${monthName}${entry.source ? ` (${escapeHtml(entry.source)})` : ""}</span><span>${entry.score} ${earlier ? changeText(entry.score - earlier.score, false) : ""}</span></div>`;
+  }).join("");
+  document.getElementById("credit-score-tile").innerHTML = `<details class="tile score-home ${band}"><summary>
+    <div><div class="small">Credit score &middot; tap the number to log a new one</div>
+      <button id="add-score-button" class="score-number">${latest ? latest.score : "Log a score"}</button>
+      ${latest ? `<div class="small">${latest.source ? escapeHtml(latest.source) + " &middot; " : ""}${formatDate(latest.date)}</div>` : ""}</div>
+    ${months.length ? `<span class="score-chevron">&#9662;</span>` : ""}</summary>
+    ${months.length ? `<div class="score-history">${monthRows}</div>` : ""}</details>`;
 }
 
 const URGENCY_WORDS = { overdue: "overdue", soon: "due soon", upcoming: "coming up", later: "later", none: "no date" };
