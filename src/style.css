@@ -167,4 +167,3 @@ html, body { overflow-x: hidden; }
 .date-buttons { display: flex; gap: 8px; }
 .date-buttons button { flex: 1; margin: 0; }
 .date-buttons .primary { background: #4a9eff; color: #04111f; font-weight: 600; }
-#stop-weekly-plan-button[hidden] { display: none; }

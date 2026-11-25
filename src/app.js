@@ -54,7 +54,7 @@ function transferSentence(settings, forecast) {
     : sentence;
 }
 
-// Home and Goals: how much you could put on your cards and still keep the checking floor.
+// Home: how much you could put on your cards and still keep the checking floor.
 function showSpendingPlan(settings, forecast) {
   const floor = formatMoney(settings.minimum_checking_floor);
   const room = cardRoom(forecast, settings.minimum_checking_floor);
@@ -62,7 +62,6 @@ function showSpendingPlan(settings, forecast) {
       <div class="big-number">${formatMoney(room.amount)}</div>
       <div class="small">Keeps checking at or above your ${floor} floor, counting your closed and open statements, pending charges, bills, subs and fees. Cautious: it treats the spending as coming out on the tightest day, ${formatDate(room.tightestDate)}.</div></div>`;
   document.getElementById("spending-plan").innerHTML = roomTile;
-  document.getElementById("goal-spending-room").innerHTML = roomTile;
 }
 
 function showTransferAdvice(settings, forecast) {
@@ -285,7 +284,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "savings_plan", "expected_money"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);

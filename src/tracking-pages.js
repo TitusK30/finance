@@ -25,10 +25,6 @@ function showGoalsPage(settings) {
   showWhatIfSaving(settings);
 }
 
-function savingsPlanWeekly(settings) {
-  return (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
-}
-
 // One row per listed amount that counts (green = reaches savings, red = leaves), plus a note for any that do not count.
 function expectedMoneyRows(expected) {
   const row = (item, isOut) => `<div class="tile-row small"><span>${escapeHtml(item.label || (isOut ? "Money going out" : "Money coming in"))}, ${formatDate(item.date)}</span><span class="${isOut ? "negative" : "positive"}">${isOut ? "-" : "+"}${formatMoney(item.amount)}</span></div>`;
@@ -37,13 +33,9 @@ function expectedMoneyRows(expected) {
   return expected.inItems.map((item) => row(item, false)).join("") + expected.outItems.map((item) => row(item, true)).join("") + skippedNote;
 }
 
-// "If I save $X a week for N weeks, what will savings be?" Counts the money you listed as coming in. Typing here does not change your plan until you press the button.
+// "If I save $X a week for N weeks, what will savings be?" Counts the money you listed as coming in.
 function showWhatIfSaving(settings) {
   const weeklyBox = document.getElementById("plan-weekly-amount");
-  const planAmount = savingsPlanWeekly(settings);
-  if (!weeklyBox.dataset.typed) weeklyBox.value = planAmount || "";
-  document.getElementById("stop-weekly-plan-button").hidden = !planAmount;
-  document.getElementById("plan-current-note").textContent = planAmount ? `My plan right now: ${formatMoney(planAmount)} a week` : "No weekly plan set yet";
   const resultBox = document.getElementById("plan-what-if-result");
   const weeklyAmount = parseFloat(weeklyBox.value) || 0;
   const weeks = parseInt(document.getElementById("plan-weeks").value, 10) || 0;
@@ -55,8 +47,7 @@ function showWhatIfSaving(settings) {
     <div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
     <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span>+${formatMoney(result.fromSaving)}</span></div>
     ${expectedMoneyRows(result.expected)}
-    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}
-    <button id="make-weekly-plan-button" data-weekly="${weeklyAmount}">Make ${formatMoney(weeklyAmount)} a week my plan</button></div>`;
+    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}</div>`;
 }
 
 // The list of money you know is coming in (goes to savings) or going out (leaves checking).
@@ -72,7 +63,6 @@ function showExpectedMoney(settings) {
 
 for (const inputId of ["plan-weekly-amount", "plan-weeks"]) {
   document.getElementById(inputId).addEventListener("input", () => {
-    if (inputId === "plan-weekly-amount") document.getElementById(inputId).dataset.typed = "yes";
     const settings = loadSettings();
     if (settings) showWhatIfSaving(settings);
   });
@@ -102,8 +92,7 @@ function showGoalDatePlanner(settings) {
       <div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div>
       <div class="tile-row small"><span>Weeks until ${formatDate(targetDate)}</span><span>${plan.weeksLeft}</span></div>
       <div class="tile-row small"><span>About per month</span><span>${formatMoney(plan.perMonth)}</span></div>
-      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div>
-      <button id="use-weekly-plan-button" data-weekly="${plan.perWeek}">Use ${formatMoney(plan.perWeek)} a week as my plan</button></div>`;
+      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div></div>`;
 }
 
 for (const inputId of ["goal-plan-goal", "goal-plan-date"]) {
@@ -219,13 +208,7 @@ function showTrackingPages(settings) {
 document.addEventListener("click", async (event) => {
   const settings = loadSettings();
   if (!settings) return;
-  if (event.target.id === "use-weekly-plan-button" || event.target.id === "make-weekly-plan-button") {
-    settings.savings_plan = { weekly_amount: parseFloat(event.target.dataset.weekly) || 0 };
-    delete document.getElementById("plan-weekly-amount").dataset.typed;
-  } else if (event.target.id === "stop-weekly-plan-button") {
-    settings.savings_plan = { weekly_amount: 0 };
-    delete document.getElementById("plan-weekly-amount").dataset.typed;
-  } else if (event.target.id === "add-expected-in-button" || event.target.id === "add-expected-out-button") {
+  if (event.target.id === "add-expected-in-button" || event.target.id === "add-expected-out-button") {
     const kind = event.target.id === "add-expected-out-button" ? "out" : "in";
     const date = await askForDate(kind === "out" ? "Date the money leaves?" : "Date the money arrives?", "");
     if (!date) return;

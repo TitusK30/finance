@@ -248,8 +248,9 @@ relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
 finance_settings.example.json   fake data showing the file format
 ```
 
-### Weekly savings plan
-- On the Goals tab, type how much you save each week. The app shows what savings would be after a number of weeks, counting any expected lump sum you entered.
-- Home and Goals then show how much you can spend this week and this month while still moving that amount to savings and keeping your checking floor.
-- "Money coming and going" (Goals tab) lists known amounts with dates. Money coming in counts toward savings goals and the what-if; money going out lowers checking in the spending room.
-- "Room to put on your cards" (Home and Goals): the lowest checking day in the next 60 days minus your floor, counting statements (open ones too), pending, bills, subs and fees.
+### Goals tab
+- "Finish by a date" shows how much to save each week to reach a goal by a date.
+- "Save a set amount" shows what savings would be after a number of weeks at an amount you type.
+- "Money coming and going" lists known amounts with dates. Money coming in counts toward both results; money going out lowers them.
+- Goals stay on the Goals tab. Nothing there changes Home.
+- "Room to put on your cards" (Home): the lowest checking day in the next 60 days minus your floor, counting statements (open ones too), pending, bills, subs and fees.
