@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261125f">
+  <link rel="stylesheet" href="src/style.css?v=20261125g">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,12 +19,13 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" hidden></button>
   </div>
-  <script src="src/lock.js?v=20261125f"></script>
+  <script src="src/lock.js?v=20261125g"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="menu-overlay" hidden></div>
 
   <section id="setup" hidden>
-    <p>No data on this device yet. Open the menu, then Settings, and load your settings file once.</p>
+    <p>No data on this device yet. Open the menu, then Settings, and load your settings file once, or set everything up inside the app.</p>
+    <button id="start-setup-button">Set up in the app</button>
   </section>
 
   <div id="page-home">
@@ -76,6 +77,7 @@
     <div id="page-credit"></div>
     <div id="page-rewards"></div>
   </div>
+  <div id="page-setup" hidden></div>
   <div id="page-hsa" hidden></div>
   <div id="page-pto" hidden></div>
   <div id="page-settings" hidden>
@@ -84,6 +86,7 @@
       <label class="list-row">Load settings file
         <input id="settings-file-input" type="file" accept=".json" hidden>
       </label>
+      <button class="list-row" id="open-setup-button">Set up in the app</button>
       <button class="list-row" id="export-backup-button">Export backup</button>
       <button class="list-row" id="update-app-button">Update app</button>
     </div>
@@ -135,19 +138,21 @@
     <button id="tab-hsa" data-title="HSA"><span class="menu-icon">🩺</span>HSA</button>
     <button id="tab-pto" data-title="PTO"><span class="menu-icon">🌴</span>PTO</button>
     <button id="tab-todo" data-title="Tasks"><span class="menu-icon">✅</span>Tasks</button>
+    <button id="tab-setup" data-title="Set up" hidden></button>
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261125f"></script>
-  <script src="src/summaries.js?v=20261125f"></script>
-  <script src="src/spending.js?v=20261125f"></script>
-  <script src="src/plaid-sync.js?v=20261125f"></script>
-  <script src="src/loan.js?v=20261125f"></script>
-  <script src="src/bills.js?v=20261125f"></script>
-  <script src="src/spending-page.js?v=20261125f"></script>
-  <script src="src/tracking.js?v=20261125f"></script>
-  <script src="src/tracking-pages.js?v=20261125f"></script>
-  <script src="src/extra-pages.js?v=20261125f"></script>
-  <script src="src/app.js?v=20261125f"></script>
+  <script src="src/forecast.js?v=20261125g"></script>
+  <script src="src/summaries.js?v=20261125g"></script>
+  <script src="src/spending.js?v=20261125g"></script>
+  <script src="src/plaid-sync.js?v=20261125g"></script>
+  <script src="src/loan.js?v=20261125g"></script>
+  <script src="src/bills.js?v=20261125g"></script>
+  <script src="src/spending-page.js?v=20261125g"></script>
+  <script src="src/tracking.js?v=20261125g"></script>
+  <script src="src/tracking-pages.js?v=20261125g"></script>
+  <script src="src/extra-pages.js?v=20261125g"></script>
+  <script src="src/setup-page.js?v=20261125g"></script>
+  <script src="src/app.js?v=20261125g"></script>
 </body>
 </html>

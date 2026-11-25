@@ -1,6 +1,6 @@
 // Tab bar, plus the Subscriptions, Rewards and HSA pages. Taps on dotted numbers edit them.
 
-const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goals", "track", "hsa", "pto", "todo", "settings"];
+const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goals", "track", "hsa", "pto", "todo", "setup", "settings"];
 
 const DEFAULT_EXTRA_SETTINGS = {
   rewards: {},
@@ -314,6 +314,7 @@ function showExtraPages(settings) {
   showPtoPage(settings);
   showCarPage(settings);
   showSpendingPage(settings);
+  showSetupPage(settings);
   showTrackingPages(settings);
   showOvertimePlanner(settings);
 }

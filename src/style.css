@@ -107,3 +107,6 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 .pending-details summary { cursor: pointer; color: var(--warning); }
 .mark-button { background: none; border: 0; color: var(--accent); font-size: 12px; padding: 2px 0; margin: 0; width: auto; text-decoration: underline; }
 .not-seen { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--bar-track); }
+.setup-label { display: block; margin-top: 10px; }
+.setup-label input[type="checkbox"] { display: inline-block; width: auto; margin-right: 8px; }
+input[type="month"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; height: 44px; }

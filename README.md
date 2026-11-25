@@ -56,6 +56,8 @@ Turn on two-factor sign-in for GitHub, Cloudflare and Plaid. Plaid's setting is 
 
 ## Step 2. Load your own numbers
 
+**Two ways, pick either (or mix them):** the settings file below, or no file at all: open the app, then menu → Settings → **Set up in the app**, and fill in your checking floor, payday, cards, bills, subscriptions, car loan and overtime on the page. Loading a settings file later never wipes what the bank refresh or you typed in the app.
+
 The public app is a blank shell. Your data comes from a settings file that you load once.
 
 1. Copy `finance_settings.example.json` to a file named `finance_settings.json` (already git-ignored).
