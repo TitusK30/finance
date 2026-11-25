@@ -83,7 +83,9 @@ function showMonthOutlook(settings) {
   const yearMonth = todayText().slice(0, 7);
   if (spendingCharges(store).length === 0) { box.innerHTML = ""; return; }
   const billMatches = matchBills(settings, store, loadBillMarks(), todayText());
-  const everythingElse = monthlyBreakdown(nonBillCharges(settings, store, billMatches), yearMonth).total;
+  // Everything else = non-bill spending, plus money sent out by Zelle, Venmo and transfers, minus money received that way.
+  const transfers = transfersInMonth(store, yearMonth, settings, (charge) => Boolean(billMatches.billCharges[charge.transaction_id]));
+  const everythingElse = monthlyBreakdown(nonBillCharges(settings, store, billMatches), yearMonth).total + transfers.totalOut - transfers.totalIn;
   const billsCharged = Object.values(store.transactions).filter((charge) => billMatches.billCharges[charge.transaction_id] && charge.date.startsWith(yearMonth) && charge.amount > 0).reduce((sum, charge) => sum + charge.amount, 0);
   const billsUnpaid = ((billMatches.byMonth[yearMonth] || { unseen: [] }).unseen).reduce((sum, bill) => sum + bill.amount, 0);
   const earnedSoFar = earnedInMonth(store, yearMonth, settings).total;
@@ -133,6 +135,8 @@ function showSpendingPage(settings) {
   if (!months.includes(spendingMonthShown)) spendingMonthShown = months[0];
   const position = months.indexOf(spendingMonthShown);
   const month = monthlyBreakdown(charges, spendingMonthShown);
+  const transfers = transfersInMonth(store, spendingMonthShown, settings, isBill);
+  const everythingElseTotal = Math.round((month.total + transfers.totalOut - transfers.totalIn) * 100) / 100;
   const olderMonth = months[position + 1];
   const newerMonth = months[position - 1];
   const monthButton = (label, target) => target ? `<button class="small-button" data-spending-month="${target}">${label}</button>` : `<button class="small-button" disabled>${label}</button>`;
@@ -142,7 +146,7 @@ function showSpendingPage(settings) {
   const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
   const notSeen = (billMatches.byMonth[spendingMonthShown] || { unseen: [] }).unseen;
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
-  const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + month.total)) * 100) : 0;
+  const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
   const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
@@ -176,14 +180,13 @@ function showSpendingPage(settings) {
   // Estimated month: pay earned plus paychecks still ahead, minus everything spent plus bills still to pay.
   const isCurrentMonth = spendingMonthShown === todayText().slice(0, 7);
   const estimatedEarned = earned.total + expectedPayLeft;
-  const estimatedSpent = month.total + billsTotal + (isCurrentMonth ? stillToPay : 0);
+  const estimatedSpent = everythingElseTotal + billsTotal + (isCurrentMonth ? stillToPay : 0);
   const leftToSpend = Math.round((estimatedEarned - estimatedSpent) * 100) / 100;
   const leftTile = `<div class="tile"><div class="small">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
     <div class="big-number ${leftToSpend >= 0 ? "positive" : "negative"}">${formatMoney(leftToSpend)}</div>
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
     <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
 
-  const transfers = transfersInMonth(store, spendingMonthShown, settings, isBill);
   const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
   const transfersTile = transfers.items.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Transfers</b><span><b class="positive">+${formatMoney(transfers.totalIn)}</b> <b class="negative">&minus;${formatMoney(transfers.totalOut)}</b></span></div>
     <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}: Zelle, Venmo and bank transfers</div></summary>${transferRows}</details>` : "";
@@ -193,11 +196,11 @@ function showSpendingPage(settings) {
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>
     <div class="tile"><div class="small">Total spent this month</div>
-      <div class="huge-number">${formatMoney(Math.round((month.total + billsTotal) * 100) / 100)}</div>
+      <div class="huge-number">${formatMoney(Math.round((everythingElseTotal + billsTotal) * 100) / 100)}</div>
       <div class="split-bar"><div class="split-bills" style="width:${billsSharePercent}%"></div></div>
       <div class="split-columns">
         <div><div class="small"><span class="dot dot-bills"></span>Bills and subscriptions</div><div class="split-number">${formatMoney(billsTotal)}</div></div>
-        <div class="split-right"><div class="small"><span class="dot dot-else"></span>Everything else</div><div class="split-number">${formatMoney(month.total)}</div>${month.pendingTotal > 0 ? `<div class="small">incl. ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
+        <div class="split-right"><div class="small"><span class="dot dot-else"></span>Everything else</div><div class="split-number">${formatMoney(everythingElseTotal)}</div>${month.pendingTotal > 0 ? `<div class="small">incl. ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
       </div>
       ${stillToPayLine}</div>
     ${earnedTile}
