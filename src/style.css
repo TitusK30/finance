@@ -192,3 +192,13 @@ html, body { overflow-x: hidden; }
 .outlook-legend-item b { grid-column: 2; font-size: 16px; }
 .outlook-rows { border-top: 1px solid var(--bar-track); padding-top: 10px; display: grid; gap: 6px; font-size: 14px; }
 .outlook-total { border-top: 1px dashed var(--bar-track); padding-top: 6px; }
+
+.balance-tile { position: relative; overflow: hidden; padding-left: 16px; }
+.balance-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tile-accent); }
+.balance-tile { background-image: linear-gradient(135deg, color-mix(in srgb, var(--tile-accent) 16%, transparent), transparent 70%); }
+.balance-checking { --tile-accent: var(--accent); }
+.balance-savings { --tile-accent: var(--good); }
+.balance-retirement { --tile-accent: #a78bfa; }
+.balance-networth { --tile-accent: var(--warning); }
+.chart-headline { margin-bottom: 4px; }
+.chart-low { font-size: 28px; font-weight: 700; }

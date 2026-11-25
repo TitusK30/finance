@@ -1,5 +1,4 @@
 const STORAGE_KEY = "finance_os_settings";
-const HORIZON_DAYS = [10, 20, 30, 40];
 const MINIMUM_ADVICE_DAYS = 60;
 
 function formatMoney(amount) {
@@ -31,10 +30,10 @@ function saveSettings(settings) {
 function showBalances(settings) {
   const { checking_balance, savings_balance } = settings.starting_balances;
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
-    <div class="tile"><div class="small">Checking now</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
-    <div class="tile"><div class="small">Savings</div><div class="big-number">${editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
-    <div class="tile"><div class="small">Retirement</div><div class="big-number">${formatMoney(settings.retirement.balance || 0)}</div></div>
-    <div class="tile"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div><div class="small">counts only what is filled in</div></div></div>`;
+    <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
+    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
+    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${formatMoney(settings.retirement.balance || 0)}</div></div>
+    <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div></div></div>`;
 }
 
 function adviceDaysFor(settings, purchases) {
@@ -54,16 +53,6 @@ function transferSentence(settings, forecast) {
     : sentence;
 }
 
-// Home: how much you could put on your cards and still keep the checking floor.
-function showSpendingPlan(settings, forecast) {
-  const floor = formatMoney(settings.minimum_checking_floor);
-  const room = cardRoom(forecast, settings.minimum_checking_floor);
-  const roomTile = `<div class="tile ${room.amount > 0 ? "good" : "warning"}"><div class="small">Room to put on your cards, next ${room.days} days, all cards together</div>
-      <div class="big-number">${formatMoney(room.amount)}</div>
-      <div class="small">Keeps checking at or above your ${floor} floor, counting your closed and open statements, pending charges, bills, subs and fees. Cautious: it treats the spending as coming out on the tightest day, ${formatDate(room.tightestDate)}.</div></div>`;
-  document.getElementById("spending-plan").innerHTML = roomTile;
-}
-
 function showTransferAdvice(settings, forecast) {
   const box = document.getElementById("transfer-advice");
   const floor = formatMoney(settings.minimum_checking_floor);
@@ -75,21 +64,7 @@ function showTransferAdvice(settings, forecast) {
   }
 }
 
-function showHorizonCards(settings, forecast) {
-  const startDate = settings.starting_balances.as_of_date;
-  const cards = HORIZON_DAYS.map((numberOfDays) => {
-    const daysInWindow = forecast.days.slice(0, numberOfDays);
-    const endBalance = daysInWindow[daysInWindow.length - 1].checking_balance;
-    const lowestInWindow = Math.min(...daysInWindow.map((day) => day.checking_balance));
-    const lowClass = lowestInWindow < settings.minimum_checking_floor ? "negative" : "positive";
-    return `<div class="tile"><div class="small">${numberOfDays} days out</div>
-      <div class="big-number">${formatMoney(endBalance)}</div>
-      <div class="small ${lowClass}">low ${formatMoney(lowestInWindow)}</div></div>`;
-  });
-  document.getElementById("horizon-cards").innerHTML = `<div class="horizon-grid">${cards.join("")}</div>`;
-}
-
-// Line chart of the predicted checking balance, one point per day. Dashed line is the minimum floor.
+// Line chart of the predicted checking balance, one point per day: a single line with a soft fill, a dashed floor and the lowest day marked.
 function showBalanceChart(settings, forecast) {
   const days = forecast.days.slice(0, 40);
   const balances = days.map((day) => day.checking_balance);
@@ -97,24 +72,37 @@ function showBalanceChart(settings, forecast) {
   const low = Math.min(...balances, floor);
   const high = Math.max(...balances, floor);
   const spread = high - low || 1;
-  const left = 52, right = 350, top = 10, bottom = 170;
+  const left = 50, right = 346, top = 16, bottom = 168;
   const xFor = (dayNumber) => left + ((dayNumber - 1) / (days.length - 1)) * (right - left);
   const yFor = (balance) => bottom - ((balance - low) / spread) * (bottom - top);
   const linePoints = balances.map((balance, position) => `${xFor(position + 1).toFixed(1)},${yFor(balance).toFixed(1)}`).join(" ");
-  const sideLabels = [low, (low + high) / 2, high].map((balance) =>
-    `<text x="${left - 6}" y="${yFor(balance) + 4}" text-anchor="end" class="chart-label">$${Math.round(balance).toLocaleString("en-US")}</text>`).join("");
-  const bottomLabels = [1, 10, 20, 30, 40].map((dayNumber) =>
-    `<text x="${xFor(dayNumber)}" y="${bottom + 16}" text-anchor="middle" class="chart-label">${dayNumber}</text>`).join("");
+  const areaPoints = `${left},${bottom} ${linePoints} ${right},${bottom}`;
+  const gridLines = [low, (low + high) / 2, high].map((balance) =>
+    `<line x1="${left}" y1="${yFor(balance)}" x2="${right}" y2="${yFor(balance)}" stroke="var(--bar-track)" stroke-width="1" opacity="0.6"/>
+     <text x="${left - 8}" y="${yFor(balance) + 4}" text-anchor="end" class="chart-label">$${Math.round(balance).toLocaleString("en-US")}</text>`).join("");
+  const dateLabels = [1, 10, 20, 30, 40].map((dayNumber) =>
+    `<text x="${xFor(dayNumber)}" y="${bottom + 18}" text-anchor="${dayNumber === 1 ? "start" : dayNumber === 40 ? "end" : "middle"}" class="chart-label">${dayNumber === 1 ? "Tomorrow" : shortMonthDay(days[dayNumber - 1].date)}</text>`).join("");
   const lowestPosition = balances.indexOf(Math.min(...balances));
-  document.getElementById("balance-chart").innerHTML = `<svg viewBox="0 0 360 205" width="100%">
-    <line x1="${left}" y1="${yFor(floor)}" x2="${right}" y2="${yFor(floor)}" stroke="var(--bad)" stroke-dasharray="4 3" stroke-width="1"/>
-    <line x1="${left}" y1="${top}" x2="${left}" y2="${bottom}" stroke="var(--bar-track)"/>
-    <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" stroke="var(--bar-track)"/>
-    <polyline points="${linePoints}" fill="none" stroke="var(--accent)" stroke-width="2"/>
-    <circle cx="${xFor(lowestPosition + 1)}" cy="${yFor(balances[lowestPosition])}" r="4" fill="var(--accent)"/>
-    ${sideLabels}${bottomLabels}
-    <text x="${(left + right) / 2}" y="203" text-anchor="middle" class="chart-label">Days from now</text></svg>
-    <div class="small">Lowest: ${formatMoney(balances[lowestPosition])} on ${formatDate(days[lowestPosition].date)}. Red dashes are your ${formatMoney(floor)} floor.</div>`;
+  const lowestX = xFor(lowestPosition + 1), lowestY = yFor(balances[lowestPosition]);
+  const lowestIsSafe = balances[lowestPosition] >= floor;
+  const lowestColor = lowestIsSafe ? "var(--good)" : "var(--bad)";
+  const calloutAbove = lowestY > top + 26;
+  document.getElementById("balance-chart").innerHTML = `<div class="chart-headline"><div class="small">Lowest point</div>
+      <div class="chart-low ${lowestIsSafe ? "positive" : "negative"}">${formatMoney(balances[lowestPosition])}</div>
+      <div class="small">${formatDate(days[lowestPosition].date)} \u00b7 ${lowestIsSafe ? "above" : "below"} your ${formatMoney(floor)} floor</div></div>
+    <svg viewBox="0 0 360 196" width="100%">
+    <defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.35"/><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>
+    ${gridLines}
+    <polygon points="${areaPoints}" fill="url(#chart-fill)"/>
+    <line x1="${left}" y1="${yFor(floor)}" x2="${right}" y2="${yFor(floor)}" stroke="var(--bad)" stroke-dasharray="5 4" stroke-width="1.5"/>
+    <text x="${right}" y="${yFor(floor) - 5}" text-anchor="end" class="chart-label" style="fill:var(--bad)">floor</text>
+    <polyline points="${linePoints}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${xFor(1)}" cy="${yFor(balances[0])}" r="4" fill="var(--accent)"/>
+    <circle cx="${lowestX}" cy="${lowestY}" r="9" fill="${lowestColor}" opacity="0.25"/>
+    <circle cx="${lowestX}" cy="${lowestY}" r="5" fill="${lowestColor}" stroke="var(--tile-background)" stroke-width="2"/>
+    <text x="${Math.min(Math.max(lowestX, left + 22), right - 22)}" y="${calloutAbove ? lowestY - 14 : lowestY + 22}" text-anchor="middle" class="chart-label" style="fill:${lowestColor};font-weight:600">$${Math.round(balances[lowestPosition]).toLocaleString("en-US")}</text>
+    ${dateLabels}</svg>`;
 }
 
 // One row like "Due   Dec 5 · 11d". Turns red or amber when the date is close.
@@ -268,9 +256,7 @@ function showEverything() {
   showStatusLine(settings);
   showBalances(settings);
   try { showMonthOutlook(settings); } catch (error) { document.getElementById("month-outlook").innerHTML = ""; }
-  showSpendingPlan(settings, forecast);
   showTransferAdvice(settings, forecast);
-  showHorizonCards(settings, forecast);
   showBalanceChart(settings, forecast);
   showCards(settings);
   showCalendar(forecast);
