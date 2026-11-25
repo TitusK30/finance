@@ -59,7 +59,7 @@ function amountFits(bill, charge) {
   return Math.abs(charge.amount - bill.amount) <= Math.max(1, bill.amount * 0.05);
 }
 
-// The charge's own text contains a word from the bill's name (e.g. "Ipsy", "EOS").
+// The charge's own text contains a word from the bill's name.
 function nameMatches(bill, charge) {
   const text = String(charge.merchant_name || "") + " " + String(charge.name || "");
   return nameWords(bill.name).some((word) => text.toLowerCase().includes(word));
