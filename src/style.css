@@ -216,3 +216,5 @@ html, body { overflow-x: hidden; }
 .timeline-out { background: color-mix(in srgb, var(--bad) 22%, transparent); color: var(--bad); }
 .timeline-balance { text-align: right; border-top: 1px solid var(--bar-track); padding-top: 6px; }
 .timeline-balance b { color: var(--main-text); }
+
+.amount-nowrap { white-space: nowrap; margin-left: 8px; }

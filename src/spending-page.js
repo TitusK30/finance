@@ -187,9 +187,10 @@ function showSpendingPage(settings) {
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
     <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
 
-  const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
-  const transfersTile = transfers.items.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Transfers</b><span><b class="positive">+${formatMoney(transfers.totalIn)}</b> <b class="negative">&minus;${formatMoney(transfers.totalOut)}</b></span></div>
-    <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}: Zelle, Venmo and bank transfers</div></summary>${transferRows}</details>` : "";
+  const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
+  const netTransfers = Math.round((transfers.totalIn - transfers.totalOut) * 100) / 100;
+  const transfersTile = transfers.items.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
+    <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}</div></summary>${transferRows}</details>` : "";
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
