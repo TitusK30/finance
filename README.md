@@ -180,7 +180,7 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals, Track) is
 - **Pending charges** show in a card's Open amount (so the forecast and utilization include them) with a separate "+ pending" line. They are worked out from the bank's available credit, so it works even for banks that do not list pending items.
 - **Spending** groups every charge by month and category and lists top places. Card payments, transfers and paychecks are left out; refunds count against their category. Categories come from Plaid and are sometimes wrong. Transactions live only on the phone, and anything older than about 400 days is dropped. Plaid usually provides about 90 days when a login is first linked.
 - **Bills are left out of Spending.** Your bills and subscriptions are matched to charges by account, charge text and date (within 5 days of the due date). Amounts are not used, so rent or a tax-adjusted sub can drift. Matched charges show in a "Bills and subscriptions" tile. If one slips through, tap **mark as bill** on it.
-- **Home** shows **Safe to spend until payday**: the lowest checking balance before your next paycheck, after bills and card payments, minus your floor. Pull down on Home to refresh; the line under the title shows when it last updated.
+- **Home** shows how much is left to spend today and how much room your cards have. Pull down on Home to refresh; the line under the title shows when it last updated.
 - **Spending** compares this month with last month by category (a month in progress is compared with the same days last month).
 - Swipe left on a task, goal or Set up row to reveal **Delete**.
 - Still typed in by you: savings (unless linked), rewards, benefits, car loan, goals, credit scores, PTO, tasks.

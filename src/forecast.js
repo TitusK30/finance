@@ -132,32 +132,34 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   };
 }
 
-// How much checking can spare before the next paycheck, keeping the floor, after bills and card payments.
-function safeToSpend(forecast, startingBalance, floor) {
-  const paydayIndex = forecast.days.findIndex((day) => day.events.some((event) => event.label === "Paycheck"));
-  const daysUntilPayday = paydayIndex === -1 ? forecast.days.length : paydayIndex + 1;
-  const daysBeforePayday = paydayIndex === -1 ? forecast.days : forecast.days.slice(0, paydayIndex);
-  let lowest = { balance: startingBalance, date: null };
-  for (const day of daysBeforePayday) if (day.checking_balance < lowest.balance) lowest = { balance: day.checking_balance, date: day.date };
-  const amount = roundToCents(Math.max(0, lowest.balance - floor));
-  return {
-    amount,
-    perDay: roundToCents(amount / daysUntilPayday),
-    daysUntilPayday,
-    paydayDate: paydayIndex === -1 ? null : forecast.days[paydayIndex].date,
-    lowestBeforePayday: lowest.balance,
-    lowestDate: lowest.date,
-  };
-}
-
 // Known one-off amounts leaving checking (tuition, a course). Each lowers every balance from its date on. Items from before the forecast starts are ignored.
-function withExpectedExpenses(forecast, items) {
+// Also refreshes the lowest-balance and transfer-needed fields, so the whole app sees the expenses.
+function withExpectedExpenses(forecast, items, floor) {
   const leaving = (items || []).filter((item) => item.kind === "out" && item.amount > 0);
+  if (leaving.length === 0) return forecast;
   const firstDate = forecast.days[0].date;
-  return { ...forecast, days: forecast.days.map((day) => {
+  const days = forecast.days.map((day) => {
     const gone = leaving.filter((item) => item.date >= firstDate && item.date <= day.date).reduce((sum, item) => sum + item.amount, 0);
     return { ...day, checking_balance: roundToCents(day.checking_balance - gone) };
-  }) };
+  });
+  const lowestDay = days.reduce((lowest, day) => (day.checking_balance < lowest.checking_balance ? day : lowest), days[0]);
+  const firstDayBelowFloor = days.find((day) => day.checking_balance < floor) || null;
+  return { ...forecast, days, lowest_balance: lowestDay.checking_balance, lowest_balance_date: lowestDay.date,
+    first_day_below_floor: firstDayBelowFloor ? firstDayBelowFloor.date : null,
+    savings_transfer_needed: roundToCents(Math.max(0, floor - lowestDay.checking_balance)),
+    savings_transfer_by_date: firstDayBelowFloor ? firstDayBelowFloor.date : null };
+}
+
+// The most you could put on your cards over the whole forecast, all cards together, and still stay above the floor.
+// Careful by design: it counts the spending as coming out of checking on the tightest day.
+function cardRoom(forecast, floor, weeklySavings) {
+  let tightest = { room: Infinity, roomWithSavings: Infinity, date: null };
+  forecast.days.forEach((day, position) => {
+    const room = day.checking_balance - floor;
+    if (room < tightest.room) tightest = { ...tightest, room, date: day.date };
+    tightest.roomWithSavings = Math.min(tightest.roomWithSavings, room - (weeklySavings / 7) * (position + 1));
+  });
+  return { amount: roundToCents(Math.max(0, tightest.room)), amountWithSavings: roundToCents(Math.max(0, tightest.roomWithSavings)), tightestDate: tightest.date, days: forecast.days.length };
 }
 
 // The most you can spend each day for the next lookAheadDays and still keep the floor and move weeklySavings out each week.
@@ -187,4 +189,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, dailyAllowance, withExpectedExpenses, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, dailyAllowance, cardRoom, withExpectedExpenses, balanceOn, dueDateForCharge };

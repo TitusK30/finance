@@ -56,22 +56,10 @@ function transferSentence(settings, forecast) {
 }
 
 // "Safe to spend until payday": what checking can spare, after bills and card payments, keeping your floor.
-function showSafeToSpend(settings, forecast) {
-  const result = safeToSpend(forecast, settings.starting_balances.checking_balance, settings.minimum_checking_floor);
-  const floor = formatMoney(settings.minimum_checking_floor);
-  const paydayNote = result.paydayDate ? `until ${formatDate(result.paydayDate)}` : "for the next few weeks";
-  document.getElementById("safe-to-spend").innerHTML = result.amount > 0
-    ? `<div class="tile good"><div class="small">Safe to spend ${paydayNote}</div><div class="big-number">${formatMoney(result.amount)}</div>
-        <div class="small">About ${formatMoney(result.perDay)} a day for ${result.daysUntilPayday} day${result.daysUntilPayday === 1 ? "" : "s"}, after bills and card payments, keeping your ${floor} floor.</div></div>`
-    : `<div class="tile warning"><div class="small">Safe to spend ${paydayNote}</div><div class="big-number">${formatMoney(0)}</div>
-        <div class="small">Checking would sit at ${formatMoney(result.lowestBeforePayday)}${result.lowestDate ? ` on ${formatDate(result.lowestDate)}` : ""}, at or under your ${floor} floor.</div></div>`;
-}
-
 // Home and Goals: how much is left to spend today and this week, keeping the checking floor and the weekly savings plan.
 function showSpendingPlan(settings, forecast) {
   const weeklySavings = (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
-  const adjustedForecast = withExpectedExpenses(forecast, settings.expected_money);
-  const allowance = dailyAllowance(adjustedForecast, settings.minimum_checking_floor, weeklySavings, SPEND_LOOK_AHEAD_DAYS);
+  const allowance = dailyAllowance(forecast, settings.minimum_checking_floor, weeklySavings, SPEND_LOOK_AHEAD_DAYS);
   const today = todayText();
   const weekStart = new Date(new Date(today + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getUTCDay() * 86400000).toISOString().slice(0, 10);
   const spentToday = spentSince(settings, today);
@@ -90,8 +78,13 @@ function showSpendingPlan(settings, forecast) {
         <div class="small">Saving ${formatMoney(weeklySavings)} a week does not leave room to spend while keeping your ${floor} floor over the next ${allowance.lookAheadDays} days (tightest day ${formatDate(allowance.tightestDate)}).</div>
         <div class="tile-row small"><span>Most you could save a week (spending nothing)</span><span>${formatMoney(allowance.mostPerWeek)}</span></div>
         <div class="tile-row small"><span>Daily budget if you saved nothing extra</span><span>${formatMoney(allowance.perDayWithoutSavings)}</span></div></div>`;
-  document.getElementById("spending-plan").innerHTML = tile;
-  document.getElementById("goal-spending-room").innerHTML = tile
+  const room = cardRoom(forecast, settings.minimum_checking_floor, weeklySavings);
+  const roomTile = `<div class="tile ${room.amount > 0 ? "good" : "warning"}"><div class="small">Room to put on your cards, next ${room.days} days, all cards together</div>
+      <div class="big-number">${formatMoney(room.amount)}</div>
+      ${weeklySavings > 0 ? `<div class="tile-row small"><span>...and still saving ${formatMoney(weeklySavings)} a week</span><span>${formatMoney(room.amountWithSavings)}</span></div>` : ""}
+      <div class="small">Keeps checking at or above your ${floor} floor, counting your closed and open statements, pending charges, bills, subs, fees and listed expenses. Cautious: it treats the spending as coming out on the tightest day, ${formatDate(room.tightestDate)}.</div></div>`;
+  document.getElementById("spending-plan").innerHTML = tile + roomTile;
+  document.getElementById("goal-spending-room").innerHTML = tile + roomTile
     + (weeklySavings > 0 ? `<div class="small">The most that fits is ${formatMoney(allowance.mostPerWeek)} a week, with nothing left to spend. With no savings plan your daily budget would be ${formatMoney(allowance.perDayWithoutSavings)}.</div>`
       : `<div class="tile small">Type a weekly amount above to see the budget with your savings plan.</div>`);
 }
@@ -296,10 +289,9 @@ function showEverything() {
   document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);
   if (!settings) { document.getElementById("start-here").hidden = true; return; }
   showStartHere(settings);
-  const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
+  const forecast = withExpectedExpenses(buildForecast(settings, MINIMUM_ADVICE_DAYS), settings.expected_money, settings.minimum_checking_floor);
   showStatusLine(settings);
   showBalances(settings);
-  showSafeToSpend(settings, forecast);
   showSpendingPlan(settings, forecast);
   showTransferAdvice(settings, forecast);
   showHorizonCards(settings, forecast);
