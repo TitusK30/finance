@@ -83,6 +83,8 @@ function showSpendingPage(settings) {
   const billRows = Object.values(store.transactions).filter((charge) => isBill(charge) && charge.date.startsWith(spendingMonthShown) && charge.amount > 0).sort((first, second) => first.date.localeCompare(second.date));
   const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
   const notSeen = (billMatches.byMonth[spendingMonthShown] || { unseen: [] }).unseen;
+  const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
+  const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
   const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}, not counted in the totals above</div></summary>
     ${billRows.map((charge) => {
@@ -124,7 +126,8 @@ function showSpendingPage(settings) {
       ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
       <div class="small">Bills and subscriptions are left out.</div></div>
     <div class="tile"><div class="small">Total spent</div><div class="big-number">${formatMoney(Math.round((month.total + billsTotal) * 100) / 100)}</div>
-      <div class="small">Spending plus ${formatMoney(billsTotal)} of bills and subscriptions that have already been charged</div></div>
+      <div class="small">Spending plus ${formatMoney(billsTotal)} of bills and subscriptions that have already been charged</div>
+      ${stillToPayLine}</div>
     ${earnedTile}
     ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
