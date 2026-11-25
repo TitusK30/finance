@@ -101,17 +101,21 @@ function ordinalEnding(dayNumber) {
   return { 1: "st", 2: "nd", 3: "rd" }[dayNumber % 10] || "th";
 }
 
+const REWARD_COLORS = ["#5aa2ff", "#4ade80", "#a78bfa", "#fb923c", "#f472b6", "#2dd4bf"];
+
 function showRewardsPage(settings) {
+  const cardKeys = Object.keys(settings.credit_cards);
+  const colorOf = (cardKey) => REWARD_COLORS[Math.max(0, cardKeys.indexOf(cardKey)) % REWARD_COLORS.length];
   const pointTiles = Object.entries(settings.credit_cards).map(([cardKey, card]) => {
     const reward = settings.rewards[cardKey];
-    return `<div class="tile"><div class="tile-row"><b>${card.display_name}</b><b>${editableNumber(`rewards.${cardKey}.points_balance`, card.display_name + " balance", reward.points_balance, false)}</b></div>
-      <div class="small">${escapeHtml(reward.program)}</div></div>`;
+    return `<div class="tile rewards-tile points-tile" style="--tile-accent:${colorOf(cardKey)}"><div><b>${card.display_name}</b><div class="small">${escapeHtml(reward.program)}</div></div>
+      <b class="points-number">${editableNumber(`rewards.${cardKey}.points_balance`, card.display_name + " balance", reward.points_balance, false)}</b></div>`;
   }).join("");
   const benefitTiles = settings.card_benefits.map((benefit, position) => {
     const remaining = benefitRemaining(benefit);
     const percentUsed = Math.min(100, Math.round(((benefit.used || 0) / benefit.total) * 100));
-    return `<div class="tile"><div class="tile-row"><b>${escapeHtml(benefit.name)}</b><b>${formatMoney(remaining)} left</b></div>
-      <div class="bar"><div class="bar-fill" style="width:${percentUsed}%"></div></div>
+    return `<div class="tile rewards-tile benefit-tile" style="--tile-accent:${colorOf(benefit.card)}"><div class="tile-row"><b>${escapeHtml(benefit.name)}</b><b class="benefit-left">${formatMoney(remaining)} left</b></div>
+      <div class="bar benefit-bar"><div class="bar-fill" style="width:${percentUsed}%"></div></div>
       <div class="tile-row small"><span>${settings.credit_cards[benefit.card].display_name}</span>
         <span>used ${editableNumber(`card_benefits.${position}.used`, benefit.name + ": amount used", benefit.used || 0, true)} of ${editableNumber(`card_benefits.${position}.total`, benefit.name + ": total credit", benefit.total, true)}</span></div>
       <button class="remove-link" data-remove-benefit="${position}">remove</button></div>`;
