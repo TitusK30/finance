@@ -79,6 +79,13 @@ function payerName(settings, paidFrom) {
   return paidFrom === "checking" ? "Checking" : settings.credit_cards[paidFrom].display_name;
 }
 
+// Checking is slate; each card keeps the color it has on the Cards tab.
+function payerColor(settings, paidFrom) {
+  if (paidFrom === "checking") return "#94a3b8";
+  const cardPosition = Math.max(0, Object.keys(settings.credit_cards).indexOf(paidFrom));
+  return REWARD_COLORS[cardPosition % REWARD_COLORS.length];
+}
+
 function showMonthlyItemsPage(settings, tabName, pageTitle) {
   const items = monthlyItemsForTab(settings, tabName);
   const { monthlyTotal, totalsByPayer } = totalsForItems(items);
@@ -87,13 +94,15 @@ function showMonthlyItemsPage(settings, tabName, pageTitle) {
       const verb = item.paidFrom === "checking" ? "paid" : "charged";
       const whenText = item.refillsPerMonth ? `about ${item.refillsPerMonth}x a month, ${formatMoney(item.amountEach)} each` : `${verb} on the ${item.dayOfMonth}${ordinalEnding(item.dayOfMonth)}`;
       const amountText = `${formatMoney(item.monthlyAmount)} / month${item.isEstimate ? " (est.)" : ""}`;
-      return `<div class="tile"><div class="tile-row"><b>${escapeHtml(item.name)}</b><b>${amountText}</b></div>
+      return `<div class="tile bill-tile" style="--tile-accent:${payerColor(settings, item.paidFrom)}"><div class="tile-row"><b>${escapeHtml(item.name)}</b><b>${amountText}</b></div>
         <div class="tile-row small"><span>${payerName(settings, item.paidFrom)}</span><span>${whenText}</span></div></div>`;
     }).join("");
-  const payerTotals = Object.entries(totalsByPayer).sort().map(([paidFrom, total]) =>
-    `<div class="tile-row small"><span>${payerName(settings, paidFrom)}</span><span>${formatMoney(total)}</span></div>`).join("");
+  const payerEntries = Object.entries(totalsByPayer).sort();
+  const payerBar = `<div class="payer-bar">${payerEntries.map(([paidFrom, total]) => `<div class="seg" style="width:${monthlyTotal > 0 ? (total / monthlyTotal) * 100 : 0}%;background:${payerColor(settings, paidFrom)}"></div>`).join("")}</div>`;
+  const payerTotals = payerEntries.map(([paidFrom, total]) =>
+    `<div class="tile-row small"><span><span class="dot" style="background:${payerColor(settings, paidFrom)}"></span>${payerName(settings, paidFrom)}</span><span>${formatMoney(total)}</span></div>`).join("");
   document.getElementById("page-" + tabName).innerHTML = `<h2>${pageTitle}</h2>
-    <div class="tile"><div class="small">Total per month</div><div class="big-number">${formatMoney(monthlyTotal)}</div>${payerTotals}</div>${rows}`;
+    <div class="tile bills-total-tile"><div class="small">Total per month</div><div class="huge-number">${formatMoney(monthlyTotal)}</div>${payerBar}${payerTotals}</div>${rows}`;
 }
 
 function ordinalEnding(dayNumber) {
@@ -311,7 +320,7 @@ function showBillsTotal(settings) {
   const nothingAddedYet = settings.monthly_bills_paid_from_checking.length + settings.subscriptions_charged_to_cards.length === 0;
   document.getElementById("bills-total").innerHTML = nothingAddedYet
     ? `<div class="tile"><div class="small">No bills or subscriptions yet. Add them in Settings → Set up in the app.</div></div>`
-    : `<div class="tile"><div class="small">All bills and subscriptions</div><div class="big-number">${formatMoney(monthlyTotal)} / month</div></div>`;
+    : `<div class="tile bills-total-tile"><div class="small">All bills and subscriptions</div><div class="huge-number">${formatMoney(monthlyTotal)} / month</div></div>`;
 }
 
 function showExtraPages(settings) {
