@@ -34,20 +34,25 @@ function showGoalDatePlanner(settings) {
   const targetDate = document.getElementById("goal-plan-date").value;
   if (!goal) { resultBox.innerHTML = `<div class="small">Add a goal first.</div>`; return; }
   if (!targetDate) { resultBox.innerHTML = ""; return; }
-  const plan = weeklySavingsNeeded(goal, todayText(), targetDate);
+  const expectedMoney = { date: document.getElementById("goal-plan-expected-date").value, amount: parseFloat(document.getElementById("goal-plan-expected-amount").value) || 0 };
+  const plan = weeklySavingsNeeded(goal, todayText(), targetDate, expectedMoney);
   if (!plan) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
   const paycheck = settings.paycheck.usual_take_home_amount;
   const percentOfPaycheck = Math.round((plan.perWeek / paycheck) * 100);
+  const expectedLeftOut = expectedMoney.amount > 0 && plan.expectedAmount === 0
+    ? `<div class="small warning">The expected money is not counted because its date is not between today and ${formatDate(targetDate)}.</div>` : "";
+  const expectedLine = plan.expectedAmount > 0
+    ? `<div class="tile-row small"><span>Counting ${formatMoney(plan.expectedAmount)} arriving ${formatDate(expectedMoney.date)}</span><span>-${formatMoney(plan.expectedAmount)}</span></div>` : "";
   resultBox.innerHTML = plan.remaining === 0
-    ? `<div class="tile good"><b>${escapeHtml(goal.name)} is already fully funded.</b></div>`
+    ? `<div class="tile good"><b>${escapeHtml(goal.name)} ${plan.expectedAmount > 0 ? `is covered by the ${formatMoney(plan.expectedAmount)} you expect. Nothing to save each week.` : "is already fully funded."}</b></div>`
     : `<div class="tile good"><div class="big-number">${formatMoney(plan.perWeek)} a week</div>
-      <div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div>
+      ${expectedLine}<div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div>
       <div class="tile-row small"><span>Weeks until ${formatDate(targetDate)}</span><span>${plan.weeksLeft}</span></div>
       <div class="tile-row small"><span>About per month</span><span>${formatMoney(plan.perMonth)}</span></div>
-      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div></div>`;
+      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div></div>${expectedLeftOut}`;
 }
 
-for (const inputId of ["goal-plan-goal", "goal-plan-date"]) {
+for (const inputId of ["goal-plan-goal", "goal-plan-date", "goal-plan-expected-date", "goal-plan-expected-amount"]) {
   document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showGoalDatePlanner(settings); });
 }
 

@@ -37,13 +37,17 @@ function changeDuringMonth(entries, valueKey, yearMonth) {
 }
 
 // How much to save each week to finish by a chosen date. Rounds up so the goal is really reached.
-function weeklySavingsNeeded(goal, todayDate, targetDate) {
+// Optional expectedMoney {date, amount}: money you know is coming (a bonus, a gift) before the finish date counts toward the goal.
+function weeklySavingsNeeded(goal, todayDate, targetDate, expectedMoney) {
   const daysLeft = Math.round((new Date(targetDate + "T12:00:00") - new Date(todayDate + "T12:00:00")) / 86400000);
   if (daysLeft <= 0) return null;
   const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
-  const { remaining } = goalProgress(goal);
+  const { remaining: remainingBeforeExpected } = goalProgress(goal);
+  const expectedCounts = Boolean(expectedMoney && expectedMoney.amount > 0 && expectedMoney.date > todayDate && expectedMoney.date <= targetDate);
+  const expectedAmount = expectedCounts ? expectedMoney.amount : 0;
+  const remaining = Math.max(0, roundTrackedMoney(remainingBeforeExpected - expectedAmount));
   const perWeek = Math.ceil((remaining / weeksLeft) * 100) / 100;
-  return { weeksLeft, remaining, perWeek, perMonth: roundTrackedMoney((perWeek * 52) / 12) };
+  return { weeksLeft, remaining, remainingBeforeExpected, expectedAmount, perWeek, perMonth: roundTrackedMoney((perWeek * 52) / 12) };
 }
 
 // To-do colors: red when overdue or due within a week, amber within a month, green after that.
