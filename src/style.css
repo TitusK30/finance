@@ -491,3 +491,15 @@ html, body { overflow-x: hidden; }
 #side-menu.open button:nth-child(7) { animation-delay: 0.2s; } #side-menu.open button:nth-child(8) { animation-delay: 0.23s; } #side-menu.open button:nth-child(9) { animation-delay: 0.26s; }
 #side-menu.open button:nth-child(10) { animation-delay: 0.29s; } #side-menu.open button:nth-child(11) { animation-delay: 0.32s; } #side-menu.open button:nth-child(12) { animation-delay: 0.35s; }
 @keyframes menu-in { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+
+/* Settings */
+#page-settings h2 { margin: 20px 0 8px; }
+.settings-group { background: none; overflow: visible; display: grid; gap: 8px; }
+.settings-group .list-row { background: var(--tile-background); border: 0; border-radius: 16px; padding: 10px 14px 10px 10px; gap: 14px; justify-content: flex-start; text-align: left; font-size: 16px; font-weight: 500; color: var(--main-text); cursor: pointer; }
+.settings-group .list-row::after { margin-left: auto; }
+.row-icon { --row-color: var(--accent); width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 12px; font-size: 20px; background: color-mix(in srgb, var(--row-color) 20%, transparent); }
+.settings-group .danger-row { color: var(--bad); }
+.settings-note { margin: 6px 0 0; }
+.settings-note:not(:empty) { background: color-mix(in srgb, var(--good) 14%, transparent); color: var(--main-text); border-radius: 12px; padding: 10px 14px; box-shadow: inset 4px 0 0 var(--good); }
+#toast { position: fixed; left: 16px; right: 16px; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 90; background: #2c2f37; color: var(--main-text); border-radius: 16px; padding: 14px 18px; font-size: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 4px 0 0 var(--good); transform: translateY(140%); opacity: 0; transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease; pointer-events: none; }
+#toast.toast-show { transform: none; opacity: 1; }

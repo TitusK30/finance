@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261127t">
+  <link rel="stylesheet" href="src/style.css?v=20261127u">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,7 +19,7 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" style="visibility:hidden"></button>
   </div>
-  <script src="src/lock.js?v=20261127t"></script>
+  <script src="src/lock.js?v=20261127u"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="apply-top-button" hidden>Apply</button><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="pull-indicator" hidden></div>
   <div id="menu-overlay" hidden></div>
@@ -96,31 +96,31 @@
   <div id="page-pto" hidden></div>
   <div id="page-settings" hidden>
     <h2>Data</h2>
-    <div class="list-group">
-      <label class="list-row">Load settings file
+    <div class="list-group settings-group">
+      <label class="list-row"><span class="row-icon" style="--row-color:#5aa2ff">&#128194;</span><span class="row-label">Load settings file</span>
         <input id="settings-file-input" type="file" accept=".json" hidden>
       </label>
-      <button class="list-row" id="open-setup-button">Set up in the app</button>
-      <button class="list-row" id="export-backup-button">Export backup</button>
-      <button class="list-row" id="export-history-button">Back up spending history</button>
-      <label class="list-row">Restore spending history
+      <button class="list-row" id="open-setup-button"><span class="row-icon" style="--row-color:#a78bfa">&#9881;&#65039;</span><span class="row-label">Set up in the app</span></button>
+      <button class="list-row" id="export-backup-button"><span class="row-icon" style="--row-color:#4ade80">&#128230;</span><span class="row-label">Export backup</span></button>
+      <button class="list-row" id="export-history-button"><span class="row-icon" style="--row-color:#2dd4bf">&#128190;</span><span class="row-label">Back up spending history</span></button>
+      <label class="list-row"><span class="row-icon" style="--row-color:#fb923c">&#9851;&#65039;</span><span class="row-label">Restore spending history</span>
         <input id="history-file-input" type="file" accept=".json" hidden>
       </label>
-      <button class="list-row" id="update-app-button">Update app</button>
+      <button class="list-row" id="update-app-button"><span class="row-icon" style="--row-color:#f472b6">&#128259;</span><span class="row-label">Update app</span></button>
     </div>
-    <p id="data-note" class="small"></p>
+    <p id="data-note" class="settings-note small"></p>
     <h2>Bank connection</h2>
     <p class="small">Optional. Live balances need a free relay; the README walks through it. Without it, type your balances in Set up.</p>
-    <div class="list-group">
-      <button class="list-row" id="refresh-button">Refresh balances</button>
-      <button class="list-row" id="connect-relay-button">Connect to relay</button>
-      <button class="list-row" id="undo-refresh-button">Undo last refresh</button>
+    <div class="list-group settings-group">
+      <button class="list-row" id="refresh-button"><span class="row-icon" style="--row-color:#5aa2ff">&#127974;</span><span class="row-label">Refresh balances</span></button>
+      <button class="list-row" id="connect-relay-button"><span class="row-icon" style="--row-color:#4ade80">&#128279;</span><span class="row-label">Connect to relay</span></button>
+      <button class="list-row" id="undo-refresh-button"><span class="row-icon" style="--row-color:#fbbf24">&#8617;&#65039;</span><span class="row-label">Undo last refresh</span></button>
     </div>
-    <p id="refresh-note" class="small"></p>
+    <p id="refresh-note" class="settings-note small"></p>
     <h2>Security</h2>
-    <div class="list-group">
-      <button class="list-row" id="set-pin-button">Set / change PIN</button>
-      <button class="list-row danger-row" id="remove-pin-button">Remove PIN</button>
+    <div class="list-group settings-group">
+      <button class="list-row" id="set-pin-button"><span class="row-icon" style="--row-color:#5aa2ff">&#128274;</span><span class="row-label">Set / change PIN</span></button>
+      <button class="list-row danger-row" id="remove-pin-button"><span class="row-icon" style="--row-color:#ff6b6b">&#128275;</span><span class="row-label">Remove PIN</span></button>
     </div>
   </div>
   <div id="page-todo" hidden></div>
@@ -173,18 +173,18 @@
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261127t"></script>
-  <script src="src/summaries.js?v=20261127t"></script>
-  <script src="src/spending.js?v=20261127t"></script>
-  <script src="src/plaid-sync.js?v=20261127t"></script>
-  <script src="src/loan.js?v=20261127t"></script>
-  <script src="src/bills.js?v=20261127t"></script>
-  <script src="src/spending-page.js?v=20261127t"></script>
-  <script src="src/tracking.js?v=20261127t"></script>
-  <script src="src/tracking-pages.js?v=20261127t"></script>
-  <script src="src/extra-pages.js?v=20261127t"></script>
-  <script src="src/gestures.js?v=20261127t"></script>
-  <script src="src/setup-page.js?v=20261127t"></script>
-  <script src="src/app.js?v=20261127t"></script>
+  <script src="src/forecast.js?v=20261127u"></script>
+  <script src="src/summaries.js?v=20261127u"></script>
+  <script src="src/spending.js?v=20261127u"></script>
+  <script src="src/plaid-sync.js?v=20261127u"></script>
+  <script src="src/loan.js?v=20261127u"></script>
+  <script src="src/bills.js?v=20261127u"></script>
+  <script src="src/spending-page.js?v=20261127u"></script>
+  <script src="src/tracking.js?v=20261127u"></script>
+  <script src="src/tracking-pages.js?v=20261127u"></script>
+  <script src="src/extra-pages.js?v=20261127u"></script>
+  <script src="src/gestures.js?v=20261127u"></script>
+  <script src="src/setup-page.js?v=20261127u"></script>
+  <script src="src/app.js?v=20261127u"></script>
 </body>
 </html>

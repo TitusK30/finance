@@ -316,6 +316,21 @@ function timeNowText() {
 }
 
 // Message under the Data section of Settings.
+// A small message that slides up from the bottom for a moment, so a tap on a button always gets an answer.
+let toastTimer = null;
+function showToast(text) {
+  if (!text) return;
+  let toast = document.getElementById("toast");
+  if (!toast) { toast = document.createElement("div"); toast.id = "toast"; document.body.appendChild(toast); }
+  toast.textContent = text;
+  toast.classList.add("toast-show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("toast-show"), 3500);
+}
+for (const noteId of ["data-note", "refresh-note"]) {
+  new MutationObserver(() => showToast(document.getElementById(noteId).textContent)).observe(document.getElementById(noteId), { childList: true, characterData: true, subtree: true });
+}
+
 function showDataNote(text) {
   document.getElementById("data-note").textContent = text;
 }
@@ -333,11 +348,12 @@ document.getElementById("update-app-button").addEventListener("click", () => {
 
 document.getElementById("export-backup-button").addEventListener("click", () => {
   const savedText = localStorage.getItem(STORAGE_KEY);
-  if (!savedText) return;
+  if (!savedText) { showDataNote("Nothing to back up yet."); return; }
   const downloadLink = document.createElement("a");
   downloadLink.href = URL.createObjectURL(new Blob([savedText], { type: "application/json" }));
   downloadLink.download = `finance_backup_${todayText()}.json`;
   downloadLink.click();
+  showDataNote("Backup saved to a file.");
 });
 
 // Spending history (every saved charge, plus the bills you marked by hand) in one file you can keep. Settings have their own backup above.
