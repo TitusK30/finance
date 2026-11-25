@@ -19,7 +19,6 @@ const CATEGORY_NAMES = {
   PERSONAL_CARE: "Personal care",
   MEDICAL: "Medical",
   BANK_FEES: "Bank fees",
-  GOVERNMENT_AND_NON_PROFIT: "Government and giving",
   OTHER: "Other",
 };
 
@@ -72,7 +71,9 @@ function categoryOf(transaction) {
   if (/TOLL/.test(String(transaction.category_detail || "")) || TOLL_TEXT.test(text)) return "TOLLS";
   if (GROCERY_STORES.test(text)) return "GROCERIES";
   if (FOOD_STORES.test(text)) return "FOOD_AND_DRINK";
-  if (transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
+  if (/sephora/.test(text) || transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
+  if (/csc serviceworks/.test(text)) return "TRANSPORTATION";
+  if (transaction.category === "GOVERNMENT_AND_NON_PROFIT") return "GENERAL_SERVICES";
   return transaction.category && CATEGORY_NAMES[transaction.category] ? transaction.category : "OTHER";
 }
 
