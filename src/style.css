@@ -202,3 +202,17 @@ html, body { overflow-x: hidden; }
 .balance-networth { --tile-accent: var(--warning); }
 .chart-headline { margin-bottom: 4px; }
 .chart-low { font-size: 28px; font-weight: 700; }
+
+.timeline { position: relative; }
+.timeline::before { content: ""; position: absolute; left: 66px; top: 8px; bottom: 8px; width: 2px; background: var(--bar-track); }
+.timeline-day { display: grid; grid-template-columns: 52px 28px 1fr; align-items: start; margin-bottom: 8px; }
+.timeline-date { display: flex; flex-direction: column; align-items: center; line-height: 1.15; padding-top: 6px; }
+.timeline-date b { font-size: 22px; }
+.timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 3px solid var(--page-background); margin: 14px 0 0 7px; position: relative; z-index: 1; box-sizing: content-box; }
+.timeline-card { margin-bottom: 0; display: grid; gap: 8px; }
+.timeline-event { display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 8px; }
+.timeline-icon { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 700; }
+.timeline-in { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); }
+.timeline-out { background: color-mix(in srgb, var(--bad) 22%, transparent); color: var(--bad); }
+.timeline-balance { text-align: right; border-top: 1px solid var(--bar-track); padding-top: 6px; }
+.timeline-balance b { color: var(--main-text); }

@@ -137,17 +137,24 @@ function showCards(settings) {
   document.getElementById("card-list").innerHTML = html.join("");
 }
 
-function showCalendar(forecast) {
-  const rows = [];
-  for (const day of forecast.days.slice(0, 40)) {
-    for (const event of day.events) {
-      const amountClass = event.amount < 0 ? "negative" : "positive";
+// A timeline: one row per day that has something happening, with the date on a rail, the events as lines and the day's ending balance.
+function showCalendar(forecast, settings) {
+  const dayBlocks = forecast.days.slice(0, 40).filter((day) => day.events.length > 0).map((day) => {
+    const dateParts = new Date(day.date + "T00:00:00Z");
+    const weekday = dateParts.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+    const month = dateParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+    const eventLines = day.events.map((event) => {
+      const isIncome = event.amount >= 0;
       const estimateTag = event.is_estimate ? " (est.)" : "";
-      rows.push(`<div class="tile"><div class="tile-row"><span>${formatDate(day.date)}</span><b class="${amountClass}">${formatMoney(event.amount)}</b></div>
-        <div class="tile-row small"><span>${event.label}${estimateTag}</span><span>balance ${formatMoney(day.checking_balance)}</span></div></div>`);
-    }
-  }
-  document.getElementById("calendar-list").innerHTML = rows.join("");
+      return `<div class="timeline-event"><span class="timeline-icon ${isIncome ? "timeline-in" : "timeline-out"}">${isIncome ? "&#8593;" : "&#8595;"}</span>
+        <span class="timeline-label">${event.label}${estimateTag}</span><b class="${isIncome ? "positive" : "negative"}">${formatMoney(event.amount)}</b></div>`;
+    }).join("");
+    const belowFloor = day.checking_balance < settings.minimum_checking_floor;
+    return `<div class="timeline-day"><div class="timeline-date"><span class="small">${weekday}</span><b>${dateParts.getUTCDate()}</b><span class="small">${month}</span></div>
+      <div class="timeline-dot"></div>
+      <div class="tile timeline-card">${eventLines}<div class="timeline-balance small">balance <b class="${belowFloor ? "negative" : ""}">${formatMoney(day.checking_balance)}</b></div></div></div>`;
+  });
+  document.getElementById("calendar-list").innerHTML = `<div class="timeline">${dayBlocks.join("")}</div>`;
 }
 
 let whatIfPurchases = [];
@@ -262,7 +269,7 @@ function showEverything() {
   showTransferAdvice(settings, forecast);
   showBalanceChart(settings, forecast);
   showCards(settings);
-  showCalendar(forecast);
+  showCalendar(forecast, settings);
   fillWhatIfChoices(settings);
   showWhatIf(settings);
   showExtraPages(settings);
