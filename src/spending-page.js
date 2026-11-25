@@ -118,13 +118,14 @@ function showSpendingPage(settings) {
   const payWeekdayNumber = PAY_WEEKDAY_NUMBERS[settings.paycheck && settings.paycheck.pay_weekday];
   let paydaysLeft = 0;
   let expectedPayLeft = 0;
+  const usualPay = usualPayDeposit(store, settings) ?? settings.paycheck.usual_take_home_amount;
   if (spendingMonthShown === todayText().slice(0, 7) && payWeekdayNumber !== undefined) {
     const lastDayOfMonth = new Date(Date.UTC(Number(spendingMonthShown.slice(0, 4)), Number(spendingMonthShown.slice(5, 7)), 0)).getUTCDate();
     for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
       const dayText = `${spendingMonthShown}-${String(day).padStart(2, "0")}`;
       if (new Date(dayText + "T00:00:00Z").getUTCDay() === payWeekdayNumber) {
         paydaysLeft++;
-        expectedPayLeft += settings.paycheck.one_time_amount_overrides?.[dayText] ?? settings.paycheck.usual_take_home_amount;
+        expectedPayLeft += usualPay;
       }
     }
   }

@@ -92,17 +92,32 @@ function spendingCharges(store) {
 
 // Paychecks and other income deposited to your bank accounts in a month. A deposit counts when the bank calls it income,
 // when its text says payroll or direct deposit, or when it contains a word from settings.paycheck.deposit_text_contains.
-function earnedInMonth(store, yearMonth, settings) {
+// Bank deposits that look like pay: the bank calls them income, the text says payroll or direct deposit,
+// or the text contains a word from settings.paycheck.deposit_text_contains. Newest first.
+function payDeposits(store, settings, isWanted) {
   const hintWords = ((settings && settings.paycheck && settings.paycheck.deposit_text_contains) || []).map((word) => String(word).toLowerCase());
-  const deposits = Object.values(store.transactions).filter((transaction) => {
-    if (transaction.amount >= 0 || transaction.pending || !transaction.date.startsWith(yearMonth)) return false;
+  return Object.values(store.transactions).filter((transaction) => {
+    if (transaction.amount >= 0 || transaction.pending || !isWanted(transaction)) return false;
     const account = store.accounts[transaction.account_id];
     if (!account || account.type !== "depository") return false;
     const text = (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase();
     return transaction.category === "INCOME" || /payroll|direct dep/.test(text) || hintWords.some((word) => text.includes(word));
-  });
-  deposits.sort((first, second) => second.date.localeCompare(first.date));
+  }).sort((first, second) => second.date.localeCompare(first.date));
+}
+
+// Paychecks and other income deposited to your bank accounts in a month.
+function earnedInMonth(store, yearMonth, settings) {
+  const deposits = payDeposits(store, settings, (transaction) => transaction.date.startsWith(yearMonth));
   return { total: roundCents(-deposits.reduce((sum, transaction) => sum + transaction.amount, 0)), count: deposits.length, deposits };
+}
+
+// The most common pay deposit amount the bank has shown (a bonus or overtime check is a one-off, so it loses).
+// Returns null when there are no pay deposits yet.
+function usualPayDeposit(store, settings) {
+  const timesSeen = {};
+  for (const deposit of payDeposits(store, settings, () => true)) timesSeen[-deposit.amount] = (timesSeen[-deposit.amount] || 0) + 1;
+  const amounts = Object.keys(timesSeen).map(Number).sort((first, second) => timesSeen[second] - timesSeen[first] || second - first);
+  return amounts.length ? amounts[0] : null;
 }
 
 function monthsWithSpending(charges) {
@@ -180,4 +195,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { earnedInMonth, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
