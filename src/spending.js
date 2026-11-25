@@ -94,6 +94,29 @@ function monthlyBreakdown(charges, yearMonth) {
   return { yearMonth, total, categories, topMerchants, pendingTotal };
 }
 
+// This month against last month, by category. upToDay limits last month to the same days
+// (for a month still in progress), so a half month is not compared with a whole one.
+function previousYearMonth(yearMonth) {
+  const [year, month] = yearMonth.split("-").map(Number);
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
+}
+
+function monthComparison(charges, yearMonth, upToDay = 31) {
+  const previousMonth = previousYearMonth(yearMonth);
+  const current = monthlyBreakdown(charges, yearMonth);
+  const previousCharges = charges.filter((charge) => Number(charge.date.slice(8, 10)) <= upToDay);
+  const previous = monthlyBreakdown(previousCharges, previousMonth);
+  const previousByCategory = Object.fromEntries(previous.categories.map((entry) => [entry.category, entry.total]));
+  const names = new Set([...current.categories.map((entry) => entry.category), ...previous.categories.map((entry) => entry.category)]);
+  const currentByCategory = Object.fromEntries(current.categories.map((entry) => [entry.category, entry.total]));
+  const categories = [...names].map((category) => {
+    const total = currentByCategory[category] || 0;
+    const before = previousByCategory[category] || 0;
+    return { category, name: CATEGORY_NAMES[category], total, previousTotal: before, difference: roundCents(total - before) };
+  }).sort((first, second) => Math.abs(second.difference) - Math.abs(first.difference));
+  return { previousMonth, total: current.total, previousTotal: previous.total, difference: roundCents(current.total - previous.total), hasPrevious: previous.total > 0, categories };
+}
+
 function pendingCharges(store) {
   return Object.values(store.transactions).filter((transaction) => transaction.pending && transaction.amount > 0).sort((first, second) => second.date.localeCompare(first.date));
 }
@@ -122,4 +145,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

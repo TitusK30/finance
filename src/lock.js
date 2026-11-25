@@ -16,6 +16,7 @@ if (typeof document !== "undefined") {
   const lockScreen = document.getElementById("lock-screen");
   const lockMessage = document.getElementById("lock-message");
   const lockError = document.getElementById("lock-error");
+  const lockDotsBox = document.getElementById("lock-dots");
   const lockDots = [...document.querySelectorAll("#lock-dots span")];
   const lockPad = document.getElementById("lock-pad");
   const lockSideButton = document.getElementById("lock-side-button");
@@ -26,19 +27,20 @@ if (typeof document !== "undefined") {
 
   const readSavedPin = () => JSON.parse(localStorage.getItem(PIN_STORAGE_KEY) || "null");
 
-  // Phone-style number pad: 1-9, then a gap and 0.
+  // Phone-style number pad: 1-9, then a gap, 0, and the Delete / Cancel key in the last corner.
   for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0]) {
     const key = document.createElement("button");
     if (digit === null) { key.className = "pad-gap"; key.disabled = true; }
     else { key.dataset.digit = digit; key.innerHTML = `${digit}${KEYPAD_LETTERS[digit] ? `<small>${KEYPAD_LETTERS[digit]}</small>` : ""}`; }
     lockPad.appendChild(key);
   }
+  lockPad.appendChild(lockSideButton);
 
   function refreshPinScreen() {
     lockDots.forEach((dot, position) => dot.classList.toggle("filled", position < typedDigits.length));
     const sideText = typedDigits.length > 0 ? "Delete" : pendingRequest && pendingRequest.canCancel ? "Cancel" : "";
     lockSideButton.textContent = sideText;
-    lockSideButton.hidden = sideText === "";
+    lockSideButton.style.visibility = sideText === "" ? "hidden" : "visible";
   }
 
   function finishRequest(answer) {
@@ -49,21 +51,34 @@ if (typeof document !== "undefined") {
     resolve(answer);
   }
 
-  lockPad.addEventListener("click", (event) => {
-    const key = event.target.closest("[data-digit]");
-    if (!key || !pendingRequest || typedDigits.length >= 4) return;
-    typedDigits += key.dataset.digit;
+  function typeDigit(digit) {
+    if (!pendingRequest || typedDigits.length >= 4) return;
+    typedDigits += digit;
     refreshPinScreen();
     if (typedDigits.length === 4) {
       const answer = typedDigits;
-      setTimeout(() => { if (pendingRequest) finishRequest(answer); }, 150);
+      setTimeout(() => { if (pendingRequest) finishRequest(answer); }, 120);
     }
-  });
+  }
 
-  lockSideButton.addEventListener("click", () => {
+  function pressSideKey() {
     if (typedDigits.length > 0) { typedDigits = typedDigits.slice(0, -1); refreshPinScreen(); }
     else if (pendingRequest && pendingRequest.canCancel) finishRequest(null);
+  }
+
+  // Keys react the moment a finger lands (not after the click event), so fast typing is not dropped.
+  // The "pressed" look is added by hand because iOS does not show :active reliably.
+  lockPad.addEventListener("pointerdown", (event) => {
+    const key = event.target.closest("button");
+    if (!key || key.disabled) return;
+    event.preventDefault();
+    key.classList.add("pressed");
+    if (key === lockSideButton) pressSideKey();
+    else if (key.dataset.digit) typeDigit(key.dataset.digit);
   });
+  for (const letGo of ["pointerup", "pointercancel", "pointerleave"]) {
+    lockPad.addEventListener(letGo, (event) => { const key = event.target.closest("button"); if (key) key.classList.remove("pressed"); }, true);
+  }
 
   // Shows the PIN screen and gives back the 4 digits typed, or null if cancelled.
   function askForPin(message, canCancel, errorText = "") {
@@ -73,6 +88,7 @@ if (typeof document !== "undefined") {
       lockMessage.textContent = message;
       lockError.textContent = errorText;
       lockScreen.hidden = false;
+      if (errorText) { lockDotsBox.classList.remove("shake"); void lockDotsBox.offsetWidth; lockDotsBox.classList.add("shake"); }
       refreshPinScreen();
     });
   }

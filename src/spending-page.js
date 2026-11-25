@@ -100,6 +100,15 @@ function showSpendingPage(settings) {
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}</div></summary>
     ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`).join("");
 
+  // This month against last month. A month still in progress is compared with the same days last month.
+  const thisMonthText = todayText().slice(0, 7);
+  const comparison = monthComparison(charges, spendingMonthShown, spendingMonthShown === thisMonthText ? Number(todayText().slice(8, 10)) : 31);
+  const changeText = (difference) => difference === 0 ? "same" : `${difference > 0 ? "&#9650;" : "&#9660;"} ${formatMoney(Math.abs(difference))}`;
+  const changeClass = (difference) => difference > 0 ? "up-text" : difference < 0 ? "down-text" : "";
+  const comparisonTile = comparison.hasPrevious ? `<div class="tile"><div class="tile-row"><b>${spendingMonthShown === thisMonthText ? "Vs the same days last month" : "Vs the month before"}</b><b class="${changeClass(comparison.difference)}">${changeText(comparison.difference)}</b></div>
+    <div class="small">${formatMoney(comparison.total)} now, ${formatMoney(comparison.previousTotal)} then</div>
+    ${comparison.categories.filter((entry) => entry.difference !== 0).slice(0, 5).map((entry) => `<div class="tile-row small"><span>${entry.name}</span><span class="${changeClass(entry.difference)}">${changeText(entry.difference)}</span></div>`).join("")}</div>` : "";
+
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
   page.innerHTML = `<h2>Spending</h2>
@@ -107,7 +116,7 @@ function showSpendingPage(settings) {
     <div class="tile"><div class="small">Spent this month</div><div class="big-number">${formatMoney(month.total)}</div>
       ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
       <div class="small">Bills and subscriptions are left out.</div></div>
-    ${pendingTile}${categoryRows}${billsTile}
+    ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
     <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, so a few will be off.</div>`;
 }

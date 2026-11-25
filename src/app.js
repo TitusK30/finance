@@ -54,6 +54,18 @@ function transferSentence(settings, forecast) {
     : sentence;
 }
 
+// "Safe to spend until payday": what checking can spare, after bills and card payments, keeping your floor.
+function showSafeToSpend(settings, forecast) {
+  const result = safeToSpend(forecast, settings.starting_balances.checking_balance, settings.minimum_checking_floor);
+  const floor = formatMoney(settings.minimum_checking_floor);
+  const paydayNote = result.paydayDate ? `until ${formatDate(result.paydayDate)}` : "for the next few weeks";
+  document.getElementById("safe-to-spend").innerHTML = result.amount > 0
+    ? `<div class="tile good"><div class="small">Safe to spend ${paydayNote}</div><div class="big-number">${formatMoney(result.amount)}</div>
+        <div class="small">About ${formatMoney(result.perDay)} a day for ${result.daysUntilPayday} day${result.daysUntilPayday === 1 ? "" : "s"}, after bills and card payments, keeping your ${floor} floor.</div></div>`
+    : `<div class="tile warning"><div class="small">Safe to spend ${paydayNote}</div><div class="big-number">${formatMoney(0)}</div>
+        <div class="small">Checking would sit at ${formatMoney(result.lowestBeforePayday)}${result.lowestDate ? ` on ${formatDate(result.lowestDate)}` : ""}, at or under your ${floor} floor.</div></div>`;
+}
+
 function showTransferAdvice(settings, forecast) {
   const box = document.getElementById("transfer-advice");
   const floor = formatMoney(settings.minimum_checking_floor);
@@ -178,6 +190,47 @@ function fillWhatIfChoices(settings) {
   document.getElementById("what-if-date").value ||= todayText();
 }
 
+// "Updated 5 min ago" under the Home title, or the balance date if nothing has refreshed yet.
+function minutesAgoText(minutes) {
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${Math.floor(minutes)} min ago`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)} h ago`;
+  return `${Math.floor(minutes / 1440)} d ago`;
+}
+
+function showStatusLine(settings = loadSettings()) {
+  if (!settings) return;
+  const lastRefresh = Number(localStorage.getItem("finance_last_refresh_ms") || 0);
+  document.getElementById("data-status").textContent = lastRefresh
+    ? `Updated ${minutesAgoText((Date.now() - lastRefresh) / 60000)}`
+    : `Bank balances as of ${formatDate(settings.starting_balances.as_of_date)}`;
+}
+setInterval(() => { if (!document.hidden && document.getElementById("data-status").textContent !== "Refreshing...") showStatusLine(); }, 30000);
+
+// Pull down on Home to refresh.
+const PULL_DISTANCE_TO_REFRESH = 80;
+let pullStart = null;
+let pullDistance = 0;
+document.addEventListener("touchstart", (event) => {
+  const onHome = !document.getElementById("page-home").hidden && !document.getElementById("side-menu").classList.contains("open");
+  pullStart = onHome && window.scrollY <= 0 && event.touches[0].clientX > 30 ? event.touches[0].clientY : null;
+  pullDistance = 0;
+}, { passive: true });
+document.addEventListener("touchmove", (event) => {
+  if (pullStart === null) return;
+  pullDistance = Math.max(0, event.touches[0].clientY - pullStart);
+  const indicator = document.getElementById("pull-indicator");
+  indicator.hidden = pullDistance < 12;
+  indicator.textContent = pullDistance >= PULL_DISTANCE_TO_REFRESH ? "Release to refresh" : "Pull to refresh";
+  indicator.style.opacity = String(Math.min(1, pullDistance / PULL_DISTANCE_TO_REFRESH));
+}, { passive: true });
+document.addEventListener("touchend", () => {
+  document.getElementById("pull-indicator").hidden = true;
+  if (pullStart !== null && pullDistance >= PULL_DISTANCE_TO_REFRESH) refreshFromBank();
+  pullStart = null;
+  pullDistance = 0;
+}, { passive: true });
+
 const HIDE_START_HERE_KEY = "finance_os_hide_start_here";
 
 // Enough to draw a forecast: a paycheck or a checking balance.
@@ -214,8 +267,9 @@ function showEverything() {
   if (!settings) { document.getElementById("start-here").hidden = true; return; }
   showStartHere(settings);
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
-  document.getElementById("data-status").textContent = `Bank balances as of ${formatDate(settings.starting_balances.as_of_date)}`;
+  showStatusLine(settings);
   showBalances(settings);
+  showSafeToSpend(settings, forecast);
   showTransferAdvice(settings, forecast);
   showHorizonCards(settings, forecast);
   showBalanceChart(settings, forecast);

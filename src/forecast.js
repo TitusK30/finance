@@ -132,9 +132,27 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   };
 }
 
+// How much checking can spare before the next paycheck, keeping the floor, after bills and card payments.
+function safeToSpend(forecast, startingBalance, floor) {
+  const paydayIndex = forecast.days.findIndex((day) => day.events.some((event) => event.label === "Paycheck"));
+  const daysUntilPayday = paydayIndex === -1 ? forecast.days.length : paydayIndex + 1;
+  const daysBeforePayday = paydayIndex === -1 ? forecast.days : forecast.days.slice(0, paydayIndex);
+  let lowest = { balance: startingBalance, date: null };
+  for (const day of daysBeforePayday) if (day.checking_balance < lowest.balance) lowest = { balance: day.checking_balance, date: day.date };
+  const amount = roundToCents(Math.max(0, lowest.balance - floor));
+  return {
+    amount,
+    perDay: roundToCents(amount / daysUntilPayday),
+    daysUntilPayday,
+    paydayDate: paydayIndex === -1 ? null : forecast.days[paydayIndex].date,
+    lowestBeforePayday: lowest.balance,
+    lowestDate: lowest.date,
+  };
+}
+
 function balanceOn(forecast, dateText) {
   return forecast.days.find((day) => day.date === dateText)?.checking_balance;
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, balanceOn, dueDateForCharge };

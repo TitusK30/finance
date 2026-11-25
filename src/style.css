@@ -116,3 +116,45 @@ input[type="month"] { min-width: 0; max-width: 100%; -webkit-appearance: none; a
 #side-menu button[hidden] { display: none; }
 #start-here .tile-row { margin: 8px 0; }
 #start-here button { margin-top: 8px; }
+
+/* PIN pad: quick, responsive keys */
+#lock-pad button, #lock-side-button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; transition: transform 0.08s ease, background 0.12s ease; }
+#lock-pad button.pressed { background: var(--accent); color: var(--page-background); transform: scale(0.92); }
+#lock-pad button.pressed small { color: var(--page-background); }
+#lock-pad #lock-side-button { margin: 0; width: 76px; height: 76px; background: none; border: 0; font-size: 17px; color: var(--main-text); }
+#lock-pad #lock-side-button.pressed { background: var(--bar-track); color: var(--main-text); }
+#lock-dots span { transition: background 0.1s ease, transform 0.1s ease; }
+#lock-dots span.filled { transform: scale(1.15); }
+#lock-dots.shake { animation: pin-shake 0.35s ease; }
+@keyframes pin-shake { 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+#pull-indicator { position: fixed; top: calc(max(env(safe-area-inset-top), 44px) + 64px); left: 50%; transform: translateX(-50%); z-index: 30; padding: 6px 14px; border-radius: 999px; background: var(--tile-background); border: 1px solid var(--bar-track); font-size: 13px; color: var(--muted-text); pointer-events: none; }
+#pull-indicator[hidden] { display: none; }
+
+/* Swipe to delete */
+.swipe-row { position: relative; transition: transform 0.18s ease; }
+.swipe-delete { position: absolute; left: 100%; top: 0; bottom: 0; width: 90px; margin: 0; padding: 0; border-radius: 0 12px 12px 0; background: #d9433b; color: #fff; font-size: 15px; font-weight: 600; visibility: hidden; }
+.swipe-row.swiped .swipe-delete { visibility: visible; }
+
+/* Quick, tactile taps and page changes */
+button, .list-row, .editable { transition: transform 0.08s ease, background 0.12s ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button:active, .list-row:active { transform: scale(0.96); }
+[id^="page-"]:not([hidden]) { animation: page-in 0.2s ease; }
+@keyframes page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+#side-menu button:active { background: var(--bar-track); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Set up: collapsible sections and guided steps */
+.setup-section summary { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; cursor: pointer; list-style: none; }
+.setup-section summary::-webkit-details-marker { display: none; }
+.setup-section summary::after { content: "›"; color: var(--muted-text); margin-left: 8px; transition: transform 0.15s ease; }
+.setup-section[open] summary::after { transform: rotate(90deg); }
+.setup-section summary .small { margin-left: auto; }
+.setup-body { margin-top: 10px; }
+.setup-subtitle { display: block; margin-top: 14px; }
+.progress { height: 6px; border-radius: 3px; background: var(--bar-track); overflow: hidden; margin: 4px 0 6px; }
+.progress-fill { height: 100%; background: var(--accent); transition: width 0.25s ease; }
+.wizard-body { margin: 14px 0; }
+.wizard-buttons { display: flex; gap: 10px; position: sticky; bottom: 14px; margin-top: 16px; }
+.wizard-buttons button { flex: 1; margin: 0; }
+.up-text { color: #ff6b6b; }
+.down-text { color: #4cd37f; }
