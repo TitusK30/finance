@@ -21,6 +21,41 @@ function showGoalsPage(settings) {
     ${tiles || `<div class="tile small">No goals yet.</div>`}
     <button id="add-goal-button">Add goal</button>`;
   showGoalDatePlanner(settings);
+  showWhatIfSaving(settings);
+}
+
+function savingsPlanWeekly(settings) {
+  return (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
+}
+
+// "If I save $X a week for N weeks, what will savings be?" Uses the expected-money boxes above too.
+function showWhatIfSaving(settings) {
+  const weeklyBox = document.getElementById("plan-weekly-amount");
+  if (document.activeElement !== weeklyBox) weeklyBox.value = savingsPlanWeekly(settings) || "";
+  const resultBox = document.getElementById("plan-what-if-result");
+  const weeklyAmount = parseFloat(weeklyBox.value) || 0;
+  const weeks = parseInt(document.getElementById("plan-weeks").value, 10) || 0;
+  if (weeklyAmount <= 0 || weeks <= 0) { resultBox.innerHTML = ""; return; }
+  const expectedMoney = { date: document.getElementById("goal-plan-expected-date").value, amount: parseFloat(document.getElementById("goal-plan-expected-amount").value) || 0 };
+  const goal = settings.savings_goals[document.getElementById("goal-plan-goal").value];
+  const result = savingsAfterWeeks(settings.starting_balances.savings_balance, weeklyAmount, weeks, todayText(), expectedMoney, goal);
+  resultBox.innerHTML = `<div class="tile good"><div class="small">In ${weeks} week${weeks === 1 ? "" : "s"} (${formatDate(result.endDate)}) savings would be</div>
+    <div class="big-number">${formatMoney(result.finalBalance)}</div>
+    <div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
+    <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span>+${formatMoney(result.fromSaving)}</span></div>
+    ${result.expectedAmount > 0 ? `<div class="tile-row small"><span>Expected money arriving ${formatDate(expectedMoney.date)}</span><span>+${formatMoney(result.expectedAmount)}</span></div>` : ""}
+    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}</div>`;
+}
+
+document.getElementById("plan-weekly-amount").addEventListener("change", () => {
+  const settings = loadSettings();
+  if (!settings) return;
+  settings.savings_plan = { weekly_amount: Math.max(0, parseFloat(document.getElementById("plan-weekly-amount").value) || 0) };
+  saveSettings(settings);
+  showEverything();
+});
+for (const inputId of ["plan-weekly-amount", "plan-weeks"]) {
+  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showWhatIfSaving(settings); });
 }
 
 // "What if I want it done by this date?" Picks a goal and a date, shows the weekly amount.
@@ -49,11 +84,12 @@ function showGoalDatePlanner(settings) {
       ${expectedLine}<div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div>
       <div class="tile-row small"><span>Weeks until ${formatDate(targetDate)}</span><span>${plan.weeksLeft}</span></div>
       <div class="tile-row small"><span>About per month</span><span>${formatMoney(plan.perMonth)}</span></div>
-      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div></div>${expectedLeftOut}`;
+      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div>
+      <button id="use-weekly-plan-button" data-weekly="${plan.perWeek}">Use ${formatMoney(plan.perWeek)} a week as my plan</button></div>${expectedLeftOut}`;
 }
 
 for (const inputId of ["goal-plan-goal", "goal-plan-date", "goal-plan-expected-date", "goal-plan-expected-amount"]) {
-  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showGoalDatePlanner(settings); });
+  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) { showGoalDatePlanner(settings); showWhatIfSaving(settings); } });
 }
 
 function netWorthSparkline(history) {
@@ -165,7 +201,9 @@ function showTrackingPages(settings) {
 document.addEventListener("click", async (event) => {
   const settings = loadSettings();
   if (!settings) return;
-  if (event.target.id === "add-goal-button") {
+  if (event.target.id === "use-weekly-plan-button") {
+    settings.savings_plan = { weekly_amount: parseFloat(event.target.dataset.weekly) || 0 };
+  } else if (event.target.id === "add-goal-button") {
     const name = prompt("Goal name (for example: Emergency fund)");
     if (!name) return;
     const target = parseFloat(prompt("Goal amount ($)"));

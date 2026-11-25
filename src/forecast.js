@@ -150,9 +150,33 @@ function safeToSpend(forecast, startingBalance, floor) {
   };
 }
 
+// How much you can spend in each window and still move weeklySavings out of checking every week and keep the floor.
+// Savings leave checking a little each day (weekly / 7), so the lowest day in the window decides the room.
+// rawRoom can go negative: that is how far short checking would fall, and the window is then not affordable.
+function spendingRoom(forecast, floor, weeklySavings) {
+  const savingsPerDay = weeklySavings / 7;
+  const firstMonth = forecast.days[0].date.slice(0, 7);
+  const daysLeftInMonth = forecast.days.filter((day) => day.date.slice(0, 7) === firstMonth).length;
+  function roomForDays(numberOfDays) {
+    const days = forecast.days.slice(0, Math.min(numberOfDays, forecast.days.length));
+    let tightest = { room: Infinity, date: null };
+    days.forEach((day, position) => {
+      const room = day.checking_balance - floor - savingsPerDay * (position + 1);
+      if (room < tightest.room) tightest = { room, date: day.date };
+    });
+    return { days: days.length, rawRoom: roundToCents(tightest.room), room: roundToCents(Math.max(0, tightest.room)), tightestDate: tightest.date };
+  }
+  const week = roomForDays(7);
+  const month = roomForDays(daysLeftInMonth);
+  // The most you could set aside every week over the next 28 days without breaking the floor.
+  const lookAhead = forecast.days.slice(0, 28);
+  const mostPerWeek = roundToCents(Math.max(0, Math.min(...lookAhead.map((day, position) => ((day.checking_balance - floor) * 7) / (position + 1)))));
+  return { week, month, perDayThisWeek: roundToCents(week.room / week.days), mostPerWeek };
+}
+
 function balanceOn(forecast, dateText) {
   return forecast.days.find((day) => day.date === dateText)?.checking_balance;
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, balanceOn, dueDateForCharge };

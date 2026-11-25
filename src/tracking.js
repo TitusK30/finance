@@ -50,6 +50,17 @@ function weeklySavingsNeeded(goal, todayDate, targetDate, expectedMoney) {
   return { weeksLeft, remaining, remainingBeforeExpected, expectedAmount, perWeek, perMonth: roundTrackedMoney((perWeek * 52) / 12) };
 }
 
+// "If I save this much a week for this many weeks, what will savings be?" Money you expect to receive counts if it lands inside that time.
+function savingsAfterWeeks(startingSavings, weeklyAmount, weeks, todayDate, expectedMoney, goal) {
+  const endDate = new Date(new Date(todayDate + "T12:00:00Z").getTime() + weeks * 7 * 86400000).toISOString().slice(0, 10);
+  const expectedCounts = Boolean(expectedMoney && expectedMoney.amount > 0 && expectedMoney.date > todayDate && expectedMoney.date <= endDate);
+  const expectedAmount = expectedCounts ? expectedMoney.amount : 0;
+  const fromSaving = roundTrackedMoney(weeklyAmount * weeks);
+  const finalBalance = roundTrackedMoney(startingSavings + fromSaving + expectedAmount);
+  const goalPercent = goal && goal.target > 0 ? Math.min(100, Math.round(((goal.saved + fromSaving + expectedAmount) / goal.target) * 100)) : null;
+  return { endDate, fromSaving, expectedAmount, finalBalance, goalPercent };
+}
+
 // To-do colors: red when overdue or due within a week, amber within a month, green after that.
 function dueUrgency(dueDate, todayDate) {
   if (!dueDate) return { level: "none", daysLeft: null };
@@ -78,5 +89,5 @@ function monthlyRecap({ netWorthHistory, creditScores, goals, monthlyIncome, mon
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { goalProgress, weeklySavingsNeeded, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
+  module.exports = { goalProgress, weeklySavingsNeeded, savingsAfterWeeks, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
 }

@@ -247,3 +247,7 @@ src/extra-pages.js       bills, rewards, HSA, PTO, car loan pages
 relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
 finance_settings.example.json   fake data showing the file format
 ```
+
+### Weekly savings plan
+- On the Goals tab, type how much you save each week. The app shows what savings would be after a number of weeks, counting any expected lump sum you entered.
+- Home and Goals then show how much you can spend this week and this month while still moving that amount to savings and keeping your checking floor.

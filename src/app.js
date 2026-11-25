@@ -66,6 +66,31 @@ function showSafeToSpend(settings, forecast) {
         <div class="small">Checking would sit at ${formatMoney(result.lowestBeforePayday)}${result.lowestDate ? ` on ${formatDate(result.lowestDate)}` : ""}, at or under your ${floor} floor.</div></div>`;
 }
 
+// Home and Goals: how much can be spent this week and this month while still moving the weekly savings amount and keeping the floor.
+function showSpendingPlan(settings, forecast) {
+  const weeklySavings = (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
+  const homeBox = document.getElementById("spending-plan");
+  const goalsBox = document.getElementById("goal-spending-room");
+  if (weeklySavings <= 0) {
+    homeBox.innerHTML = "";
+    goalsBox.innerHTML = `<div class="tile small">Type a weekly amount above to see how much you can spend while still saving it.</div>`;
+    return;
+  }
+  const room = spendingRoom(forecast, settings.minimum_checking_floor, weeklySavings);
+  const floor = formatMoney(settings.minimum_checking_floor);
+  const fits = room.week.rawRoom >= 0;
+  const monthRow = room.month.days > room.week.days
+    ? `<div class="tile-row small"><span>Rest of this month (${room.month.days} days)</span><span class="${room.month.rawRoom < 0 ? "negative" : ""}">${formatMoney(room.month.room)}</span></div>` : "";
+  const html = fits
+    ? `<div class="tile good"><div class="small">Spending room this week, saving ${formatMoney(weeklySavings)} a week</div><div class="big-number">${formatMoney(room.week.room)}</div>
+        <div class="tile-row small"><span>About per day</span><span>${formatMoney(room.perDayThisWeek)}</span></div>${monthRow}
+        <div class="small">After bills, subs and card payments, keeping your ${floor} floor. The tightest day is ${formatDate(room.week.tightestDate)}.</div></div>`
+    : `<div class="tile warning"><div class="small">Saving ${formatMoney(weeklySavings)} a week does not fit this week</div><div class="big-number">${formatMoney(0)}</div>
+        <div class="small">Checking would end up ${formatMoney(-room.week.rawRoom)} under your ${floor} floor on ${formatDate(room.week.tightestDate)}. The most that fits right now is ${formatMoney(room.mostPerWeek)} a week.</div></div>`;
+  homeBox.innerHTML = html;
+  goalsBox.innerHTML = html + (fits ? `<div class="small">Most you could set aside weekly right now: ${formatMoney(room.mostPerWeek)}.</div>` : "");
+}
+
 function showTransferAdvice(settings, forecast) {
   const box = document.getElementById("transfer-advice");
   const floor = formatMoney(settings.minimum_checking_floor);
@@ -270,6 +295,7 @@ function showEverything() {
   showStatusLine(settings);
   showBalances(settings);
   showSafeToSpend(settings, forecast);
+  showSpendingPlan(settings, forecast);
   showTransferAdvice(settings, forecast);
   showHorizonCards(settings, forecast);
   showBalanceChart(settings, forecast);
@@ -286,7 +312,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "savings_plan"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);
