@@ -114,7 +114,7 @@ function showSpendingPage(settings) {
   const earned = earnedInMonth(store, spendingMonthShown, settings);
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
   const earnedTile = `<details class="tile category-tile"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
-    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div></summary>${depositRows}</details>
+    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div></summary>${depositRows}</details>`;
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
