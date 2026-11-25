@@ -191,8 +191,7 @@ function showCreditPage(settings) {
   const otherCardsTile = `<div class="tile"><b>Other cards</b>${otherCardRows}
     <div class="tile-row small"><span>Annual fees across all cards</span><span>${formatMoney(totalAnnualFees(settings))} / year</span></div></div>`;
   const noCardsYet = Object.keys(settings.credit_cards).length === 0 ? `<div class="tile small">No credit cards yet. Add them in Settings → Set up in the app.</div>` : "";
-  document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${noCardsYet}${cardTiles}${otherCardsTile}
-    <div class="small">Lenders usually report your statement balance when it closes, so that is what these numbers aim at. est. means the new statement is assumed to start at $0, plus known subscriptions. Under about 10% is generally the best range, but this is an estimate and no guarantee of a score.</div>`;
+  document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${noCardsYet}${cardTiles}${otherCardsTile}`;
 }
 
 function showHsaPage(settings) {
