@@ -110,3 +110,6 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 .setup-label { display: block; margin-top: 10px; }
 .setup-label input[type="checkbox"] { display: inline-block; width: auto; margin-right: 8px; }
 input[type="month"] { min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; height: 44px; }
+#apply-top-button { margin: 0 8px 0 auto; padding: 8px 16px; font-size: 16px; line-height: 1; }
+#apply-top-button[hidden] { display: none; }
+#apply-top-button:not([hidden]) + #refresh-top-button { margin-left: 0; }

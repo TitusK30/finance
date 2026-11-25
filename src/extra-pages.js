@@ -47,6 +47,7 @@ function showPage(pageName) {
     document.getElementById("page-" + name).hidden = name !== pageName;
     document.getElementById("tab-" + name).classList.toggle("active-tab", name === pageName);
   }
+  document.getElementById("apply-top-button").hidden = pageName !== "setup";
   const tabLabel = document.getElementById("tab-" + pageName).dataset.title;
   document.getElementById("page-title").textContent = pageName === "home" ? "Finance OS" : tabLabel;
   setMenuOpen(false);

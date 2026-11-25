@@ -52,7 +52,7 @@ function basicsSectionHtml(settings) {
     ${setupField("setup-savings", "Savings balance ($)", "number", settings.starting_balances.savings_balance)}
     ${setupField("setup-takehome", "Take-home pay per paycheck ($)", "number", settings.paycheck.usual_take_home_amount)}
     ${setupSelect("setup-weekday", "Payday", SETUP_WEEKDAYS.map((day) => [day, day]), settings.paycheck.pay_weekday)}
-    <button id="setup-save-basics">Save basics</button></div>`;
+</div>`;
 }
 
 function cardsSectionHtml(settings) {
@@ -113,12 +113,12 @@ function carAndOvertimeSectionHtml(settings) {
     ${setupField("setup-loan-rate", "Yearly interest rate (%)", "number", loan.annual_rate_percent)}
     ${setupField("setup-loan-payment", "Monthly payment ($)", "number", loan.payment)}
     ${setupField("setup-loan-first", "First payment date", "date", loan.first_payment_date)}
-    <button id="setup-save-loan">Save car loan</button>${settings.car_loan ? '<button id="setup-remove-loan" class="small-button">Remove</button>' : ""}</div>
+    ${settings.car_loan ? '<button id="setup-remove-loan" class="small-button">Remove</button>' : ""}</div>
     <div class="tile"><b>Overtime (optional)</b>
     ${setupField("setup-ot-gross", "Hourly rate before tax ($)", "number", overtime.gross_hourly_rate)}
     ${setupField("setup-ot-takehome", "Take-home per overtime hour ($)", "number", overtime.take_home_per_overtime_hour)}
     ${setupField("setup-ot-days", "Paid this many days after the pay period ends", "number", overtime.paid_days_after_period_ends)}
-    <button id="setup-save-overtime">Save overtime</button></div>`;
+</div>`;
 }
 
 // Menu tabs you can hide. Home, Settings and Set up always stay.
@@ -137,13 +137,13 @@ function menuTabsSectionHtml(settings) {
     const tabButton = document.getElementById("tab-" + name);
     return `<label class="small setup-label"><input type="checkbox" data-setup-tab="${name}"${settings.hidden_tabs.includes(name) ? "" : " checked"}> ${tabButton.dataset.title}</label>`;
   }).join("");
-  return `<div class="tile"><b>Menu tabs</b><div class="small">Untick any tab you do not use to take it out of the menu. Tick it again whenever you want it back.</div>${rows}</div>`;
+  return `<div class="tile"><b>Menu tabs</b><div class="small">Untick any tab you do not use, then tap Apply to take it out of the menu. Tick it again and Apply whenever you want it back.</div>${rows}</div>`;
 }
 
 function showSetupPage(settings) {
   applyHiddenTabs(settings);
   document.getElementById("page-setup").innerHTML = `<h2>Set up</h2>
-    <div class="small">Fill these in here instead of loading a settings file. Both ways work, and you can mix them. Balances and statements come from the bank refresh or the file.</div>
+    <div class="small">Fill these in here instead of loading a settings file. Both ways work, and you can mix them. Tap Apply (top right) to save the basics, car loan, overtime and menu tabs. Cards, bills and subscriptions save with their own Add buttons. Balances and statements come from the bank refresh or the file.</div>
     ${basicsSectionHtml(settings)}${cardsSectionHtml(settings)}${billsSectionHtml(settings)}${subscriptionsSectionHtml(settings)}${carAndOvertimeSectionHtml(settings)}${menuTabsSectionHtml(settings)}`;
 }
 
@@ -159,29 +159,37 @@ function openSetupPage() {
   showPage("setup");
 }
 
+// Apply: saves everything in the plain boxes on this page (basics, car loan, overtime, menu tabs) in one go.
+function applySetupPage(settings) {
+  settings.minimum_checking_floor = inputNumber("setup-floor") ?? 0;
+  settings.starting_balances.checking_balance = inputNumber("setup-checking") ?? 0;
+  settings.starting_balances.savings_balance = inputNumber("setup-savings") ?? 0;
+  settings.paycheck.usual_take_home_amount = inputNumber("setup-takehome") ?? 0;
+  settings.paycheck.pay_weekday = document.getElementById("setup-weekday").value;
+
+  const loanAmount = inputNumber("setup-loan-amount");
+  const loanPayment = inputNumber("setup-loan-payment");
+  const loanFirstPayment = inputText("setup-loan-first");
+  const loanFilledIn = loanAmount != null || loanPayment != null || loanFirstPayment;
+  if (loanFilledIn && (loanAmount == null || loanPayment == null || !loanFirstPayment)) return alert("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them.");
+  if (loanFilledIn) settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
+
+  settings.overtime = { gross_hourly_rate: inputNumber("setup-ot-gross"), take_home_per_overtime_hour: inputNumber("setup-ot-takehome"), paid_days_after_period_ends: inputNumber("setup-ot-days") ?? 7 };
+  settings.hidden_tabs = hideableTabs().filter((name) => !document.querySelector(`[data-setup-tab="${name}"]`).checked);
+
+  saveAndRefresh(settings);
+  const applyButton = document.getElementById("apply-top-button");
+  applyButton.textContent = "Applied ✓";
+  setTimeout(() => { applyButton.textContent = "Apply"; }, 1500);
+}
+
 document.addEventListener("click", (event) => {
   const target = event.target;
   if (target.id === "open-setup-button" || target.id === "start-setup-button") return openSetupPage();
   const settings = loadSettings();
   if (!settings || document.getElementById("page-setup").hidden) return;
 
-  if (target.dataset.setupTab) {
-    const hidden = new Set(settings.hidden_tabs);
-    if (target.checked) hidden.delete(target.dataset.setupTab);
-    else hidden.add(target.dataset.setupTab);
-    settings.hidden_tabs = [...hidden];
-    return saveAndRefresh(settings);
-  }
-
-  if (target.id === "setup-save-basics") {
-    settings.minimum_checking_floor = inputNumber("setup-floor") ?? 0;
-    settings.starting_balances.checking_balance = inputNumber("setup-checking") ?? 0;
-    settings.starting_balances.savings_balance = inputNumber("setup-savings") ?? 0;
-    settings.starting_balances.as_of_date = todayText();
-    settings.paycheck.usual_take_home_amount = inputNumber("setup-takehome") ?? 0;
-    settings.paycheck.pay_weekday = document.getElementById("setup-weekday").value;
-    return saveAndRefresh(settings);
-  }
+  if (target.id === "apply-top-button") return applySetupPage(settings);
 
   if (target.id === "setup-save-card") {
     const name = inputText("setup-card-name");
@@ -253,21 +261,8 @@ document.addEventListener("click", (event) => {
     return saveAndRefresh(settings);
   }
 
-  if (target.id === "setup-save-loan") {
-    const amount = inputNumber("setup-loan-amount");
-    const payment = inputNumber("setup-loan-payment");
-    const firstPayment = inputText("setup-loan-first");
-    if (amount == null || payment == null || !firstPayment) return alert("The car loan needs an amount, a monthly payment and a first payment date.");
-    settings.car_loan = { ...(settings.car_loan || {}), amount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment, first_payment_date: firstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
-    return saveAndRefresh(settings);
-  }
   if (target.id === "setup-remove-loan" && confirm("Remove the car loan?")) {
     settings.car_loan = null;
-    return saveAndRefresh(settings);
-  }
-
-  if (target.id === "setup-save-overtime") {
-    settings.overtime = { gross_hourly_rate: inputNumber("setup-ot-gross"), take_home_per_overtime_hour: inputNumber("setup-ot-takehome"), paid_days_after_period_ends: inputNumber("setup-ot-days") ?? 7 };
     return saveAndRefresh(settings);
   }
 });
