@@ -101,7 +101,8 @@ function earnedInMonth(store, yearMonth, settings) {
     const text = (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase();
     return transaction.category === "INCOME" || /payroll|direct dep/.test(text) || hintWords.some((word) => text.includes(word));
   });
-  return { total: roundCents(-deposits.reduce((sum, transaction) => sum + transaction.amount, 0)), count: deposits.length };
+  deposits.sort((first, second) => second.date.localeCompare(first.date));
+  return { total: roundCents(-deposits.reduce((sum, transaction) => sum + transaction.amount, 0)), count: deposits.length, deposits };
 }
 
 function monthsWithSpending(charges) {
