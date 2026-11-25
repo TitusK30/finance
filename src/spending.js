@@ -120,6 +120,21 @@ function usualPayDeposit(store, settings) {
   return amounts.length ? amounts[0] : null;
 }
 
+// Money moved in or out of your bank accounts that is neither pay nor spending: Zelle, Venmo, Cash App, PayPal,
+// Apple Cash and transfers the bank labels as transfers. Card payments are left out (cards are not bank accounts).
+function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
+  const payIds = new Set(payDeposits(store, settings, (transaction) => transaction.date.startsWith(yearMonth)).map((transaction) => transaction.transaction_id));
+  const items = Object.values(store.transactions).filter((transaction) => {
+    if (transaction.pending || !transaction.date.startsWith(yearMonth) || payIds.has(transaction.transaction_id) || isBill(transaction)) return false;
+    const account = store.accounts[transaction.account_id];
+    if (!account || account.type !== "depository") return false;
+    const text = plainMerchantText(transaction);
+    return transaction.category === "TRANSFER_IN" || transaction.category === "TRANSFER_OUT" || /zelle|venmo|cash app|cashapp|paypal|apple cash/.test(text);
+  }).sort((first, second) => second.date.localeCompare(first.date));
+  const sumOf = (list) => roundCents(list.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0));
+  return { items, totalIn: sumOf(items.filter((transaction) => transaction.amount < 0)), totalOut: sumOf(items.filter((transaction) => transaction.amount > 0)) };
+}
+
 function monthsWithSpending(charges) {
   return [...new Set(charges.map((charge) => charge.date.slice(0, 7)))].sort().reverse();
 }
@@ -195,4 +210,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

@@ -145,7 +145,7 @@ function showSpendingPage(settings) {
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + month.total)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
   const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
-      <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}, not counted in the totals above</div></summary>
+      <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
     ${billRows.map((charge) => {
       const markedByHand = billMatches.billCharges[charge.transaction_id] === "Marked by you";
       const button = markedByHand ? `<button class="mark-button" data-unmark-bill="${charge.transaction_id}">not a bill</button>` : "";
@@ -155,22 +155,13 @@ function showSpendingPage(settings) {
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge));
   const pendingTile = pending.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
-    <div class="small">Charged, but not on your balance yet. Some banks do not share these.</div></summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
+</summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
   const categoryRows = month.categories.map((entry) => `<details class="tile category-tile">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}</div></summary>
     ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`).join("");
-
-  // This month against last month. A month still in progress is compared with the same days last month.
-  const thisMonthText = todayText().slice(0, 7);
-  const comparison = monthComparison(charges, spendingMonthShown, spendingMonthShown === thisMonthText ? Number(todayText().slice(8, 10)) : 31);
-  const changeText = (difference) => difference === 0 ? "same" : `${difference > 0 ? "&#9650;" : "&#9660;"} ${formatMoney(Math.abs(difference))}`;
-  const changeClass = (difference) => difference > 0 ? "up-text" : difference < 0 ? "down-text" : "";
-  const comparisonTile = comparison.hasPrevious ? `<div class="tile"><div class="tile-row"><b>${spendingMonthShown === thisMonthText ? "Vs the same days last month" : "Vs the month before"}</b><b class="${changeClass(comparison.difference)}">${changeText(comparison.difference)}</b></div>
-    <div class="small">${formatMoney(comparison.total)} now, ${formatMoney(comparison.previousTotal)} then</div>
-    ${comparison.categories.filter((entry) => entry.difference !== 0).slice(0, 5).map((entry) => `<div class="tile-row small"><span>${entry.name}</span><span class="${changeClass(entry.difference)}">${changeText(entry.difference)}</span></div>`).join("")}</div>` : "";
 
   const earned = earnedInMonth(store, spendingMonthShown, settings);
   const ahead = paydaysAhead(settings, store, spendingMonthShown);
@@ -179,7 +170,7 @@ function showSpendingPage(settings) {
   const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
   const earnedTile = `<details class="tile category-tile"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
-    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div>
+    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"}</div>
     ${paydaysLine}</summary>${depositRows}</details>`;
 
   // Estimated month: pay earned plus paychecks still ahead, minus everything spent plus bills still to pay.
@@ -191,6 +182,11 @@ function showSpendingPage(settings) {
     <div class="big-number ${leftToSpend >= 0 ? "positive" : "negative"}">${formatMoney(leftToSpend)}</div>
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
     <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
+
+  const transfers = transfersInMonth(store, spendingMonthShown, settings, isBill);
+  const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
+  const transfersTile = transfers.items.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Transfers</b><span><b class="positive">+${formatMoney(transfers.totalIn)}</b> <b class="negative">&minus;${formatMoney(transfers.totalOut)}</b></span></div>
+    <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}: Zelle, Venmo and bank transfers</div></summary>${transferRows}</details>` : "";
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
@@ -206,9 +202,8 @@ function showSpendingPage(settings) {
       ${stillToPayLine}</div>
     ${earnedTile}
     ${leftTile}
-    ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
-    <div class="tile"><b>Top places</b>${merchantRows}</div>
-    <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, except that grocery stores, Amazon and tolls get their own categories by name, so a few will be off.</div>`;
+    ${pendingTile}${categoryRows}${billsTile}${transfersTile}
+    <div class="tile"><b>Top places</b>${merchantRows}</div>`;
 }
 
 document.addEventListener("click", (event) => {
