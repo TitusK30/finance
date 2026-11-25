@@ -121,10 +121,30 @@ function carAndOvertimeSectionHtml(settings) {
     <button id="setup-save-overtime">Save overtime</button></div>`;
 }
 
+// Menu tabs you can hide. Home, Settings and Set up always stay.
+const ALWAYS_SHOWN_TABS = ["home", "settings", "setup"];
+
+function hideableTabs() {
+  return PAGE_NAMES.filter((name) => !ALWAYS_SHOWN_TABS.includes(name));
+}
+
+function applyHiddenTabs(settings) {
+  for (const name of hideableTabs()) document.getElementById("tab-" + name).hidden = settings.hidden_tabs.includes(name);
+}
+
+function menuTabsSectionHtml(settings) {
+  const rows = hideableTabs().map((name) => {
+    const tabButton = document.getElementById("tab-" + name);
+    return `<label class="small setup-label"><input type="checkbox" data-setup-tab="${name}"${settings.hidden_tabs.includes(name) ? "" : " checked"}> ${tabButton.dataset.title}</label>`;
+  }).join("");
+  return `<div class="tile"><b>Menu tabs</b><div class="small">Untick any tab you do not use to take it out of the menu. Tick it again whenever you want it back.</div>${rows}</div>`;
+}
+
 function showSetupPage(settings) {
+  applyHiddenTabs(settings);
   document.getElementById("page-setup").innerHTML = `<h2>Set up</h2>
     <div class="small">Fill these in here instead of loading a settings file. Both ways work, and you can mix them. Balances and statements come from the bank refresh or the file.</div>
-    ${basicsSectionHtml(settings)}${cardsSectionHtml(settings)}${billsSectionHtml(settings)}${subscriptionsSectionHtml(settings)}${carAndOvertimeSectionHtml(settings)}`;
+    ${basicsSectionHtml(settings)}${cardsSectionHtml(settings)}${billsSectionHtml(settings)}${subscriptionsSectionHtml(settings)}${carAndOvertimeSectionHtml(settings)}${menuTabsSectionHtml(settings)}`;
 }
 
 function saveAndRefresh(settings) {
@@ -144,6 +164,14 @@ document.addEventListener("click", (event) => {
   if (target.id === "open-setup-button" || target.id === "start-setup-button") return openSetupPage();
   const settings = loadSettings();
   if (!settings || document.getElementById("page-setup").hidden) return;
+
+  if (target.dataset.setupTab) {
+    const hidden = new Set(settings.hidden_tabs);
+    if (target.checked) hidden.delete(target.dataset.setupTab);
+    else hidden.add(target.dataset.setupTab);
+    settings.hidden_tabs = [...hidden];
+    return saveAndRefresh(settings);
+  }
 
   if (target.id === "setup-save-basics") {
     settings.minimum_checking_floor = inputNumber("setup-floor") ?? 0;

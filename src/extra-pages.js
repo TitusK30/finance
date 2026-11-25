@@ -4,6 +4,7 @@ const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goa
 
 const DEFAULT_EXTRA_SETTINGS = {
   rewards: {},
+  hidden_tabs: [],
   card_benefits: [],
   card_expirations: {},
   annual_card_fees: [],
