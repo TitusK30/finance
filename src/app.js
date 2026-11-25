@@ -78,10 +78,9 @@ function showSpendingPlan(settings, forecast) {
         <div class="small">Saving ${formatMoney(weeklySavings)} a week does not leave room to spend while keeping your ${floor} floor over the next ${allowance.lookAheadDays} days (tightest day ${formatDate(allowance.tightestDate)}).</div>
         <div class="tile-row small"><span>Most you could save a week (spending nothing)</span><span>${formatMoney(allowance.mostPerWeek)}</span></div>
         <div class="tile-row small"><span>Daily budget if you saved nothing extra</span><span>${formatMoney(allowance.perDayWithoutSavings)}</span></div></div>`;
-  const room = cardRoom(forecast, settings.minimum_checking_floor, weeklySavings);
+  const room = cardRoom(forecast, settings.minimum_checking_floor);
   const roomTile = `<div class="tile ${room.amount > 0 ? "good" : "warning"}"><div class="small">Room to put on your cards, next ${room.days} days, all cards together</div>
       <div class="big-number">${formatMoney(room.amount)}</div>
-      ${weeklySavings > 0 ? `<div class="tile-row small"><span>...and still saving ${formatMoney(weeklySavings)} a week</span><span>${formatMoney(room.amountWithSavings)}</span></div>` : ""}
       <div class="small">Keeps checking at or above your ${floor} floor, counting your closed and open statements, pending charges, bills, subs, fees and listed expenses. Cautious: it treats the spending as coming out on the tightest day, ${formatDate(room.tightestDate)}.</div></div>`;
   document.getElementById("spending-plan").innerHTML = tile + roomTile;
   document.getElementById("goal-spending-room").innerHTML = tile + roomTile

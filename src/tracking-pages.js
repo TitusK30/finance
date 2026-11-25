@@ -42,6 +42,7 @@ function showWhatIfSaving(settings) {
   const weeklyBox = document.getElementById("plan-weekly-amount");
   const planAmount = savingsPlanWeekly(settings);
   if (!weeklyBox.dataset.typed) weeklyBox.value = planAmount || "";
+  document.getElementById("stop-weekly-plan-button").hidden = !planAmount;
   document.getElementById("plan-current-note").textContent = planAmount ? `My plan right now: ${formatMoney(planAmount)} a week` : "No weekly plan set yet";
   const resultBox = document.getElementById("plan-what-if-result");
   const weeklyAmount = parseFloat(weeklyBox.value) || 0;
@@ -220,6 +221,9 @@ document.addEventListener("click", async (event) => {
   if (!settings) return;
   if (event.target.id === "use-weekly-plan-button" || event.target.id === "make-weekly-plan-button") {
     settings.savings_plan = { weekly_amount: parseFloat(event.target.dataset.weekly) || 0 };
+    delete document.getElementById("plan-weekly-amount").dataset.typed;
+  } else if (event.target.id === "stop-weekly-plan-button") {
+    settings.savings_plan = { weekly_amount: 0 };
     delete document.getElementById("plan-weekly-amount").dataset.typed;
   } else if (event.target.id === "add-expected-in-button" || event.target.id === "add-expected-out-button") {
     const kind = event.target.id === "add-expected-out-button" ? "out" : "in";

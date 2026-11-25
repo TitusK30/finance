@@ -152,14 +152,9 @@ function withExpectedExpenses(forecast, items, floor) {
 
 // The most you could put on your cards over the whole forecast, all cards together, and still stay above the floor.
 // Careful by design: it counts the spending as coming out of checking on the tightest day.
-function cardRoom(forecast, floor, weeklySavings) {
-  let tightest = { room: Infinity, roomWithSavings: Infinity, date: null };
-  forecast.days.forEach((day, position) => {
-    const room = day.checking_balance - floor;
-    if (room < tightest.room) tightest = { ...tightest, room, date: day.date };
-    tightest.roomWithSavings = Math.min(tightest.roomWithSavings, room - (weeklySavings / 7) * (position + 1));
-  });
-  return { amount: roundToCents(Math.max(0, tightest.room)), amountWithSavings: roundToCents(Math.max(0, tightest.roomWithSavings)), tightestDate: tightest.date, days: forecast.days.length };
+function cardRoom(forecast, floor) {
+  const tightest = forecast.days.reduce((lowest, day) => (day.checking_balance < lowest.checking_balance ? day : lowest), forecast.days[0]);
+  return { amount: roundToCents(Math.max(0, tightest.checking_balance - floor)), tightestDate: tightest.date, days: forecast.days.length };
 }
 
 // The most you can spend each day for the next lookAheadDays and still keep the floor and move weeklySavings out each week.
