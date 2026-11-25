@@ -302,10 +302,11 @@ function showCarPage(settings) {
     ${baseline.waivedPayment ? `<div class="tile result-hero"><div class="tile-row"><b>Last payment waived</b><b>${formatMoney(baseline.waivedPayment.amount)} off</b></div>
       <div class="small">${escapeHtml(baseline.waivedPayment.reason)}. The ${monthAndYear(baseline.waivedPayment.date)} payment is null.</div></div>` : ""}
     <div class="tile car-tile"><b>Loan facts</b>
-      <div class="tile-row small"><span>Rate</span><span>${loan.annual_rate_percent}%</span></div>
-      <div class="tile-row small"><span>Length</span><span>${totalPayments} payments (${loan.skipped_months.length} skipped months added at no interest, last payment waived)</span></div>
-      <div class="tile-row small"><span>Total interest over the loan</span><span>${formatMoney(status.interestPaid + baseline.interestRemaining)}</span></div>
-      <div class="small">Counts a payment as made on each due date (autopay). Your lender's payoff quote can differ by a few dollars.</div></div>`;
+      <div class="facts-grid">
+        <div><span class="fact-icon">&#128200;</span><b>${loan.annual_rate_percent}%</b><span class="small">Rate</span></div>
+        <div><span class="fact-icon">&#128197;</span><b>${totalPayments}</b><span class="small">Payments</span></div>
+        <div><span class="fact-icon">&#128184;</span><b>${formatMoney(status.interestPaid + baseline.interestRemaining)}</b><span class="small">Total interest</span></div>
+      </div></div>`;
   const resultBox = document.getElementById("car-extra-result");
   if (lumpSum <= 0 && extraEachMonth <= 0) { resultBox.innerHTML = ""; return; }
   const plan = loanPayoffPlan(loan, status.balance, status.paymentsMade, lumpSum, extraEachMonth);

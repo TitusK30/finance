@@ -454,3 +454,7 @@ html, body { overflow-x: hidden; }
 #page-track .networth-tile .tile-row, #page-track .score-tile .tile-row { padding: 8px 0; border-top: 1px solid var(--bar-track); }
 #page-track .track-button { width: 100%; margin: 0 0 4px; padding: 14px; border-radius: 14px; font-size: 16px; }
 #page-car .tile-row { gap: 14px; } #page-car .tile-row > span:last-child { text-align: right; }
+.facts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.facts-grid > div { background: var(--bar-track); border-radius: 14px; padding: 12px 6px; display: grid; justify-items: center; gap: 3px; text-align: center; }
+.facts-grid b { font-size: 17px; }
+.fact-icon { font-size: 20px; }
