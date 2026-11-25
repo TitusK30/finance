@@ -211,27 +211,27 @@ function showCreditPage(settings) {
 function showHsaPage(settings) {
   const hsa = settings.hsa;
   const monthsLeft = hsaMonthsUntilBillPaidOff(hsa);
-  const projectionRows = [1, 3, 6, 12].map((months) =>
-    `<div class="tile-row small"><span>In ${months} month${months > 1 ? "s" : ""}</span><span>${formatMoney(hsaBalanceAfterMonths(hsa, months))}</span></div>`).join("");
+  const projectionCells = [1, 3, 6, 12].map((months) =>
+    `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months))}</b></div>`).join("");
   const payoffText = monthsLeft == null ? "Set the remaining bill amount to see the payoff date." : `About ${monthsLeft} more monthly payment${monthsLeft === 1 ? "" : "s"} to pay it off.`;
   document.getElementById("page-hsa").innerHTML = `<h2>HSA${hsa.provider ? ` (${escapeHtml(hsa.provider)})` : ""}</h2>
-    <div class="tile"><div class="small">Balance</div><div class="big-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div></div>
+    <div class="tile hsa-hero"><div class="small">&#129657; Balance</div><div class="huge-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div></div>
     <div class="horizon-grid">
-      <div class="tile"><div class="small">Put in each week</div><div class="big-number">${editableNumber("hsa.weekly_contribution", "Weekly HSA contribution", hsa.weekly_contribution, true)}</div>
+      <div class="tile hsa-stat hsa-in"><div class="small">Put in each week</div><div class="big-number">${editableNumber("hsa.weekly_contribution", "Weekly HSA contribution", hsa.weekly_contribution, true)}</div>
         <div class="small">about ${formatMoney(hsaMonthlyContribution(hsa))} / month</div></div>
-      <div class="tile"><div class="small">Medical bill payment, monthly</div><div class="big-number">${editableNumber("hsa.monthly_bill_payment", "Monthly medical bill payment", hsa.monthly_bill_payment, true)}</div></div>
+      <div class="tile hsa-stat hsa-out"><div class="small">Medical bill payment, monthly</div><div class="big-number">${editableNumber("hsa.monthly_bill_payment", "Monthly medical bill payment", hsa.monthly_bill_payment, true)}</div></div>
     </div>
-    <div class="tile"><div class="small">Medical bill still owed</div><div class="big-number">${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</div>
+    <div class="tile hsa-owed"><div class="small">Medical bill still owed</div><div class="big-number">${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</div>
       <div class="small">${payoffText}</div></div>
-    <div class="tile"><b>Projected balance</b>${projectionRows}
+    <div class="tile"><b>Projected balance</b><div class="projection-grid">${projectionCells}</div>
       <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA.</div></div>`;
 }
 
 function showPtoPage(settings) {
-  const blocks = [["PTO", "pto_hours"], ["Comp Time", "comp_time_hours"], ["Holiday Hours", "holiday_hours"]].map(([title, key]) => {
+  const blocks = [["PTO", "pto_hours", "&#127796;", "#4ade80"], ["Comp Time", "comp_time_hours", "&#128260;", "#5aa2ff"], ["Holiday Hours", "holiday_hours", "&#127876;", "#fb923c"]].map(([title, key, icon, color]) => {
     const hours = settings.pto[key];
-    const shown = hours == null ? "Tap to set" : `${hours.toLocaleString("en-US")} hrs`;
-    return `<div class="tile"><div class="small">${title}</div><div class="big-number"><span class="editable" data-edit-path="pto.${key}" data-edit-label="${title} (hours)">${shown}</span></div></div>`;
+    const shown = hours == null ? "Tap to set" : `${hours.toLocaleString("en-US")}<span class="hours-unit"> hrs</span>`;
+    return `<div class="tile pto-tile" style="--tile-accent:${color}"><span class="pto-icon">${icon}</span><div><div class="small">${title}</div><div class="huge-number"><span class="editable" data-edit-path="pto.${key}" data-edit-label="${title} (hours)">${shown}</span></div></div></div>`;
   }).join("");
   document.getElementById("page-pto").innerHTML = `<h2>Work time off</h2>${blocks}`;
 }
@@ -287,19 +287,21 @@ function showCarPage(settings) {
   const extraEachMonth = parseFloat(document.getElementById("car-extra-monthly").value) || 0;
   const totalPayments = status.paymentsMade + baseline.paymentsLeft;
   const percentPaid = Math.round((status.principalPaid / loan.amount) * 100);
+  const principalShare = status.totalPaid > 0 ? Math.round((status.principalPaid / status.totalPaid) * 100) : 0;
   document.getElementById("car-summary").innerHTML = `<h2>Car loan</h2>
-    <div class="tile"><div class="small">Still owed (principal)</div><div class="big-number">${formatMoney(status.balance)}</div>
-      <div class="bar"><div class="bar-fill" style="width:${percentPaid}%"></div></div>
+    <div class="tile car-hero"><div class="small">Still owed (principal)</div><div class="huge-number">${formatMoney(status.balance)}</div>
+      <div class="bar goal-bar"><div class="bar-fill" style="width:${percentPaid}%"></div></div>
       <div class="small">${percentPaid}% of the ${formatMoney(loan.amount)} loan paid off</div></div>
-    <div class="tile"><div class="small">Paid so far</div><div class="big-number">${formatMoney(status.totalPaid)}</div>
-      <div class="tile-row small"><span>Went to the loan</span><span>${formatMoney(status.principalPaid)}</span></div>
-      <div class="tile-row small"><span>Went to interest</span><span>${formatMoney(status.interestPaid)}</span></div>
+    <div class="tile car-tile"><div class="small">Paid so far</div><div class="big-number">${formatMoney(status.totalPaid)}</div>
+      <div class="split-bar"><span class="split-loan" style="width:${principalShare}%"></span><span class="split-interest" style="width:${100 - principalShare}%"></span></div>
+      <div class="tile-row small"><span><span class="dot dot-loan"></span>Went to the loan</span><span>${formatMoney(status.principalPaid)}</span></div>
+      <div class="tile-row small"><span><span class="dot dot-interest"></span>Went to interest</span><span>${formatMoney(status.interestPaid)}</span></div>
       <div class="small">${status.paymentsMade} of ${totalPayments} payments made</div></div>
-    <div class="tile"><div class="small">Paid off on</div><div class="big-number">${monthAndYear(baseline.payoffDate)}</div>
+    <div class="tile car-tile"><div class="small">Paid off on</div><div class="big-number">${monthAndYear(baseline.payoffDate)}</div>
       <div class="small">${baseline.paymentsLeft} payments left of ${formatMoney(loan.payment)}. About ${formatMoney(baseline.interestRemaining)} interest still to come.</div></div>
-    ${baseline.waivedPayment ? `<div class="tile good"><div class="tile-row"><b>Last payment waived</b><b>${formatMoney(baseline.waivedPayment.amount)} off</b></div>
+    ${baseline.waivedPayment ? `<div class="tile result-hero"><div class="tile-row"><b>Last payment waived</b><b>${formatMoney(baseline.waivedPayment.amount)} off</b></div>
       <div class="small">${escapeHtml(baseline.waivedPayment.reason)}. The ${monthAndYear(baseline.waivedPayment.date)} payment is null.</div></div>` : ""}
-    <div class="tile"><b>Loan facts</b>
+    <div class="tile car-tile"><b>Loan facts</b>
       <div class="tile-row small"><span>Rate</span><span>${loan.annual_rate_percent}%</span></div>
       <div class="tile-row small"><span>Length</span><span>${totalPayments} payments (${loan.skipped_months.length} skipped months added at no interest, last payment waived)</span></div>
       <div class="tile-row small"><span>Total interest over the loan</span><span>${formatMoney(status.interestPaid + baseline.interestRemaining)}</span></div>
@@ -308,11 +310,11 @@ function showCarPage(settings) {
   if (lumpSum <= 0 && extraEachMonth <= 0) { resultBox.innerHTML = ""; return; }
   const plan = loanPayoffPlan(loan, status.balance, status.paymentsMade, lumpSum, extraEachMonth);
   const monthsSaved = baseline.paymentsLeft - plan.paymentsLeft;
-  resultBox.innerHTML = `<div class="tile good"><b>${plan.paymentsLeft === 0 ? "Paid off right now" : "Paid off " + monthAndYear(plan.payoffDate)}</b>
-    <div class="tile-row small"><span>Owed after extra</span><span>${formatMoney(Math.max(0, status.balance - lumpSum))}</span></div>
+  resultBox.innerHTML = `<div class="tile result-hero"><div class="verdict">${plan.paymentsLeft === 0 ? "Paid off right now" : "Paid off " + monthAndYear(plan.payoffDate)}</div>
+    <div class="tile-row"><b>Interest saved</b><b class="positive">${formatMoney(baseline.interestRemaining - plan.interestRemaining)}</b></div>
+    <div class="result-rows"><div class="tile-row small"><span>Owed after extra</span><span>${formatMoney(Math.max(0, status.balance - lumpSum))}</span></div>
     <div class="tile-row small"><span>Payments left</span><span>${plan.paymentsLeft} (${monthsSaved} fewer)</span></div>
-    <div class="tile-row small"><span>Interest still to come</span><span>${formatMoney(plan.interestRemaining)}</span></div>
-    <div class="tile-row"><b>Interest saved</b><b>${formatMoney(baseline.interestRemaining - plan.interestRemaining)}</b></div></div>`;
+    <div class="tile-row small"><span>Interest still to come</span><span>${formatMoney(plan.interestRemaining)}</span></div></div></div>`;
 }
 
 function showBillsTotal(settings) {

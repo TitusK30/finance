@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261127n">
+  <link rel="stylesheet" href="src/style.css?v=20261127o">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,7 +19,7 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" style="visibility:hidden"></button>
   </div>
-  <script src="src/lock.js?v=20261127n"></script>
+  <script src="src/lock.js?v=20261127o"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="apply-top-button" hidden>Apply</button><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="pull-indicator" hidden></div>
   <div id="menu-overlay" hidden></div>
@@ -149,9 +149,11 @@
   <div id="page-track" hidden></div>
   <div id="page-car" hidden>
     <div id="car-summary"></div>
-    <div class="tile"><b>Pay extra</b>
-      <input id="car-extra-now" type="number" step="0.01" placeholder="One-time extra paid now ($)">
-      <input id="car-extra-monthly" type="number" step="0.01" placeholder="Extra every month ($)">
+    <div class="tile planner-card"><div class="planner-head"><span class="planner-icon">&#9889;</span><span><b>Pay extra</b></span></div>
+      <label class="planner-field"><span class="planner-label">One-time extra paid now</span>
+        <span class="planner-input"><span class="planner-adorn planner-left">$</span><input id="car-extra-now" type="number" step="0.01" inputmode="decimal" placeholder="0.00" class="has-left"></span></label>
+      <label class="planner-field"><span class="planner-label">Extra every month</span>
+        <span class="planner-input"><span class="planner-adorn planner-left">$</span><input id="car-extra-monthly" type="number" step="0.01" inputmode="decimal" placeholder="0.00" class="has-left"></span></label>
     </div>
     <div id="car-extra-result"></div>
   </div>
@@ -172,18 +174,18 @@
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261127n"></script>
-  <script src="src/summaries.js?v=20261127n"></script>
-  <script src="src/spending.js?v=20261127n"></script>
-  <script src="src/plaid-sync.js?v=20261127n"></script>
-  <script src="src/loan.js?v=20261127n"></script>
-  <script src="src/bills.js?v=20261127n"></script>
-  <script src="src/spending-page.js?v=20261127n"></script>
-  <script src="src/tracking.js?v=20261127n"></script>
-  <script src="src/tracking-pages.js?v=20261127n"></script>
-  <script src="src/extra-pages.js?v=20261127n"></script>
-  <script src="src/gestures.js?v=20261127n"></script>
-  <script src="src/setup-page.js?v=20261127n"></script>
-  <script src="src/app.js?v=20261127n"></script>
+  <script src="src/forecast.js?v=20261127o"></script>
+  <script src="src/summaries.js?v=20261127o"></script>
+  <script src="src/spending.js?v=20261127o"></script>
+  <script src="src/plaid-sync.js?v=20261127o"></script>
+  <script src="src/loan.js?v=20261127o"></script>
+  <script src="src/bills.js?v=20261127o"></script>
+  <script src="src/spending-page.js?v=20261127o"></script>
+  <script src="src/tracking.js?v=20261127o"></script>
+  <script src="src/tracking-pages.js?v=20261127o"></script>
+  <script src="src/extra-pages.js?v=20261127o"></script>
+  <script src="src/gestures.js?v=20261127o"></script>
+  <script src="src/setup-page.js?v=20261127o"></script>
+  <script src="src/app.js?v=20261127o"></script>
 </body>
 </html>

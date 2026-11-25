@@ -117,7 +117,7 @@ function netWorthSparkline(history) {
   const low = Math.min(...values);
   const spread = Math.max(...values) - low || 1;
   const points = values.map((value, position) => `${(position / (values.length - 1)) * 300},${56 - ((value - low) / spread) * 52}`).join(" ");
-  return `<svg viewBox="0 0 300 60" width="100%" height="60"><polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2"/></svg>`;
+  return `<svg class="net-spark" viewBox="0 0 300 60" width="100%" height="70" preserveAspectRatio="none"><defs><linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity="0.35"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs><polygon points="0,60 ${points} 300,60" fill="url(#spark-fill)"/><polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
 }
 
 function changeText(change, isMoney) {
@@ -157,18 +157,18 @@ function showTrackPage(settings) {
   ].map(([label, value]) => `<div class="tile-row small"><span>${label}</span><span>${value}</span></div>`).join("");
 
   document.getElementById("page-track").innerHTML = `<h2>${monthName} recap</h2>
-    <div class="tile">${recapRows}
-      <div class="tile-row"><b>Typical month left over</b><b class="${recap.leftOver < 0 ? "negative" : "positive"}">${formatMoney(recap.leftOver)}</b></div>
+    <div class="tile recap-tile">${recapRows}
+      <div class="tile-row leftover-row"><b>Typical month left over</b><b class="${recap.leftOver < 0 ? "negative" : "positive"}">${formatMoney(recap.leftOver)}</b></div>
       <div class="small">A dash means there is not a snapshot or score from both last month and this month yet. Typical month is an estimate from your paycheck and recurring bills, not real spending.</div></div>
     <h2>Net worth</h2>
-    <div class="tile"><div class="small">Right now</div><div class="big-number">${formatMoney(netWorth(settings))}</div>
+    <div class="tile networth-tile"><div class="small">Right now</div><div class="huge-number">${formatMoney(netWorth(settings))}</div>
       <div class="small">Checking + savings + retirement + HSA, minus card balances. Car value and loan are not in it.</div>
       ${netWorthSparkline(history)}${historyRows(history, "net_worth", "net_worth_history", true, () => "")}</div>
-    <button id="save-net-worth-button">Save today's snapshot</button>
+    <button id="save-net-worth-button" class="track-button">Save today's snapshot</button>
     <h2>Credit score</h2>
-    <div class="tile">${scores.length ? `<div class="big-number">${scores[scores.length - 1].score}</div>` : `<div class="small">No scores logged yet.</div>`}
+    <div class="tile score-tile">${scores.length ? `<div class="huge-number">${scores[scores.length - 1].score}</div>` : `<div class="small">No scores logged yet.</div>`}
       ${historyRows(scores, "score", "credit_scores", false, (entry) => (entry.source ? ` (${escapeHtml(entry.source)})` : ""))}</div>
-    <button id="add-score-button">Log a score</button>`;
+    <button id="add-score-button" class="track-button">Log a score</button>`;
 }
 
 const URGENCY_WORDS = { overdue: "overdue", soon: "due soon", upcoming: "coming up", later: "later", none: "no date" };
