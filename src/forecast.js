@@ -160,55 +160,26 @@ function withExpectedExpenses(forecast, items) {
   }) };
 }
 
-// How much you can spend in each window and still move weeklySavings out of checking every week and keep the floor.
-// Savings leave checking a little each day (weekly / 7), so the lowest day in the window decides the room.
-// rawRoom can go negative: that is how far short checking would fall, and the window is then not affordable.
-function spendingRoom(forecast, floor, weeklySavings) {
-  const savingsPerDay = weeklySavings / 7;
-  const firstMonth = forecast.days[0].date.slice(0, 7);
-  const daysLeftInMonth = forecast.days.filter((day) => day.date.slice(0, 7) === firstMonth).length;
-  function roomForDays(numberOfDays) {
-    const days = forecast.days.slice(0, Math.min(numberOfDays, forecast.days.length));
-    let tightest = { room: Infinity, date: null };
-    days.forEach((day, position) => {
-      const room = day.checking_balance - floor - savingsPerDay * (position + 1);
-      if (room < tightest.room) tightest = { room, date: day.date };
-    });
-    return { days: days.length, rawRoom: roundToCents(tightest.room), room: roundToCents(Math.max(0, tightest.room)), tightestDate: tightest.date };
-  }
-  const week = roomForDays(7);
-  const month = roomForDays(daysLeftInMonth);
-  // The most you could set aside every week over the next 28 days without breaking the floor.
-  const lookAhead = forecast.days.slice(0, 28);
-  const mostPerWeek = roundToCents(Math.max(0, Math.min(...lookAhead.map((day, position) => ((day.checking_balance - floor) * 7) / (position + 1)))));
-  return { week, month, perDayThisWeek: roundToCents(week.room / week.days), mostPerWeek };
-}
-
-// How much you can put on each card today. A card purchase leaves checking on the due date of the statement it lands on,
-// so a card is limited by the lowest checking day from that due date onward (floor kept, weekly savings still moving out).
-// The card whose bill is due farthest away comes first: it gives the longest wait and never allows less than a nearer one.
-function spendToday(settings, forecast, floor, weeklySavings, todayDate) {
-  const savingsPerDay = weeklySavings / 7;
-  const lastDate = forecast.days[forecast.days.length - 1].date;
-  function allowedFrom(payDate, perDay) {
-    const from = payDate > lastDate ? lastDate : payDate;
-    let tightest = { room: Infinity, date: null };
-    forecast.days.forEach((day, position) => {
-      if (day.date < from) return;
-      const room = day.checking_balance - floor - perDay * (position + 1);
-      if (room < tightest.room) tightest = { room, date: day.date };
-    });
-    return { amount: roundToCents(Math.max(0, tightest.room)), tightestDate: tightest.date };
-  }
-  const cards = Object.entries(settings.credit_cards).map(([cardKey, card]) => {
-    const payDate = dueDateForCharge(card, todayDate);
-    const creditLeft = card.credit_limit ? roundToCents(card.credit_limit - (card.current_balance || 0)) : null;
-    const capped = (amount) => (creditLeft === null ? amount : Math.max(0, Math.min(amount, creditLeft)));
-    const withoutPlan = allowedFrom(payDate, 0);
-    const withPlan = allowedFrom(payDate, savingsPerDay);
-    return { cardKey, name: card.display_name, payDate, creditLeft, noPlan: capped(withoutPlan.amount), withPlan: capped(withPlan.amount), tightestDate: withPlan.tightestDate };
-  }).sort((a, b) => (a.payDate < b.payDate ? 1 : a.payDate > b.payDate ? -1 : b.noPlan - a.noPlan));
-  return { cards, best: cards[0] };
+// The most you can spend each day for the next lookAheadDays and still keep the floor and move weeklySavings out each week.
+// Every day's spending is treated as leaving checking that same day (the careful way, even for card purchases).
+// perDay is the tightest day's (balance - floor) shared across the days so far, minus the daily share of the weekly savings.
+function dailyAllowance(forecast, floor, weeklySavings, lookAheadDays) {
+  const days = forecast.days.slice(0, lookAheadDays);
+  let tightest = { perDay: Infinity, date: null };
+  days.forEach((day, position) => {
+    const perDay = (day.checking_balance - floor) / (position + 1);
+    if (perDay < tightest.perDay) tightest = { perDay, date: day.date };
+  });
+  const withSavings = tightest.perDay - weeklySavings / 7;
+  return {
+    perDay: roundToCents(Math.max(0, withSavings)),
+    fits: withSavings >= 0,
+    shortfallPerDay: roundToCents(Math.max(0, -withSavings)),
+    perDayWithoutSavings: roundToCents(Math.max(0, tightest.perDay)),
+    mostPerWeek: roundToCents(Math.max(0, tightest.perDay * 7)),
+    tightestDate: tightest.date,
+    lookAheadDays: days.length,
+  };
 }
 
 function balanceOn(forecast, dateText) {
@@ -216,4 +187,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, withExpectedExpenses, spendToday, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, dailyAllowance, withExpectedExpenses, balanceOn, dueDateForCharge };

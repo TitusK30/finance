@@ -56,6 +56,14 @@ function monthLabel(yearMonth) {
   return new Date(yearMonth + "-01T00:00:00Z").toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+// Spending since a date, with bills and subscriptions left out. Feeds the "left to spend" numbers on Home.
+function spentSince(settings, sinceDate) {
+  const store = loadTransactionStore();
+  const billMatches = matchBills(settings, store, loadBillMarks(), todayText());
+  const charges = spendingCharges(store).filter((charge) => !billMatches.billCharges[charge.transaction_id] && charge.date >= sinceDate);
+  return roundCents(charges.reduce((sum, charge) => sum + charge.amount, 0));
+}
+
 function showSpendingPage(settings) {
   const page = document.getElementById("page-spending");
   const store = loadTransactionStore();

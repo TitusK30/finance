@@ -1,7 +1,7 @@
 const STORAGE_KEY = "finance_os_settings";
 const HORIZON_DAYS = [10, 20, 30, 40];
 const MINIMUM_ADVICE_DAYS = 60;
-const SPEND_TODAY_DAYS = 120;
+const SPEND_LOOK_AHEAD_DAYS = 30;
 
 function formatMoney(amount) {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -67,50 +67,33 @@ function showSafeToSpend(settings, forecast) {
         <div class="small">Checking would sit at ${formatMoney(result.lowestBeforePayday)}${result.lowestDate ? ` on ${formatDate(result.lowestDate)}` : ""}, at or under your ${floor} floor.</div></div>`;
 }
 
-function daysFromToday(dateText) {
-  return Math.round((new Date(dateText + "T12:00:00Z") - new Date(todayText() + "T12:00:00Z")) / 86400000);
-}
-
-// "What can I spend today, and on which card?" Counts every listed bill, sub, card statement (open ones too) and expense you listed as going out.
-function spendTodayHtml(settings, forecast, weeklySavings) {
-  const floor = formatMoney(settings.minimum_checking_floor);
-  const { cards, best } = spendToday(settings, forecast, settings.minimum_checking_floor, weeklySavings, todayText());
-  if (!best) return "";
-  const dueText = `Its bill is due ${formatDate(best.payDate)}, ${daysFromToday(best.payDate)} days from now.`;
-  const planBlock = weeklySavings > 0
-    ? `<div class="small">...and still saving ${formatMoney(weeklySavings)} a week</div><div class="big-number">${formatMoney(best.withPlan)}</div>` : "";
-  const otherCards = cards.map((card, position) => `<div class="tile-row small"><span>${position === 0 ? "Best: " : ""}${escapeHtml(card.name)}, bill due ${formatDate(card.payDate)}</span><span>${formatMoney(weeklySavings > 0 ? card.withPlan : card.noPlan)}</span></div>`).join("");
-  return `<div class="tile ${best.noPlan > 0 ? "good" : "warning"}"><div class="small">You can spend today, on your ${escapeHtml(best.name)}, keeping your ${floor} floor</div>
-    <div class="big-number">${formatMoney(best.noPlan)}</div>${planBlock}
-    <div class="small">${dueText} This is the total room for everything charged to that card before its statement closes, not a per-day amount. The limit is your lowest checking day after the bill is due, counting every statement, bill, sub and expense you listed.</div>
-    <div class="small">${weeklySavings > 0 ? "Amounts per card, with your savings plan:" : "Amounts per card:"}</div>${otherCards}</div>`;
-}
-
-// Home and Goals: what to spend today, plus how much can be spent this week and month with the weekly savings.
+// Home and Goals: how much is left to spend today and this week, keeping the checking floor and the weekly savings plan.
 function showSpendingPlan(settings, forecast) {
   const weeklySavings = (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
-  const homeBox = document.getElementById("spending-plan");
-  const goalsBox = document.getElementById("goal-spending-room");
-  // A longer look-ahead than Home, so bills after the farthest card's due date still count.
-  const adjustedForecast = withExpectedExpenses(buildForecast(settings, SPEND_TODAY_DAYS), settings.expected_money);
-  const todayTile = spendTodayHtml(settings, adjustedForecast, weeklySavings);
-  homeBox.innerHTML = todayTile;
-  if (weeklySavings <= 0) {
-    goalsBox.innerHTML = todayTile + `<div class="tile small">Type a weekly amount above to see how much you can spend while still saving it.</div>`;
-    return;
-  }
-  const room = spendingRoom(adjustedForecast, settings.minimum_checking_floor, weeklySavings);
+  const adjustedForecast = withExpectedExpenses(forecast, settings.expected_money);
+  const allowance = dailyAllowance(adjustedForecast, settings.minimum_checking_floor, weeklySavings, SPEND_LOOK_AHEAD_DAYS);
+  const today = todayText();
+  const weekStart = new Date(new Date(today + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getUTCDay() * 86400000).toISOString().slice(0, 10);
+  const spentToday = spentSince(settings, today);
+  const spentThisWeek = spentSince(settings, weekStart);
+  const leftToday = Math.max(0, roundMoney(allowance.perDay - spentToday));
+  const leftThisWeek = Math.max(0, roundMoney(allowance.perDay * 7 - spentThisWeek));
   const floor = formatMoney(settings.minimum_checking_floor);
-  const fits = room.week.rawRoom >= 0;
-  const monthRow = room.month.days > room.week.days
-    ? `<div class="tile-row small"><span>Rest of this month (${room.month.days} days)</span><span class="${room.month.rawRoom < 0 ? "negative" : ""}">${formatMoney(room.month.room)}</span></div>` : "";
-  const roomTile = fits
-    ? `<div class="tile good"><div class="small">Spending room this week, saving ${formatMoney(weeklySavings)} a week</div><div class="big-number">${formatMoney(room.week.room)}</div>
-        <div class="tile-row small"><span>About per day</span><span>${formatMoney(room.perDayThisWeek)}</span></div>${monthRow}
-        <div class="small">After bills, subs and card payments, keeping your ${floor} floor. The tightest day is ${formatDate(room.week.tightestDate)}.</div></div>`
-    : `<div class="tile warning"><div class="small">Saving ${formatMoney(weeklySavings)} a week does not fit this week</div><div class="big-number">${formatMoney(0)}</div>
-        <div class="small">Checking would end up ${formatMoney(-room.week.rawRoom)} under your ${floor} floor on ${formatDate(room.week.tightestDate)}. The most that fits right now is ${formatMoney(room.mostPerWeek)} a week.</div></div>`;
-  goalsBox.innerHTML = todayTile + roomTile + (fits ? `<div class="small">Most you could set aside weekly right now: ${formatMoney(room.mostPerWeek)}.</div>` : "");
+  const savingsText = weeklySavings > 0 ? ` and moves ${formatMoney(weeklySavings)} a week to savings` : "";
+  const tile = allowance.fits
+    ? `<div class="tile ${leftToday > 0 ? "good" : "warning"}"><div class="small">Left to spend today</div><div class="big-number">${formatMoney(leftToday)}</div>
+        <div class="tile-row small"><span>Spent so far today</span><span>${formatMoney(spentToday)}</span></div>
+        <div class="tile-row small"><span>Daily budget</span><span>${formatMoney(allowance.perDay)}</span></div>
+        <div class="tile-row small"><span>Left this week</span><span>${formatMoney(leftThisWeek)}</span></div>
+        <div class="small">Keeps checking at or above your ${floor} floor${savingsText}, over the next ${allowance.lookAheadDays} days, after bills, subs, card payments (open statements too) and the expenses you listed. The tightest day is ${formatDate(allowance.tightestDate)}. Bills and subs are not counted as spending.</div></div>`
+    : `<div class="tile warning"><div class="small">Left to spend today</div><div class="big-number">${formatMoney(0)}</div>
+        <div class="small">Saving ${formatMoney(weeklySavings)} a week does not leave room to spend while keeping your ${floor} floor over the next ${allowance.lookAheadDays} days (tightest day ${formatDate(allowance.tightestDate)}).</div>
+        <div class="tile-row small"><span>Most you could save a week (spending nothing)</span><span>${formatMoney(allowance.mostPerWeek)}</span></div>
+        <div class="tile-row small"><span>Daily budget if you saved nothing extra</span><span>${formatMoney(allowance.perDayWithoutSavings)}</span></div></div>`;
+  document.getElementById("spending-plan").innerHTML = tile;
+  document.getElementById("goal-spending-room").innerHTML = tile
+    + (weeklySavings > 0 ? `<div class="small">The most that fits is ${formatMoney(allowance.mostPerWeek)} a week, with nothing left to spend. With no savings plan your daily budget would be ${formatMoney(allowance.perDayWithoutSavings)}.</div>`
+      : `<div class="tile small">Type a weekly amount above to see the budget with your savings plan.</div>`);
 }
 
 function showTransferAdvice(settings, forecast) {
