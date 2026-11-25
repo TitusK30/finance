@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261127m">
+  <link rel="stylesheet" href="src/style.css?v=20261127n">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,7 +19,7 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" style="visibility:hidden"></button>
   </div>
-  <script src="src/lock.js?v=20261127m"></script>
+  <script src="src/lock.js?v=20261127n"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="apply-top-button" hidden>Apply</button><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="pull-indicator" hidden></div>
   <div id="menu-overlay" hidden></div>
@@ -55,22 +55,28 @@
 
   <div id="page-planner" hidden>
   <h2>Overtime planner</h2>
-  <section id="overtime-form" class="tile">
-    <div class="small">Day you work the overtime</div>
-    <input id="overtime-work-date" type="date">
-    <input id="overtime-hours" type="number" step="0.25" placeholder="Overtime hours">
-    <button id="overtime-add-button">Add</button>
-    <div id="overtime-rate-note" class="small"></div>
+  <section id="overtime-form" class="tile planner-card">
+    <div class="planner-head"><span class="planner-icon">&#9201;</span><span>Pick the day and the hours. I'll show what it does to your checking.</span></div>
+    <label class="planner-field"><span class="planner-label">Day you work the overtime</span>
+      <span class="planner-input"><input id="overtime-work-date" type="date"><span class="planner-adorn">&#128197;</span></span></label>
+    <label class="planner-field"><span class="planner-label">Overtime hours</span>
+      <span class="planner-input"><input id="overtime-hours" type="number" step="0.25" inputmode="decimal" placeholder="0" class="has-left"><span class="planner-adorn">hrs</span></span></label>
+    <button id="overtime-add-button" class="planner-add">Add overtime</button>
   </section>
   <section id="overtime-result"></section>
 
   <h2>What if?</h2>
-  <section id="what-if-form" class="tile">
-    <input id="what-if-label" placeholder="What is it? (TV)">
-    <input id="what-if-amount" type="number" step="0.01" placeholder="Amount">
-    <input id="what-if-date" type="date">
-    <select id="what-if-paid-with"></select>
-    <button id="what-if-add-button">Add</button>
+  <section id="what-if-form" class="tile planner-card">
+    <div class="planner-head"><span class="planner-icon">&#128161;</span><span>Thinking of buying something? See if checking can take it.</span></div>
+    <label class="planner-field"><span class="planner-label">What is it?</span>
+      <span class="planner-input"><input id="what-if-label" placeholder="TV"></span></label>
+    <label class="planner-field"><span class="planner-label">Amount</span>
+      <span class="planner-input"><span class="planner-adorn planner-left">$</span><input id="what-if-amount" type="number" step="0.01" inputmode="decimal" placeholder="0.00" class="has-left"></span></label>
+    <label class="planner-field"><span class="planner-label">Date you'd buy it</span>
+      <span class="planner-input"><input id="what-if-date" type="date"><span class="planner-adorn">&#128197;</span></span></label>
+    <label class="planner-field"><span class="planner-label">Paid with</span>
+      <span class="planner-input"><select id="what-if-paid-with"></select></span></label>
+    <button id="what-if-add-button" class="planner-add">Check it</button>
   </section>
   <section id="what-if-result"></section>
 
@@ -166,18 +172,18 @@
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261127m"></script>
-  <script src="src/summaries.js?v=20261127m"></script>
-  <script src="src/spending.js?v=20261127m"></script>
-  <script src="src/plaid-sync.js?v=20261127m"></script>
-  <script src="src/loan.js?v=20261127m"></script>
-  <script src="src/bills.js?v=20261127m"></script>
-  <script src="src/spending-page.js?v=20261127m"></script>
-  <script src="src/tracking.js?v=20261127m"></script>
-  <script src="src/tracking-pages.js?v=20261127m"></script>
-  <script src="src/extra-pages.js?v=20261127m"></script>
-  <script src="src/gestures.js?v=20261127m"></script>
-  <script src="src/setup-page.js?v=20261127m"></script>
-  <script src="src/app.js?v=20261127m"></script>
+  <script src="src/forecast.js?v=20261127n"></script>
+  <script src="src/summaries.js?v=20261127n"></script>
+  <script src="src/spending.js?v=20261127n"></script>
+  <script src="src/plaid-sync.js?v=20261127n"></script>
+  <script src="src/loan.js?v=20261127n"></script>
+  <script src="src/bills.js?v=20261127n"></script>
+  <script src="src/spending-page.js?v=20261127n"></script>
+  <script src="src/tracking.js?v=20261127n"></script>
+  <script src="src/tracking-pages.js?v=20261127n"></script>
+  <script src="src/extra-pages.js?v=20261127n"></script>
+  <script src="src/gestures.js?v=20261127n"></script>
+  <script src="src/setup-page.js?v=20261127n"></script>
+  <script src="src/app.js?v=20261127n"></script>
 </body>
 </html>

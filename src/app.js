@@ -167,15 +167,17 @@ function showWhatIf(settings) {
   const realForecast = buildForecast(settings, lookAheadDays);
   const purchaseRows = whatIfPurchases.map((purchase, position) => {
     const payerName = purchase.paid_with === "checking" ? "checking" : settings.credit_cards[purchase.paid_with].display_name;
-    return `<div class="tile-row small"><span>${purchase.label}: ${formatMoney(purchase.amount)} on ${formatDate(purchase.date)} (${payerName})</span>
-      <button class="remove-link" data-position="${position}">remove</button></div>`;
+    return `<div class="tile entry-tile entry-out"><span class="timeline-icon timeline-out">&#8595;</span>
+      <div class="entry-body"><b>${purchase.label}</b><div class="small">${formatDate(purchase.date)} &middot; ${payerName}</div></div>
+      <b class="negative">-${formatMoney(purchase.amount)}</b>
+      <button class="remove-link" data-whatif-remove data-position="${position}">remove</button></div>`;
   }).join("");
   const lowestChange = whatIfForecast.lowest_balance - realForecast.lowest_balance;
   const dipsUnderFloor = whatIfForecast.lowest_balance < settings.minimum_checking_floor;
   const verdict = whatIfForecast.savings_transfer_needed > 0 ? transferSentence(settings, whatIfForecast) : "No transfer needed";
-  resultBox.innerHTML = `<div class="tile ${dipsUnderFloor ? "warning" : "good"}"><b>${verdict}</b>
-    <div class="small">Lowest checking: ${formatMoney(whatIfForecast.lowest_balance)} on ${formatDate(whatIfForecast.lowest_balance_date)} (${formatMoney(lowestChange)} vs. now)</div>
-    ${purchaseRows}</div>`;
+  resultBox.innerHTML = `<div class="tile result-hero ${dipsUnderFloor ? "result-warn" : ""}"><div class="verdict">${dipsUnderFloor ? "&#9888;&#65039;" : "&#9989;"} ${verdict}</div>
+    <div class="result-pairs"><div><span class="small">Lowest checking</span><b>${formatMoney(whatIfForecast.lowest_balance)}</b></div>
+      <div><span class="small">${formatDate(whatIfForecast.lowest_balance_date)}</span><b class="${lowestChange < 0 ? "negative" : ""}">${lowestChange < 0 ? "-" : "+"}${formatMoney(Math.abs(lowestChange))} vs now</b></div></div></div>${purchaseRows}`;
 }
 
 function fillWhatIfChoices(settings) {

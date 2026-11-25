@@ -247,9 +247,6 @@ function showOvertimePlanner(settings) {
     workDateInput.value = todayText() < asOfDate ? asOfDate : todayText();
   }
   const { gross_hourly_rate, take_home_per_overtime_hour } = settings.overtime;
-  document.getElementById("overtime-rate-note").innerHTML =
-    `Each overtime hour is ${gross_hourly_rate == null ? "paid at your rate" : formatMoney(gross_hourly_rate) + " before tax"}, about ${editableNumber("overtime.take_home_per_overtime_hour", "Take-home per overtime hour ($)", take_home_per_overtime_hour, true)} after tax and deductions. It shows up on the paycheck a week after the pay period ends.`;
-
   const resultBox = document.getElementById("overtime-result");
   if (plannedOvertime.length === 0) { resultBox.innerHTML = ""; return; }
   const baseline = buildForecast(settings, MINIMUM_ADVICE_DAYS);
@@ -262,12 +259,15 @@ function showOvertimePlanner(settings) {
   const dipComesFirstNote = baseline.lowest_balance_date < firstPayday
     ? `<div class="small">Your lowest point (${formatMoney(baseline.lowest_balance)} on ${formatDate(baseline.lowest_balance_date)}) comes before this pay lands, so it can't help that dip.</div>` : "";
   const rows = plannedOvertime.map((entry, position) =>
-    `<div class="tile-row small"><span>${entry.hours} hrs on ${formatDate(entry.workDate)}, paid ${formatDate(entry.payday)}: +${formatMoney(Math.round(entry.hours * take_home_per_overtime_hour * 100) / 100)}</span>
+    `<div class="tile entry-tile entry-in"><span class="timeline-icon timeline-in">&#8593;</span>
+      <div class="entry-body"><b>${entry.hours} hrs on ${formatDate(entry.workDate)}</b><div class="small">Paid ${formatDate(entry.payday)}</div></div>
+      <b class="positive">+${formatMoney(Math.round(entry.hours * take_home_per_overtime_hour * 100) / 100)}</b>
       <button class="remove-link" data-remove-overtime="${position}">remove</button></div>`).join("");
-  resultBox.innerHTML = `<div class="tile good"><b>+${formatMoney(extraTakeHome)} take-home from ${totalHours} overtime hours</b>
-    <div class="small">Checking in 40 days: ${formatMoney(baseline.days[39].checking_balance)} to ${formatMoney(withOvertime.days[39].checking_balance)}</div>
-    <div class="small">Lowest checking after the pay lands (${formatDate(firstPayday)} on): ${formatMoney(lowestBefore)} to ${formatMoney(lowestAfter)}</div>
-    ${dipComesFirstNote}${rows}</div>`;
+  resultBox.innerHTML = `<div class="tile result-hero"><div class="small">Extra take-home from ${totalHours} overtime hour${totalHours === 1 ? "" : "s"}</div>
+    <div class="big-number positive">+${formatMoney(extraTakeHome)}</div>
+    <div class="result-pairs"><div><span class="small">In 40 days</span><b>${formatMoney(baseline.days[39].checking_balance)} &rarr; ${formatMoney(withOvertime.days[39].checking_balance)}</b></div>
+      <div><span class="small">Lowest after ${formatDate(firstPayday)}</span><b>${formatMoney(lowestBefore)} &rarr; ${formatMoney(lowestAfter)}</b></div></div>
+    ${dipComesFirstNote}</div>${rows}`;
 }
 
 function monthAndYear(dateText) {
