@@ -179,11 +179,12 @@ function showCreditPage(settings) {
       : `<span class="positive">${formatMoney(plan.spendRoom)} room before ${shortMonthDay(plan.closeDate)}</span>`;
     const percentClass = plan.projectedPercent <= targetPercent ? "positive" : "negative";
     const estimateMark = plan.openBalanceIsGuess ? " est." : "";
-    return `<div class="tile"><div class="tile-row"><b>${card.display_name}</b><b class="${percentClass}">${plan.projectedPercent}%</b></div>
-      <div class="bar target-bar"><div class="bar-fill" style="width:${barWidth}%"></div></div>
+    const cardColor = REWARD_COLORS[Math.max(0, Object.keys(settings.credit_cards).indexOf(cardKey)) % REWARD_COLORS.length];
+    return `<div class="tile credit-tile" style="--tile-accent:${cardColor}"><div class="tile-row"><b>${card.display_name}</b><b class="percent-badge ${percentClass}">${plan.projectedPercent}%</b></div>
+      <div class="bar target-bar ${percentClass === "positive" ? "bar-ok" : "bar-over"}"><div class="bar-fill" style="width:${barWidth}%"></div></div>
       ${closedAndOpenBlocks(card)}
       ${pendingDetailsHtml(settings, cardKey)}
-      <div class="verdict">${verdict}</div>
+      <div class="verdict ${plan.payDownNeeded > 0 ? "verdict-bad" : "verdict-good"}">${verdict}</div>
       <div class="stat-grid">
         <div><div class="stat-label">Plus subs</div>${formatMoney(plan.projectedStatement)}${estimateMark}</div>
         <div><div class="stat-label">Closes</div>${plan.daysUntilClose} days</div>
