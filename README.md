@@ -238,3 +238,5 @@ src/extra-pages.js       bills, rewards, HSA, PTO, car loan pages
 relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
 finance_settings.example.json   fake data showing the file format
 ```
+
+**Bills are left out of Spending.** Recurring bills and subscriptions from your settings file are matched to charges by account, amount and timing, then removed from the totals, categories and pending list. They show in a "Bills and subscriptions" tile instead. If one slips through, tap "mark as bill" on it.

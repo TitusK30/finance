@@ -2,6 +2,7 @@
 // Transactions are kept on this phone only, apart from your settings.
 
 const TRANSACTIONS_KEY = "finance_os_transactions";
+const BILL_MARKS_KEY = "finance_os_bill_marks";
 let spendingMonthShown = null;
 
 function loadTransactionStore() {
@@ -20,6 +21,23 @@ function saveTransactionStore(store) {
   }
 }
 
+// Charges you marked as bills by hand ("merchant|amount"), kept on this phone.
+function loadBillMarks() {
+  try {
+    return JSON.parse(localStorage.getItem(BILL_MARKS_KEY)) || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveBillMarks(marks) {
+  try {
+    localStorage.setItem(BILL_MARKS_KEY, JSON.stringify(marks));
+  } catch (error) {
+    // Storage full: skip.
+  }
+}
+
 // Card name if this account is one of your tracked cards, otherwise the bank's name for the account.
 function cardNameForAccount(settings, store, accountId) {
   const account = store.accounts[accountId];
@@ -28,10 +46,10 @@ function cardNameForAccount(settings, store, accountId) {
   return cardKey ? settings.credit_cards[cardKey].display_name : account.name;
 }
 
-function chargeRowHtml(settings, store, charge) {
+function chargeRowHtml(settings, store, charge, markButton = "") {
   const pendingTag = charge.pending ? ` <span class="pending-tag">pending</span>` : "";
   const cardName = cardNameForAccount(settings, store, charge.account_id);
-  return `<div class="tile-row small charge-row"><span>${shortMonthDay(charge.date)} · ${escapeHtml(merchantName(charge))}${pendingTag}<br><span class="charge-card">${escapeHtml(cardName)}</span></span><span>${formatMoney(charge.amount)}</span></div>`;
+  return `<div class="tile-row small charge-row"><span>${shortMonthDay(charge.date)} · ${escapeHtml(merchantName(charge))}${pendingTag}<br><span class="charge-card">${escapeHtml(cardName)}</span></span><span>${formatMoney(charge.amount)}<br>${markButton}</span></div>`;
 }
 
 function monthLabel(yearMonth) {
@@ -41,12 +59,17 @@ function monthLabel(yearMonth) {
 function showSpendingPage(settings) {
   const page = document.getElementById("page-spending");
   const store = loadTransactionStore();
-  const charges = spendingCharges(store);
-  if (charges.length === 0) {
-    page.innerHTML = `<h2>Spending</h2><div class="tile small">No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on.</div>`;
+  const marks = loadBillMarks();
+  const billMatches = matchBills(settings, store, marks, todayText());
+  const isBill = (charge) => Boolean(billMatches.billCharges[charge.transaction_id]);
+  const allCharges = spendingCharges(store);
+  const charges = allCharges.filter((charge) => !isBill(charge));
+  if (allCharges.length === 0) {
+
+  page.innerHTML = `<h2>Spending</h2><div class="tile small">No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on.</div>`;
     return;
   }
-  const months = monthsWithSpending(charges);
+  const months = monthsWithSpending(allCharges);
   if (!months.includes(spendingMonthShown)) spendingMonthShown = months[0];
   const position = months.indexOf(spendingMonthShown);
   const month = monthlyBreakdown(charges, spendingMonthShown);
@@ -54,7 +77,20 @@ function showSpendingPage(settings) {
   const newerMonth = months[position - 1];
   const monthButton = (label, target) => target ? `<button class="small-button" data-spending-month="${target}">${label}</button>` : `<button class="small-button" disabled>${label}</button>`;
 
-  const pending = pendingCharges(store);
+    // Bills and subscriptions in this month (leftover from the totals above) and the ones not seen yet.
+  const billRows = Object.values(store.transactions).filter((charge) => isBill(charge) && charge.date.startsWith(spendingMonthShown) && charge.amount > 0).sort((first, second) => first.date.localeCompare(second.date));
+  const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
+  const notSeen = (billMatches.byMonth[spendingMonthShown] || { unseen: [] }).unseen;
+  const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
+      <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}, not counted in the totals above</div></summary>
+    ${billRows.map((charge) => {
+      const markedByHand = billMatches.billCharges[charge.transaction_id] === "Marked by you";
+      const button = markedByHand ? `<button class="mark-button" data-unmark-bill="${charge.transaction_id}">not a bill</button>` : "";
+      return chargeRowHtml(settings, store, { ...charge, merchant_name: billMatches.billCharges[charge.transaction_id] + " · " + merchantName(charge) }, button);
+    }).join("")}
+    ${notSeen.length ? `<div class="small not-seen"><b>Not seen yet this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
+
+  const pending = pendingCharges(store).filter((charge) => !isBill(charge));
   const pendingTile = pending.length ? `<div class="tile"><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
     <div class="small">Charged, but not on your balance yet. Some banks do not share these.</div>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</div>` : "";
 
@@ -62,22 +98,37 @@ function showSpendingPage(settings) {
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}</div></summary>
-    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>`).join("");
+    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`).join("");
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>
     <div class="tile"><div class="small">Spent this month</div><div class="big-number">${formatMoney(month.total)}</div>
-      ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
-    ${pendingTile}${categoryRows}
+      ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
+      <div class="small">Bills and subscriptions are left out.</div></div>
+    ${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
-    <div class="small">Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, so a few will be off.</div>`;
+    <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, so a few will be off.</div>`;
 }
 
 document.addEventListener("click", (event) => {
   const monthButton = event.target.closest("[data-spending-month]");
   if (!monthButton) return;
   spendingMonthShown = monthButton.dataset.spendingMonth;
+  showSpendingPage(loadSettings());
+});
+
+document.addEventListener("click", (event) => {
+  const markButton = event.target.closest("[data-mark-bill]");
+  const unmarkButton = event.target.closest("[data-unmark-bill]");
+  if (!markButton && !unmarkButton) return;
+  event.preventDefault();
+  const store = loadTransactionStore();
+  const charge = store.transactions[(markButton || unmarkButton).dataset.markBill || (markButton || unmarkButton).dataset.unmarkBill];
+  if (!charge) return;
+  const key = billMarkKey(charge);
+  const marks = loadBillMarks().filter((existing) => existing !== key);
+  saveBillMarks(markButton ? [...marks, key] : marks);
   showSpendingPage(loadSettings());
 });

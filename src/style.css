@@ -105,3 +105,5 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 .charge-card { color: var(--muted-text); font-size: 12px; }
 .pending-details { margin-top: 6px; }
 .pending-details summary { cursor: pointer; color: var(--warning); }
+.mark-button { background: none; border: 0; color: var(--accent); font-size: 12px; padding: 2px 0; margin: 0; width: auto; text-decoration: underline; }
+.not-seen { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--bar-track); }
