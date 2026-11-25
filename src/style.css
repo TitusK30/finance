@@ -160,3 +160,10 @@ button:active, .list-row:active { transform: scale(0.96); }
 .down-text { color: #4cd37f; }
 
 html, body { overflow-x: hidden; }
+.date-cover { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); }
+.date-box { width: min(86vw, 360px); padding: 20px; border-radius: 16px; background: #1c1c1e; }
+.date-question { margin-bottom: 14px; font-size: 17px; }
+.date-input { width: 100%; padding: 12px; margin-bottom: 14px; font-size: 18px; border-radius: 10px; border: 0; background: #2c2c2e; color: #fff; color-scheme: dark; }
+.date-buttons { display: flex; gap: 8px; }
+.date-buttons button { flex: 1; margin: 0; }
+.date-buttons .primary { background: #4a9eff; color: #04111f; font-weight: 600; }

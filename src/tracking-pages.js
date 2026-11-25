@@ -130,11 +130,25 @@ function showTodoPage(settings) {
     <button id="add-todo-button">Add item</button>`;
 }
 
+// Opens the phone's own calendar picker. Resolves to "YYYY-MM-DD", null (clear the date), or undefined (cancelled).
 function askForDate(question, currentDate) {
-  const answer = prompt(question + "\nType it as YYYY-MM-DD, or leave empty to clear it.", currentDate || "");
-  if (answer === null) return undefined;
-  if (answer.trim() === "") return null;
-  return /^\d{4}-\d{2}-\d{2}$/.test(answer.trim()) ? answer.trim() : undefined;
+  return new Promise((resolve) => {
+    const cover = document.createElement("div");
+    cover.className = "date-cover";
+    cover.innerHTML = `<div class="date-box"><div class="date-question"></div>
+      <input type="date" class="date-input">
+      <div class="date-buttons"><button data-date-cancel>Cancel</button><button data-date-clear>No date</button><button data-date-ok class="primary">Set</button></div></div>`;
+    cover.querySelector(".date-question").textContent = question;
+    const input = cover.querySelector(".date-input");
+    input.value = currentDate || "";
+    const finish = (value) => { cover.remove(); resolve(value); };
+    cover.addEventListener("click", (event) => {
+      if (event.target === cover || event.target.hasAttribute("data-date-cancel")) finish(undefined);
+      else if (event.target.hasAttribute("data-date-clear")) finish(null);
+      else if (event.target.hasAttribute("data-date-ok")) finish(input.value || undefined);
+    });
+    document.body.appendChild(cover);
+  });
 }
 
 function showTrackingPages(settings) {
@@ -143,7 +157,7 @@ function showTrackingPages(settings) {
   showTrackPage(settings);
 }
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const settings = loadSettings();
   if (!settings) return;
   if (event.target.id === "add-goal-button") {
@@ -156,11 +170,11 @@ document.addEventListener("click", (event) => {
   } else if (event.target.id === "add-todo-button") {
     const name = prompt("What do you need to do?");
     if (!name) return;
-    const dueDate = askForDate("Due date?", "");
+    const dueDate = await askForDate("Due date?", "");
     settings.todo_items.push({ name, due_date: dueDate === undefined ? null : dueDate, done: false });
   } else if (event.target.closest("[data-todo-date]")) {
     const item = settings.todo_items[Number(event.target.closest("[data-todo-date]").dataset.todoDate)];
-    const newDate = askForDate(`Due date for "${item.name}"?`, item.due_date);
+    const newDate = await askForDate(`Due date for "${item.name}"?`, item.due_date);
     if (newDate === undefined) return;
     item.due_date = newDate;
   } else if (event.target.closest("[data-toggle-todo]")) {
