@@ -7,6 +7,7 @@
 // Bills whose amount changes every month (like electricity) are matched by timing plus a utilities-style category.
 
 const BILL_DATE_WINDOW_DAYS = 4;
+const NAMED_BILL_WINDOW_DAYS = 15; // charge text names the bill and the amount is exact: trust it more
 const VARIABLE_BILL_WINDOW_DAYS = 7;
 
 function dayNumber(dateText) {
@@ -26,7 +27,7 @@ function monthBefore(yearMonth) {
 }
 
 function nameWords(text) {
-  return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter((word) => word.length >= 4);
+  return String(text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter((word) => word.length >= 3);
 }
 
 // Your bills and subscriptions as one list.
@@ -58,6 +59,12 @@ function amountFits(bill, charge) {
   return Math.abs(charge.amount - bill.amount) <= Math.max(1, bill.amount * 0.05);
 }
 
+// The charge's own text contains a word from the bill's name (e.g. "Ipsy", "EOS").
+function nameMatches(bill, charge) {
+  const text = String(charge.merchant_name || "") + " " + String(charge.name || "");
+  return nameWords(bill.name).some((word) => text.toLowerCase().includes(word));
+}
+
 function categoryHint(bill, charge) {
   const detail = String(charge.category_detail || "");
   if (bill.varies) return charge.category === "RENT_AND_UTILITIES" || /ELECTRIC|UTILIT/.test(detail);
@@ -84,8 +91,10 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
       for (const day of bill.days) {
         const expected = dueDateInMonth(yearMonth, day);
         const window = bill.anyDay ? 31 : bill.varies ? VARIABLE_BILL_WINDOW_DAYS : BILL_DATE_WINDOW_DAYS;
-        const candidates = charges.filter((charge) => !billCharges[charge.transaction_id] && onRightAccount(bill, charge, store, settings) && amountFits(bill, charge) && categoryHint(bill, charge)
-          && (bill.anyDay ? charge.date.startsWith(yearMonth) : Math.abs(dayNumber(charge.date) - dayNumber(expected)) <= window));
+        const daysOff = (charge) => Math.abs(dayNumber(charge.date) - dayNumber(expected));
+        const candidates = charges.filter((charge) => !billCharges[charge.transaction_id] && amountFits(bill, charge)
+          && ((onRightAccount(bill, charge, store, settings) && categoryHint(bill, charge) && (bill.anyDay ? charge.date.startsWith(yearMonth) : daysOff(charge) <= window))
+            || (!bill.anyDay && !bill.varies && nameMatches(bill, charge) && daysOff(charge) <= NAMED_BILL_WINDOW_DAYS)));
         // A refill-style bill can show up several times a month. Others match once per due day, nearest date first.
         const best = bill.anyDay ? candidates : candidates.sort((first, second) => Math.abs(dayNumber(first.date) - dayNumber(expected)) - Math.abs(dayNumber(second.date) - dayNumber(expected))).slice(0, 1);
         for (const charge of best) { billCharges[charge.transaction_id] = bill.name; seen.push({ bill, charge }); }
@@ -93,6 +102,11 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
       }
     }
     byMonth[yearMonth] = { seen, unseen };
+  }
+  // Leftovers whose text names a bill and whose amount is exact are that bill, whatever the date.
+  for (const charge of charges) {
+    const named = bills.find((bill) => !bill.varies && !bill.anyDay && amountFits(bill, charge) && nameMatches(bill, charge));
+    if (named && !billCharges[charge.transaction_id]) billCharges[charge.transaction_id] = named.name;
   }
   for (const charge of charges) {
     if (!billCharges[charge.transaction_id] && userMarks.includes(billMarkKey(charge))) billCharges[charge.transaction_id] = "Marked by you";
