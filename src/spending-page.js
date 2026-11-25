@@ -114,9 +114,20 @@ function showSpendingPage(settings) {
     ${comparison.categories.filter((entry) => entry.difference !== 0).slice(0, 5).map((entry) => `<div class="tile-row small"><span>${entry.name}</span><span class="${changeClass(entry.difference)}">${changeText(entry.difference)}</span></div>`).join("")}</div>` : "";
 
   const earned = earnedInMonth(store, spendingMonthShown, settings);
+  // Pay weekdays still ahead (after today) in the month being shown, only for the current month.
+  const payWeekdayNumber = PAY_WEEKDAY_NUMBERS[settings.paycheck && settings.paycheck.pay_weekday];
+  let paydaysLeft = 0;
+  if (spendingMonthShown === todayText().slice(0, 7) && payWeekdayNumber !== undefined) {
+    const lastDayOfMonth = new Date(Date.UTC(Number(spendingMonthShown.slice(0, 4)), Number(spendingMonthShown.slice(5, 7)), 0)).getUTCDate();
+    for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
+      if (new Date(`${spendingMonthShown}-${String(day).padStart(2, "0")}T00:00:00Z`).getUTCDay() === payWeekdayNumber) paydaysLeft++;
+    }
+  }
+  const paydaysLine = spendingMonthShown === todayText().slice(0, 7) && payWeekdayNumber !== undefined ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month</div>` : "";
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
   const earnedTile = `<details class="tile category-tile"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
-    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div></summary>${depositRows}</details>`;
+    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div>
+    ${paydaysLine}</summary>${depositRows}</details>`;
 
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
