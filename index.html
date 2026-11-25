@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261125j">
+  <link rel="stylesheet" href="src/style.css?v=20261125k">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,16 +19,21 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" hidden></button>
   </div>
-  <script src="src/lock.js?v=20261125j"></script>
+  <script src="src/lock.js?v=20261125k"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="apply-top-button" hidden>Apply</button><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="menu-overlay" hidden></div>
 
-  <section id="setup" hidden>
-    <p>No data on this device yet. Open the menu, then Settings, and load your settings file once, or set everything up inside the app.</p>
-    <button id="start-setup-button">Set up in the app</button>
-  </section>
-
   <div id="page-home">
+
+  <section id="setup" class="tile" hidden>
+    <h2>Welcome to Finance OS</h2>
+    <p>Your private cash-flow forecast. Everything stays on this phone.</p>
+    <button id="start-setup-button">Set up in the app (about 5 minutes)</button>
+    <button id="load-file-button" class="small-button">I have a settings file</button>
+    <p class="small">Linking your bank is optional and can be added any time. Without it, you type your balances yourself.</p>
+  </section>
+  <section id="start-here" class="tile" hidden></section>
+  <div id="home-content">
 
   <p id="data-status" class="small"></p>
   <section id="balance-tiles"></section>
@@ -44,6 +49,7 @@
   <h2>Next 40 days</h2>
   <section id="calendar-list"></section>
 
+  </div>
   </div>
 
   <div id="page-planner" hidden>
@@ -92,6 +98,7 @@
     </div>
     <p id="data-note" class="small"></p>
     <h2>Bank connection</h2>
+    <p class="small">Optional. Live balances need a free relay; the README walks through it. Without it, type your balances in Set up.</p>
     <div class="list-group">
       <button class="list-row" id="refresh-button">Refresh balances</button>
       <button class="list-row" id="connect-relay-button">Connect to relay</button>
@@ -142,17 +149,17 @@
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261125j"></script>
-  <script src="src/summaries.js?v=20261125j"></script>
-  <script src="src/spending.js?v=20261125j"></script>
-  <script src="src/plaid-sync.js?v=20261125j"></script>
-  <script src="src/loan.js?v=20261125j"></script>
-  <script src="src/bills.js?v=20261125j"></script>
-  <script src="src/spending-page.js?v=20261125j"></script>
-  <script src="src/tracking.js?v=20261125j"></script>
-  <script src="src/tracking-pages.js?v=20261125j"></script>
-  <script src="src/extra-pages.js?v=20261125j"></script>
-  <script src="src/setup-page.js?v=20261125j"></script>
-  <script src="src/app.js?v=20261125j"></script>
+  <script src="src/forecast.js?v=20261125k"></script>
+  <script src="src/summaries.js?v=20261125k"></script>
+  <script src="src/spending.js?v=20261125k"></script>
+  <script src="src/plaid-sync.js?v=20261125k"></script>
+  <script src="src/loan.js?v=20261125k"></script>
+  <script src="src/bills.js?v=20261125k"></script>
+  <script src="src/spending-page.js?v=20261125k"></script>
+  <script src="src/tracking.js?v=20261125k"></script>
+  <script src="src/tracking-pages.js?v=20261125k"></script>
+  <script src="src/extra-pages.js?v=20261125k"></script>
+  <script src="src/setup-page.js?v=20261125k"></script>
+  <script src="src/app.js?v=20261125k"></script>
 </body>
 </html>

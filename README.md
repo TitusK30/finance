@@ -18,7 +18,7 @@ A private cash-flow forecaster for your iPhone. It shows what will be in checkin
 | Accounts needed | GitHub | GitHub, Cloudflare, Plaid |
 | You type | balances, bills, cards | only the set-up values; balances come from your banks |
 
-Start with Path A. You can add Path B later without losing anything.
+Start with Path A. You can add Path B later without losing anything. On a brand-new phone the app opens with a welcome card and a short Start here checklist, and empty pages tell you what to add.
 
 **Path A:** do Step 1 and Step 2, then stop.
 **Path B:** do Steps 1 to 7 in order. The order matters; it avoids going back and forth between sites.

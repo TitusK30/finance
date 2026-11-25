@@ -190,7 +190,8 @@ function showCreditPage(settings) {
     `<div class="tile-row small"><span>${escapeHtml(otherCard.name)}</span>${expiryText(otherCard.expires, settings)}</div>`).join("");
   const otherCardsTile = `<div class="tile"><b>Other cards</b>${otherCardRows}
     <div class="tile-row small"><span>Annual fees across all cards</span><span>${formatMoney(totalAnnualFees(settings))} / year</span></div></div>`;
-  document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${cardTiles}${otherCardsTile}
+  const noCardsYet = Object.keys(settings.credit_cards).length === 0 ? `<div class="tile small">No credit cards yet. Add them in Settings → Set up in the app.</div>` : "";
+  document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${noCardsYet}${cardTiles}${otherCardsTile}
     <div class="small">Lenders usually report your statement balance when it closes, so that is what these numbers aim at. est. means the new statement is assumed to start at $0, plus known subscriptions. Under about 10% is generally the best range, but this is an estimate and no guarantee of a score.</div>`;
 }
 
@@ -263,7 +264,7 @@ function monthAndYear(dateText) {
 function showCarPage(settings) {
   const loan = settings.car_loan;
   if (!loan) {
-    document.getElementById("car-summary").innerHTML = `<h2>Car loan</h2><div class="tile"><div class="small">No car loan set up. Load a settings file that includes one.</div></div>`;
+    document.getElementById("car-summary").innerHTML = `<h2>Car loan</h2><div class="tile"><div class="small">No car loan set up. If you have one, add it in Settings → Set up in the app. If not, you can hide this tab there.</div></div>`;
     document.getElementById("car-extra-result").innerHTML = "";
     return;
   }
@@ -303,7 +304,10 @@ function showCarPage(settings) {
 
 function showBillsTotal(settings) {
   const monthlyTotal = totalsForItems(monthlyItemsForTab(settings, "subscriptions")).monthlyTotal + totalsForItems(monthlyItemsForTab(settings, "expenses")).monthlyTotal;
-  document.getElementById("bills-total").innerHTML = `<div class="tile"><div class="small">All bills and subscriptions</div><div class="big-number">${formatMoney(monthlyTotal)} / month</div></div>`;
+  const nothingAddedYet = settings.monthly_bills_paid_from_checking.length + settings.subscriptions_charged_to_cards.length === 0;
+  document.getElementById("bills-total").innerHTML = nothingAddedYet
+    ? `<div class="tile"><div class="small">No bills or subscriptions yet. Add them in Settings → Set up in the app.</div></div>`
+    : `<div class="tile"><div class="small">All bills and subscriptions</div><div class="big-number">${formatMoney(monthlyTotal)} / month</div></div>`;
 }
 
 function showExtraPages(settings) {

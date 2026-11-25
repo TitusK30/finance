@@ -66,7 +66,7 @@ function showSpendingPage(settings) {
   const charges = allCharges.filter((charge) => !isBill(charge));
   if (allCharges.length === 0) {
 
-  page.innerHTML = `<h2>Spending</h2><div class="tile small">No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on.</div>`;
+  page.innerHTML = `<h2>Spending</h2><div class="tile small">${localStorage.getItem("finance_relay_address") ? "No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on." : "This page fills in from your bank, so it stays empty until you link one. Linking is optional; Settings and the README explain how."}</div>`;
     return;
   }
   const months = monthsWithSpending(allCharges);

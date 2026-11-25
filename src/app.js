@@ -178,10 +178,41 @@ function fillWhatIfChoices(settings) {
   document.getElementById("what-if-date").value ||= todayText();
 }
 
+const HIDE_START_HERE_KEY = "finance_os_hide_start_here";
+
+// Enough to draw a forecast: a paycheck or a checking balance.
+function basicsAreSet(settings) {
+  return settings.paycheck.usual_take_home_amount > 0 || settings.starting_balances.checking_balance > 0;
+}
+
+// A short checklist on Home until pay, a card and a bill or subscription are in.
+function showStartHere(settings) {
+  const steps = [
+    ["Add your pay and checking balance", basicsAreSet(settings)],
+    ["Add a credit card", Object.keys(settings.credit_cards).length > 0],
+    ["Add a bill or subscription", settings.monthly_bills_paid_from_checking.length + settings.subscriptions_charged_to_cards.length > 0],
+  ];
+  const box = document.getElementById("start-here");
+  box.hidden = steps.every(([label, done]) => done) || localStorage.getItem(HIDE_START_HERE_KEY) === "yes";
+  box.innerHTML = `<b>Start here</b>${steps.map(([label, done]) => `<div class="tile-row small"><span>${done ? "&#9989;" : "&#11036;"} ${label}</span></div>`).join("")}
+    <div class="small">Bank linking is optional. You can do it later.</div>
+    <button id="start-here-setup-button">Open Set up</button><button id="hide-start-here-button" class="small-button">Hide this</button>`;
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target.id === "hide-start-here-button") {
+    localStorage.setItem(HIDE_START_HERE_KEY, "yes");
+    document.getElementById("start-here").hidden = true;
+  }
+  if (event.target.id === "load-file-button") document.getElementById("settings-file-input").click();
+});
+
 function showEverything() {
   const settings = loadSettings();
   document.getElementById("setup").hidden = Boolean(settings);
-  if (!settings) return;
+  document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);
+  if (!settings) { document.getElementById("start-here").hidden = true; return; }
+  showStartHere(settings);
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   document.getElementById("data-status").textContent = `Bank balances as of ${formatDate(settings.starting_balances.as_of_date)}`;
   showBalances(settings);
@@ -304,7 +335,7 @@ async function refreshFromBank(quiet = false) {
   const say = (text) => { document.getElementById("refresh-note").textContent = text; document.getElementById("data-status").textContent = text; };
   const relayAddress = localStorage.getItem(RELAY_ADDRESS_KEY);
   const relayAppKey = localStorage.getItem(RELAY_APP_KEY_KEY);
-  if (!relayAddress || !relayAppKey) { if (!quiet) say("Connect to the relay first (Settings)."); return; }
+  if (!relayAddress || !relayAppKey) { if (!quiet) say("Bank linking is optional. To turn it on, connect to the relay in Settings (the README has the steps)."); return; }
   if (!quiet) say("Refreshing...");
   let refresh;
   try {

@@ -114,3 +114,5 @@ input[type="month"] { min-width: 0; max-width: 100%; -webkit-appearance: none; a
 #apply-top-button[hidden] { display: none; }
 #apply-top-button:not([hidden]) + #refresh-top-button { margin-left: 0; }
 #side-menu button[hidden] { display: none; }
+#start-here .tile-row { margin: 8px 0; }
+#start-here button { margin-top: 8px; }

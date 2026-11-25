@@ -185,7 +185,7 @@ function applySetupPage(settings) {
 
 document.addEventListener("click", (event) => {
   const target = event.target;
-  if (target.id === "open-setup-button" || target.id === "start-setup-button") return openSetupPage();
+  if (target.id === "open-setup-button" || target.id === "start-setup-button" || target.id === "start-here-setup-button") return openSetupPage();
   const settings = loadSettings();
   if (!settings || document.getElementById("page-setup").hidden) return;
 
