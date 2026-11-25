@@ -37,14 +37,19 @@ function changeDuringMonth(entries, valueKey, yearMonth) {
 }
 
 // How much to save each week to finish by a chosen date. Rounds up so the goal is really reached.
-// Optional expectedMoney {date, amount}: money you know is coming (a bonus, a gift) before the finish date counts toward the goal.
+// Money you know is coming into savings (a bonus, a gift) between today and endDate. Items going out are not counted here.
+function expectedMoneyComingIn(items, todayDate, endDate) {
+  const counted = (items || []).filter((item) => item.kind !== "out" && item.amount > 0 && item.date > todayDate && item.date <= endDate);
+  return { counted, total: roundTrackedMoney(counted.reduce((sum, item) => sum + item.amount, 0)) };
+}
+
+// expectedMoney is the list of expected items; the ones coming in before the finish date count toward the goal.
 function weeklySavingsNeeded(goal, todayDate, targetDate, expectedMoney) {
   const daysLeft = Math.round((new Date(targetDate + "T12:00:00") - new Date(todayDate + "T12:00:00")) / 86400000);
   if (daysLeft <= 0) return null;
   const weeksLeft = Math.max(1, Math.ceil(daysLeft / 7));
   const { remaining: remainingBeforeExpected } = goalProgress(goal);
-  const expectedCounts = Boolean(expectedMoney && expectedMoney.amount > 0 && expectedMoney.date > todayDate && expectedMoney.date <= targetDate);
-  const expectedAmount = expectedCounts ? expectedMoney.amount : 0;
+  const expectedAmount = expectedMoneyComingIn(expectedMoney, todayDate, targetDate).total;
   const remaining = Math.max(0, roundTrackedMoney(remainingBeforeExpected - expectedAmount));
   const perWeek = Math.ceil((remaining / weeksLeft) * 100) / 100;
   return { weeksLeft, remaining, remainingBeforeExpected, expectedAmount, perWeek, perMonth: roundTrackedMoney((perWeek * 52) / 12) };
@@ -53,8 +58,7 @@ function weeklySavingsNeeded(goal, todayDate, targetDate, expectedMoney) {
 // "If I save this much a week for this many weeks, what will savings be?" Money you expect to receive counts if it lands inside that time.
 function savingsAfterWeeks(startingSavings, weeklyAmount, weeks, todayDate, expectedMoney, goal) {
   const endDate = new Date(new Date(todayDate + "T12:00:00Z").getTime() + weeks * 7 * 86400000).toISOString().slice(0, 10);
-  const expectedCounts = Boolean(expectedMoney && expectedMoney.amount > 0 && expectedMoney.date > todayDate && expectedMoney.date <= endDate);
-  const expectedAmount = expectedCounts ? expectedMoney.amount : 0;
+  const expectedAmount = expectedMoneyComingIn(expectedMoney, todayDate, endDate).total;
   const fromSaving = roundTrackedMoney(weeklyAmount * weeks);
   const finalBalance = roundTrackedMoney(startingSavings + fromSaving + expectedAmount);
   const goalPercent = goal && goal.target > 0 ? Math.min(100, Math.round(((goal.saved + fromSaving + expectedAmount) / goal.target) * 100)) : null;
@@ -89,5 +93,5 @@ function monthlyRecap({ netWorthHistory, creditScores, goals, monthlyIncome, mon
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { goalProgress, weeklySavingsNeeded, savingsAfterWeeks, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
+  module.exports = { expectedMoneyComingIn, goalProgress, weeklySavingsNeeded, savingsAfterWeeks, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
 }

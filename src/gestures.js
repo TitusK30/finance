@@ -1,7 +1,7 @@
 // Swipe left on a row to reveal Delete. The Delete button presses the row's own remove control,
 // so every existing "are you sure" check still applies.
 
-const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription]";
+const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-remove-expected], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription]";
 const SWIPE_REVEAL_PIXELS = 90;
 const SWIPE_TO_OPEN_PIXELS = 50;
 let swipeRow = null;

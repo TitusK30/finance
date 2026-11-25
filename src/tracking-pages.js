@@ -20,6 +20,7 @@ function showGoalsPage(settings) {
       ${notAssigned < 0 ? `<div class="small negative">Your goals add up to more than what is in savings.</div>` : ""}</div>
     ${tiles || `<div class="tile small">No goals yet.</div>`}
     <button id="add-goal-button">Add goal</button>`;
+  showExpectedMoney(settings);
   showGoalDatePlanner(settings);
   showWhatIfSaving(settings);
 }
@@ -28,34 +29,46 @@ function savingsPlanWeekly(settings) {
   return (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
 }
 
-// "If I save $X a week for N weeks, what will savings be?" Uses the expected-money boxes above too.
+// "If I save $X a week for N weeks, what will savings be?" Counts the money you listed as coming in. Typing here does not change your plan until you press the button.
 function showWhatIfSaving(settings) {
   const weeklyBox = document.getElementById("plan-weekly-amount");
-  if (document.activeElement !== weeklyBox) weeklyBox.value = savingsPlanWeekly(settings) || "";
+  const planAmount = savingsPlanWeekly(settings);
+  if (!weeklyBox.dataset.typed) weeklyBox.value = planAmount || "";
+  document.getElementById("plan-current-note").textContent = planAmount ? `My plan right now: ${formatMoney(planAmount)} a week` : "No weekly plan set yet";
   const resultBox = document.getElementById("plan-what-if-result");
   const weeklyAmount = parseFloat(weeklyBox.value) || 0;
   const weeks = parseInt(document.getElementById("plan-weeks").value, 10) || 0;
   if (weeklyAmount <= 0 || weeks <= 0) { resultBox.innerHTML = ""; return; }
-  const expectedMoney = { date: document.getElementById("goal-plan-expected-date").value, amount: parseFloat(document.getElementById("goal-plan-expected-amount").value) || 0 };
   const goal = settings.savings_goals[document.getElementById("goal-plan-goal").value];
-  const result = savingsAfterWeeks(settings.starting_balances.savings_balance, weeklyAmount, weeks, todayText(), expectedMoney, goal);
+  const result = savingsAfterWeeks(settings.starting_balances.savings_balance, weeklyAmount, weeks, todayText(), settings.expected_money, goal);
+  const arrivals = expectedMoneyComingIn(settings.expected_money, todayText(), result.endDate).counted
+    .map((item) => `<div class="tile-row small"><span>${escapeHtml(item.label || "Expected money")} on ${formatDate(item.date)}</span><span>+${formatMoney(item.amount)}</span></div>`).join("");
   resultBox.innerHTML = `<div class="tile good"><div class="small">In ${weeks} week${weeks === 1 ? "" : "s"} (${formatDate(result.endDate)}) savings would be</div>
     <div class="big-number">${formatMoney(result.finalBalance)}</div>
     <div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
     <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span>+${formatMoney(result.fromSaving)}</span></div>
-    ${result.expectedAmount > 0 ? `<div class="tile-row small"><span>Expected money arriving ${formatDate(expectedMoney.date)}</span><span>+${formatMoney(result.expectedAmount)}</span></div>` : ""}
-    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}</div>`;
+    ${arrivals}
+    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}
+    <button id="make-weekly-plan-button" data-weekly="${weeklyAmount}">Make ${formatMoney(weeklyAmount)} a week my plan</button></div>`;
 }
 
-document.getElementById("plan-weekly-amount").addEventListener("change", () => {
-  const settings = loadSettings();
-  if (!settings) return;
-  settings.savings_plan = { weekly_amount: Math.max(0, parseFloat(document.getElementById("plan-weekly-amount").value) || 0) };
-  saveSettings(settings);
-  showEverything();
-});
+// The list of money you know is coming in (goes to savings) or going out (leaves checking).
+function showExpectedMoney(settings) {
+  const items = (settings.expected_money || []).map((item, position) => ({ ...item, position })).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const rows = items.map((item) => `<div class="tile"><div class="tile-row"><b>${escapeHtml(item.label || (item.kind === "out" ? "Money going out" : "Money coming in"))}</b>
+      <button class="remove-link" data-remove-expected="${item.position}">remove</button></div>
+    <div class="tile-row small"><span>${formatDate(item.date)}${item.kind === "out" ? " (out of checking)" : " (into savings)"}</span>
+      <span class="${item.kind === "out" ? "negative" : "positive"}">${item.kind === "out" ? "-" : "+"}${formatMoney(item.amount)}</span></div></div>`).join("");
+  document.getElementById("expected-money-list").innerHTML = `${rows || `<div class="tile small">Nothing listed. Add a bonus, gift, tuition or any amount with a known date.</div>`}
+    <button id="add-expected-in-button">Add money coming in</button> <button id="add-expected-out-button">Add money going out</button>`;
+}
+
 for (const inputId of ["plan-weekly-amount", "plan-weeks"]) {
-  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showWhatIfSaving(settings); });
+  document.getElementById(inputId).addEventListener("input", () => {
+    if (inputId === "plan-weekly-amount") document.getElementById(inputId).dataset.typed = "yes";
+    const settings = loadSettings();
+    if (settings) showWhatIfSaving(settings);
+  });
 }
 
 // "What if I want it done by this date?" Picks a goal and a date, shows the weekly amount.
@@ -69,15 +82,15 @@ function showGoalDatePlanner(settings) {
   const targetDate = document.getElementById("goal-plan-date").value;
   if (!goal) { resultBox.innerHTML = `<div class="small">Add a goal first.</div>`; return; }
   if (!targetDate) { resultBox.innerHTML = ""; return; }
-  const expectedMoney = { date: document.getElementById("goal-plan-expected-date").value, amount: parseFloat(document.getElementById("goal-plan-expected-amount").value) || 0 };
-  const plan = weeklySavingsNeeded(goal, todayText(), targetDate, expectedMoney);
+  const plan = weeklySavingsNeeded(goal, todayText(), targetDate, settings.expected_money);
   if (!plan) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
   const paycheck = settings.paycheck.usual_take_home_amount;
   const percentOfPaycheck = Math.round((plan.perWeek / paycheck) * 100);
-  const expectedLeftOut = expectedMoney.amount > 0 && plan.expectedAmount === 0
-    ? `<div class="small warning">The expected money is not counted because its date is not between today and ${formatDate(targetDate)}.</div>` : "";
+  const comingIn = (settings.expected_money || []).filter((item) => item.kind !== "out");
+  const expectedLeftOut = comingIn.length > 0 && plan.expectedAmount === 0
+    ? `<div class="small warning">The money you listed is not counted because none of it lands between today and ${formatDate(targetDate)}.</div>` : "";
   const expectedLine = plan.expectedAmount > 0
-    ? `<div class="tile-row small"><span>Counting ${formatMoney(plan.expectedAmount)} arriving ${formatDate(expectedMoney.date)}</span><span>-${formatMoney(plan.expectedAmount)}</span></div>` : "";
+    ? `<div class="tile-row small"><span>Counting ${formatMoney(plan.expectedAmount)} you expect before then</span><span>-${formatMoney(plan.expectedAmount)}</span></div>` : "";
   resultBox.innerHTML = plan.remaining === 0
     ? `<div class="tile good"><b>${escapeHtml(goal.name)} ${plan.expectedAmount > 0 ? `is covered by the ${formatMoney(plan.expectedAmount)} you expect. Nothing to save each week.` : "is already fully funded."}</b></div>`
     : `<div class="tile good"><div class="big-number">${formatMoney(plan.perWeek)} a week</div>
@@ -88,7 +101,7 @@ function showGoalDatePlanner(settings) {
       <button id="use-weekly-plan-button" data-weekly="${plan.perWeek}">Use ${formatMoney(plan.perWeek)} a week as my plan</button></div>${expectedLeftOut}`;
 }
 
-for (const inputId of ["goal-plan-goal", "goal-plan-date", "goal-plan-expected-date", "goal-plan-expected-amount"]) {
+for (const inputId of ["goal-plan-goal", "goal-plan-date"]) {
   document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) { showGoalDatePlanner(settings); showWhatIfSaving(settings); } });
 }
 
@@ -201,8 +214,20 @@ function showTrackingPages(settings) {
 document.addEventListener("click", async (event) => {
   const settings = loadSettings();
   if (!settings) return;
-  if (event.target.id === "use-weekly-plan-button") {
+  if (event.target.id === "use-weekly-plan-button" || event.target.id === "make-weekly-plan-button") {
     settings.savings_plan = { weekly_amount: parseFloat(event.target.dataset.weekly) || 0 };
+    delete document.getElementById("plan-weekly-amount").dataset.typed;
+  } else if (event.target.id === "add-expected-in-button" || event.target.id === "add-expected-out-button") {
+    const kind = event.target.id === "add-expected-out-button" ? "out" : "in";
+    const date = await askForDate(kind === "out" ? "Date the money leaves?" : "Date the money arrives?", "");
+    if (!date) return;
+    const amount = parseFloat(prompt("Amount ($)"));
+    if (!amount || amount <= 0) return;
+    const label = prompt(kind === "out" ? "What is it for? (for example: tuition)" : "What is it? (for example: bonus)") || "";
+    settings.expected_money = [...(settings.expected_money || []), { date, amount, kind, label }];
+  } else if (event.target.closest("[data-remove-expected]")) {
+    if (!confirm("Remove this item?")) return;
+    settings.expected_money.splice(Number(event.target.closest("[data-remove-expected]").dataset.removeExpected), 1);
   } else if (event.target.id === "add-goal-button") {
     const name = prompt("Goal name (for example: Emergency fund)");
     if (!name) return;

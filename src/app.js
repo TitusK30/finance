@@ -76,7 +76,7 @@ function showSpendingPlan(settings, forecast) {
     goalsBox.innerHTML = `<div class="tile small">Type a weekly amount above to see how much you can spend while still saving it.</div>`;
     return;
   }
-  const room = spendingRoom(forecast, settings.minimum_checking_floor, weeklySavings);
+  const room = spendingRoom(withExpectedExpenses(forecast, settings.expected_money), settings.minimum_checking_floor, weeklySavings);
   const floor = formatMoney(settings.minimum_checking_floor);
   const fits = room.week.rawRoom >= 0;
   const monthRow = room.month.days > room.week.days
@@ -312,7 +312,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "savings_plan"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "savings_plan", "expected_money"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);

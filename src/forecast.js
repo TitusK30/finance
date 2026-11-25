@@ -150,6 +150,16 @@ function safeToSpend(forecast, startingBalance, floor) {
   };
 }
 
+// Known one-off amounts leaving checking (tuition, a course). Each lowers every balance from its date on. Items from before the forecast starts are ignored.
+function withExpectedExpenses(forecast, items) {
+  const leaving = (items || []).filter((item) => item.kind === "out" && item.amount > 0);
+  const firstDate = forecast.days[0].date;
+  return { ...forecast, days: forecast.days.map((day) => {
+    const gone = leaving.filter((item) => item.date >= firstDate && item.date <= day.date).reduce((sum, item) => sum + item.amount, 0);
+    return { ...day, checking_balance: roundToCents(day.checking_balance - gone) };
+  }) };
+}
+
 // How much you can spend in each window and still move weeklySavings out of checking every week and keep the floor.
 // Savings leave checking a little each day (weekly / 7), so the lowest day in the window decides the room.
 // rawRoom can go negative: that is how far short checking would fall, and the window is then not affordable.
@@ -179,4 +189,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, safeToSpend, spendingRoom, withExpectedExpenses, balanceOn, dueDateForCharge };

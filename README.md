@@ -251,3 +251,4 @@ finance_settings.example.json   fake data showing the file format
 ### Weekly savings plan
 - On the Goals tab, type how much you save each week. The app shows what savings would be after a number of weeks, counting any expected lump sum you entered.
 - Home and Goals then show how much you can spend this week and this month while still moving that amount to savings and keeping your checking floor.
+- "Money coming and going" (Goals tab) lists known amounts with dates. Money coming in counts toward savings goals and the what-if; money going out lowers checking in the spending room.
