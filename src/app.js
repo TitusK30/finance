@@ -114,7 +114,10 @@ function dateRow(label, dateText, today, redWithinDays, amberWithinDays) {
 
 function showCards(settings) {
   const today = todayText();
-  const html = Object.values(settings.credit_cards).map((card) => {
+  // Farthest statement close date first, closest last.
+  const closeDateOf = (card) => nextStatementCloseDate(card, addDaysToDateText(today, -1));
+  const cardsByCloseDate = Object.values(settings.credit_cards).sort((first, second) => closeDateOf(second).localeCompare(closeDateOf(first)));
+  const html = cardsByCloseDate.map((card) => {
     // The statement stays open until its close day. Starting from yesterday lets "closes today" count as 0 days.
     const closeDate = nextStatementCloseDate(card, addDaysToDateText(today, -1));
     const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating);
