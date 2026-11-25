@@ -111,6 +111,10 @@ function showSpendingPage(settings) {
     <div class="small">${formatMoney(comparison.total)} now, ${formatMoney(comparison.previousTotal)} then</div>
     ${comparison.categories.filter((entry) => entry.difference !== 0).slice(0, 5).map((entry) => `<div class="tile-row small"><span>${entry.name}</span><span class="${changeClass(entry.difference)}">${changeText(entry.difference)}</span></div>`).join("")}</div>` : "";
 
+  const earned = earnedInMonth(store, spendingMonthShown, settings);
+  const earnedTile = `<div class="tile"><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
+    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"} to your bank accounts that look like pay</div></div>`;
+
   const merchantRows = month.topMerchants.map((merchant) => `<div class="tile-row small"><span>${escapeHtml(merchant.name)}</span><span>${formatMoney(merchant.amount)}</span></div>`).join("");
 
   page.innerHTML = `<h2>Spending</h2>
@@ -118,6 +122,7 @@ function showSpendingPage(settings) {
     <div class="tile"><div class="small">Spent this month</div><div class="big-number">${formatMoney(month.total)}</div>
       ${month.pendingTotal > 0 ? `<div class="small">includes ${formatMoney(month.pendingTotal)} pending</div>` : ""}
       <div class="small">Bills and subscriptions are left out.</div></div>
+    ${earnedTile}
     ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
     <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, except that grocery stores, Amazon and tolls get their own categories by name, so a few will be off.</div>`;

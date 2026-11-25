@@ -90,6 +90,20 @@ function spendingCharges(store) {
     .sort((first, second) => second.date.localeCompare(first.date));
 }
 
+// Paychecks and other income deposited to your bank accounts in a month. A deposit counts when the bank calls it income,
+// when its text says payroll or direct deposit, or when it contains a word from settings.paycheck.deposit_text_contains.
+function earnedInMonth(store, yearMonth, settings) {
+  const hintWords = ((settings && settings.paycheck && settings.paycheck.deposit_text_contains) || []).map((word) => String(word).toLowerCase());
+  const deposits = Object.values(store.transactions).filter((transaction) => {
+    if (transaction.amount >= 0 || transaction.pending || !transaction.date.startsWith(yearMonth)) return false;
+    const account = store.accounts[transaction.account_id];
+    if (!account || account.type !== "depository") return false;
+    const text = (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase();
+    return transaction.category === "INCOME" || /payroll|direct dep/.test(text) || hintWords.some((word) => text.includes(word));
+  });
+  return { total: roundCents(-deposits.reduce((sum, transaction) => sum + transaction.amount, 0)), count: deposits.length };
+}
+
 function monthsWithSpending(charges) {
   return [...new Set(charges.map((charge) => charge.date.slice(0, 7)))].sort().reverse();
 }
@@ -165,4 +179,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { earnedInMonth, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

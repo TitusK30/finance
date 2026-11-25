@@ -248,6 +248,9 @@ relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
 finance_settings.example.json   fake data showing the file format
 ```
 
+### Spending tab
+- "Earned this month" adds deposits to your bank accounts that the bank calls income or that mention payroll or direct deposit. If your pay is not picked up, add a word from its description to `paycheck.deposit_text_contains` in the settings file, for example `["acme"]`.
+
 ### Goals tab
 - "Finish by a date" shows how much to save each week to reach a goal by a date.
 - "Save a set amount" shows what savings would be by a date you pick, at a weekly amount you type.
