@@ -38,11 +38,13 @@ function showWhatIfSaving(settings) {
   const weeklyBox = document.getElementById("plan-weekly-amount");
   const resultBox = document.getElementById("plan-what-if-result");
   const weeklyAmount = parseFloat(weeklyBox.value) || 0;
-  const weeks = parseInt(document.getElementById("plan-weeks").value, 10) || 0;
-  if (weeklyAmount <= 0 || weeks <= 0) { resultBox.innerHTML = ""; return; }
+  const endDate = document.getElementById("plan-end-date").value;
+  if (weeklyAmount <= 0 || !endDate) { resultBox.innerHTML = ""; return; }
   const goal = settings.savings_goals[document.getElementById("goal-plan-goal").value];
-  const result = savingsAfterWeeks(settings.starting_balances.savings_balance, weeklyAmount, weeks, todayText(), settings.expected_money, goal);
-  resultBox.innerHTML = `<div class="tile good"><div class="small">In ${weeks} week${weeks === 1 ? "" : "s"} (${formatDate(result.endDate)}) savings would be</div>
+  const result = savingsUntilDate(settings.starting_balances.savings_balance, weeklyAmount, endDate, todayText(), settings.expected_money, goal);
+  if (!result) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
+  const weeks = result.weeks;
+  resultBox.innerHTML = `<div class="tile good"><div class="small">By ${formatDate(result.endDate)} (${weeks} week${weeks === 1 ? "" : "s"}) savings would be</div>
     <div class="big-number">${formatMoney(result.finalBalance)}</div>
     <div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
     <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span>+${formatMoney(result.fromSaving)}</span></div>
@@ -61,7 +63,7 @@ function showExpectedMoney(settings) {
     <button id="add-expected-in-button">Add money coming in</button> <button id="add-expected-out-button">Add money going out</button>`;
 }
 
-for (const inputId of ["plan-weekly-amount", "plan-weeks"]) {
+for (const inputId of ["plan-weekly-amount", "plan-end-date"]) {
   document.getElementById(inputId).addEventListener("input", () => {
     const settings = loadSettings();
     if (settings) showWhatIfSaving(settings);

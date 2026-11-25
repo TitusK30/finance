@@ -250,7 +250,7 @@ finance_settings.example.json   fake data showing the file format
 
 ### Goals tab
 - "Finish by a date" shows how much to save each week to reach a goal by a date.
-- "Save a set amount" shows what savings would be after a number of weeks at an amount you type.
+- "Save a set amount" shows what savings would be by a date you pick, at a weekly amount you type.
 - "Money coming and going" lists known amounts with dates. Money coming in counts toward both results; money going out lowers them.
 - Goals stay on the Goals tab. Nothing there changes Home.
 - "Room to put on your cards" (Home): the lowest checking day in the next 60 days minus your floor, counting statements (open ones too), pending, bills, subs and fees.

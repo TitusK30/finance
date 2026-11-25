@@ -61,15 +61,18 @@ function weeklySavingsNeeded(goal, todayDate, targetDate, expectedMoney) {
   return { weeksLeft, remaining, remainingBeforeExpected, expected, perWeek, perMonth: roundTrackedMoney((perWeek * 52) / 12) };
 }
 
-// "If I save this much a week for this many weeks, what will savings be?" Money coming in is added and money going out is subtracted.
-function savingsAfterWeeks(startingSavings, weeklyAmount, weeks, todayDate, expectedMoney, goal) {
-  const endDate = new Date(new Date(todayDate + "T12:00:00Z").getTime() + weeks * 7 * 86400000).toISOString().slice(0, 10);
+// "If I save this much a week until this date, what will savings be?" Money coming in is added and money going out is subtracted.
+// Part of a week counts as a whole week, the same as the finish-by-a-date plan.
+function savingsUntilDate(startingSavings, weeklyAmount, endDate, todayDate, expectedMoney, goal) {
+  const daysLeft = Math.round((new Date(endDate + "T12:00:00Z") - new Date(todayDate + "T12:00:00Z")) / 86400000);
+  if (daysLeft <= 0) return null;
+  const weeks = Math.max(1, Math.ceil(daysLeft / 7));
   const expected = expectedMoneyBetween(expectedMoney, todayDate, endDate);
   const fromSaving = roundTrackedMoney(weeklyAmount * weeks);
   const net = roundTrackedMoney(expected.totalIn - expected.totalOut);
   const finalBalance = roundTrackedMoney(startingSavings + fromSaving + net);
   const goalPercent = goal && goal.target > 0 ? Math.max(0, Math.min(100, Math.round(((goal.saved + fromSaving + net) / goal.target) * 100))) : null;
-  return { endDate, fromSaving, expected, finalBalance, goalPercent };
+  return { endDate, weeks, fromSaving, expected, finalBalance, goalPercent };
 }
 
 // To-do colors: red when overdue or due within a week, amber within a month, green after that.
@@ -100,5 +103,5 @@ function monthlyRecap({ netWorthHistory, creditScores, goals, monthlyIncome, mon
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { expectedMoneyBetween, goalProgress, weeklySavingsNeeded, savingsAfterWeeks, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
+  module.exports = { expectedMoneyBetween, goalProgress, weeklySavingsNeeded, savingsUntilDate, dueUrgency, sortedTodoItems, addEntryForDate, entriesWithChange, changeDuringMonth, monthlyRecap };
 }
