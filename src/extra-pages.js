@@ -191,9 +191,9 @@ function showCreditPage(settings) {
       <div class="tile-row small card-facts"><span>${expiryText(settings.card_expirations[cardKey], settings)}</span><span>${annualFeeText(settings, cardKey)}</span></div></div>`;
   }).join("");
   const otherCardRows = settings.other_cards.map((otherCard) =>
-    `<div class="tile-row small"><span>${escapeHtml(otherCard.name)}</span>${expiryText(otherCard.expires, settings)}</div>`).join("");
-  const otherCardsTile = `<div class="tile"><b>Other cards</b>${otherCardRows}
-    <div class="tile-row small"><span>Annual fees across all cards</span><span>${formatMoney(totalAnnualFees(settings))} / year</span></div></div>`;
+    `<div class="other-card-row"><span class="mini-card"></span><span class="other-card-name">${escapeHtml(otherCard.name)}</span><span class="other-card-expiry">${expiryText(otherCard.expires, settings)}</span></div>`).join("");
+  const otherCardsTile = `<div class="tile other-cards-tile"><b>Other cards</b>${otherCardRows}
+    <div class="other-fees"><span>Annual fees across all cards</span><b>${formatMoney(totalAnnualFees(settings))} / year</b></div></div>`;
   const noCardsYet = Object.keys(settings.credit_cards).length === 0 ? `<div class="tile small">No credit cards yet. Add them in Settings → Set up in the app.</div>` : "";
   document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${noCardsYet}${cardTiles}${otherCardsTile}`;
 }
