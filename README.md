@@ -252,4 +252,4 @@ finance_settings.example.json   fake data showing the file format
 - On the Goals tab, type how much you save each week. The app shows what savings would be after a number of weeks, counting any expected lump sum you entered.
 - Home and Goals then show how much you can spend this week and this month while still moving that amount to savings and keeping your checking floor.
 - "Money coming and going" (Goals tab) lists known amounts with dates. Money coming in counts toward savings goals and the what-if; money going out lowers checking in the spending room.
-- "Left to spend today" (Home and Goals): a daily budget that keeps your checking floor and your weekly savings plan, after every bill, sub, card payment (open statements too) and listed expense over the next 30 days. It also shows what is left today and this week, using the spending the bank has reported. Bills and subs are not counted as spending.
+- "Room to put on your cards" (Home and Goals): the lowest checking day in the next 60 days minus your floor, counting statements (open ones too), pending, bills, subs and fees.

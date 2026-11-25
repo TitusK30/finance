@@ -1,7 +1,6 @@
 const STORAGE_KEY = "finance_os_settings";
 const HORIZON_DAYS = [10, 20, 30, 40];
 const MINIMUM_ADVICE_DAYS = 60;
-const SPEND_LOOK_AHEAD_DAYS = 30;
 
 function formatMoney(amount) {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -55,37 +54,15 @@ function transferSentence(settings, forecast) {
     : sentence;
 }
 
-// "Safe to spend until payday": what checking can spare, after bills and card payments, keeping your floor.
-// Home and Goals: how much is left to spend today and this week, keeping the checking floor and the weekly savings plan.
+// Home and Goals: how much you could put on your cards and still keep the checking floor.
 function showSpendingPlan(settings, forecast) {
-  const weeklySavings = (settings.savings_plan && settings.savings_plan.weekly_amount) || 0;
-  const allowance = dailyAllowance(withExpectedExpenses(forecast, settings.expected_money, settings.minimum_checking_floor), settings.minimum_checking_floor, weeklySavings, SPEND_LOOK_AHEAD_DAYS);
-  const today = todayText();
-  const weekStart = new Date(new Date(today + "T12:00:00Z").getTime() - new Date(today + "T12:00:00Z").getUTCDay() * 86400000).toISOString().slice(0, 10);
-  const spentToday = spentSince(settings, today);
-  const spentThisWeek = spentSince(settings, weekStart);
-  const leftToday = Math.max(0, roundMoney(allowance.perDay - spentToday));
-  const leftThisWeek = Math.max(0, roundMoney(allowance.perDay * 7 - spentThisWeek));
   const floor = formatMoney(settings.minimum_checking_floor);
-  const savingsText = weeklySavings > 0 ? ` and moves ${formatMoney(weeklySavings)} a week to savings` : "";
-  const tile = allowance.fits
-    ? `<div class="tile ${leftToday > 0 ? "good" : "warning"}"><div class="small">Left to spend today</div><div class="big-number">${formatMoney(leftToday)}</div>
-        <div class="tile-row small"><span>Spent so far today</span><span>${formatMoney(spentToday)}</span></div>
-        <div class="tile-row small"><span>Daily budget</span><span>${formatMoney(allowance.perDay)}</span></div>
-        <div class="tile-row small"><span>Left this week</span><span>${formatMoney(leftThisWeek)}</span></div>
-        <div class="small">Keeps checking at or above your ${floor} floor${savingsText}, over the next ${allowance.lookAheadDays} days, after bills, subs, card payments (open statements too) and the expenses you listed. The tightest day is ${formatDate(allowance.tightestDate)}. Bills and subs are not counted as spending.</div></div>`
-    : `<div class="tile warning"><div class="small">Left to spend today</div><div class="big-number">${formatMoney(0)}</div>
-        <div class="small">Saving ${formatMoney(weeklySavings)} a week does not leave room to spend while keeping your ${floor} floor over the next ${allowance.lookAheadDays} days (tightest day ${formatDate(allowance.tightestDate)}).</div>
-        <div class="tile-row small"><span>Most you could save a week (spending nothing)</span><span>${formatMoney(allowance.mostPerWeek)}</span></div>
-        <div class="tile-row small"><span>Daily budget if you saved nothing extra</span><span>${formatMoney(allowance.perDayWithoutSavings)}</span></div></div>`;
   const room = cardRoom(forecast, settings.minimum_checking_floor);
   const roomTile = `<div class="tile ${room.amount > 0 ? "good" : "warning"}"><div class="small">Room to put on your cards, next ${room.days} days, all cards together</div>
       <div class="big-number">${formatMoney(room.amount)}</div>
       <div class="small">Keeps checking at or above your ${floor} floor, counting your closed and open statements, pending charges, bills, subs and fees. Cautious: it treats the spending as coming out on the tightest day, ${formatDate(room.tightestDate)}.</div></div>`;
-  document.getElementById("spending-plan").innerHTML = tile + roomTile;
-  document.getElementById("goal-spending-room").innerHTML = tile + roomTile
-    + (weeklySavings > 0 ? `<div class="small">The most that fits is ${formatMoney(allowance.mostPerWeek)} a week, with nothing left to spend. With no savings plan your daily budget would be ${formatMoney(allowance.perDayWithoutSavings)}.</div>`
-      : `<div class="tile small">Type a weekly amount above to see the budget with your savings plan.</div>`);
+  document.getElementById("spending-plan").innerHTML = roomTile;
+  document.getElementById("goal-spending-room").innerHTML = roomTile;
 }
 
 function showTransferAdvice(settings, forecast) {
