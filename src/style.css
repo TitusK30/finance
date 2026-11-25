@@ -471,3 +471,23 @@ html, body { overflow-x: hidden; }
 .score-history { display: grid; gap: 4px; padding: 0 16px 14px 20px; }
 .score-history .tile-row { padding: 8px 0; border-top: 1px solid var(--bar-track); }
 .facts-grid { grid-template-columns: 1fr 1fr; }
+
+/* Side menu */
+#side-menu { background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, var(--tile-background)), var(--tile-background) 45%); box-shadow: 12px 0 40px rgba(0,0,0,0.5); transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+#side-menu button { display: flex; align-items: center; gap: 14px; position: relative; padding: 9px 12px; margin-bottom: 6px; border-radius: 16px; font-size: 17px; transition: transform 0.12s ease, background 0.15s ease; }
+#side-menu button:active { transform: scale(0.97); }
+#side-menu .menu-icon { --menu-color: var(--accent); width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 12px; font-size: 20px; background: color-mix(in srgb, var(--menu-color) 20%, transparent); transition: transform 0.15s ease; }
+#side-menu button:active .menu-icon { transform: scale(0.92); }
+#tab-home .menu-icon { --menu-color: #5aa2ff; } #tab-spending .menu-icon { --menu-color: #fb923c; } #tab-cards .menu-icon { --menu-color: #a78bfa; }
+#tab-bills .menu-icon { --menu-color: #fbbf24; } #tab-todo .menu-icon { --menu-color: #4ade80; } #tab-goals .menu-icon { --menu-color: #f472b6; }
+#tab-planner .menu-icon { --menu-color: #2dd4bf; } #tab-hsa .menu-icon { --menu-color: #ff6b6b; } #tab-pto .menu-icon { --menu-color: #86efac; }
+#tab-car .menu-icon { --menu-color: #94a3b8; } #tab-settings .menu-icon { --menu-color: #8c909b; }
+#side-menu button.active-tab { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 24%, transparent), transparent); color: var(--main-text); font-weight: 700; box-shadow: inset 4px 0 0 var(--accent); }
+#side-menu button.active-tab .menu-icon { background: color-mix(in srgb, var(--menu-color) 35%, transparent); }
+#side-menu #tab-settings { margin-top: 14px; border-top: 0; border-radius: 16px; }
+#side-menu.open button { animation: menu-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+#side-menu.open button:nth-child(1) { animation-delay: 0.02s; } #side-menu.open button:nth-child(2) { animation-delay: 0.05s; } #side-menu.open button:nth-child(3) { animation-delay: 0.08s; }
+#side-menu.open button:nth-child(4) { animation-delay: 0.11s; } #side-menu.open button:nth-child(5) { animation-delay: 0.14s; } #side-menu.open button:nth-child(6) { animation-delay: 0.17s; }
+#side-menu.open button:nth-child(7) { animation-delay: 0.2s; } #side-menu.open button:nth-child(8) { animation-delay: 0.23s; } #side-menu.open button:nth-child(9) { animation-delay: 0.26s; }
+#side-menu.open button:nth-child(10) { animation-delay: 0.29s; } #side-menu.open button:nth-child(11) { animation-delay: 0.32s; } #side-menu.open button:nth-child(12) { animation-delay: 0.35s; }
+@keyframes menu-in { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
