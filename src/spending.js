@@ -122,9 +122,14 @@ function usualPayDeposit(store, settings) {
 
 // Money moved in or out of your bank accounts that is neither pay nor spending: Zelle, Venmo, Cash App, PayPal,
 // Apple Cash and transfers the bank labels as transfers. Card payments are left out (cards are not bank accounts).
+// Transfers to or from your own savings are not spending and are skipped. Add other names to settings.transfers_ignore_text.
+const OWN_SAVINGS_TEXT = ["wealthfront"];
+
 function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
   const payIds = new Set(payDeposits(store, settings, (transaction) => transaction.date.startsWith(yearMonth)).map((transaction) => transaction.transaction_id));
+  const ignoredWords = [...OWN_SAVINGS_TEXT, ...((settings && settings.transfers_ignore_text) || []).map((word) => String(word).toLowerCase())];
   const items = Object.values(store.transactions).filter((transaction) => {
+    if (ignoredWords.some((word) => plainMerchantText(transaction).includes(word))) return false;
     if (transaction.pending || !transaction.date.startsWith(yearMonth) || payIds.has(transaction.transaction_id) || isBill(transaction)) return false;
     const account = store.accounts[transaction.account_id];
     if (!account || account.type !== "depository") return false;
