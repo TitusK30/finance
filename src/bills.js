@@ -86,7 +86,8 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
   for (const yearMonth of monthsToCheck) {
     const seen = [];
     const unseen = [];
-    for (const bill of bills) {
+    // Refill-style bills (the toll tag) are not claimed here: their charges show up in their own Spending category.
+    for (const bill of bills.filter((bill) => !bill.anyDay)) {
       for (const day of bill.days) {
         const expected = dueDateInMonth(yearMonth, day);
         const candidates = charges.filter((charge) => !billCharges[charge.transaction_id] && chargeFitsBill(bill, charge, store, settings, expected, yearMonth));
@@ -104,4 +105,4 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
   return { billCharges, byMonth };
 }
 
-if (typeof module !== "undefined") module.exports = { matchBills, recurringBills, billMarkKey };
+if (typeof module !== "undefined") module.exports = { matchBills, recurringBills, billMarkKey, textMatches };

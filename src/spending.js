@@ -7,6 +7,9 @@ const KEEP_TRANSACTIONS_DAYS = 400;
 
 const CATEGORY_NAMES = {
   FOOD_AND_DRINK: "Food and drink",
+  GROCERIES: "Groceries",
+  AMAZON: "Amazon",
+  TOLLS: "Tolls",
   GENERAL_MERCHANDISE: "Shopping",
   TRANSPORTATION: "Transportation",
   TRAVEL: "Travel",
@@ -15,7 +18,6 @@ const CATEGORY_NAMES = {
   GENERAL_SERVICES: "Services",
   PERSONAL_CARE: "Personal care",
   MEDICAL: "Medical",
-  HOME_IMPROVEMENT: "Home",
   BANK_FEES: "Bank fees",
   GOVERNMENT_AND_NON_PROFIT: "Government and giving",
   OTHER: "Other",
@@ -55,7 +57,22 @@ function applyTransactionChanges(store, relayReply, todayText) {
   return updated;
 }
 
+// Store names that override the bank's category. Names are compared with punctuation removed ("Trader Joe's" becomes "trader joes").
+const GROCERY_STORES = /sprouts|trader joes?|whole foods|brookshire|kroger|walmart|target|\bheb\b|tom thumb|walgreens/;
+const FOOD_STORES = /bucees/;
+const TOLL_TEXT = /toll/;
+
+function plainMerchantText(transaction) {
+  return (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ");
+}
+
 function categoryOf(transaction) {
+  const text = plainMerchantText(transaction);
+  if (/amazon|amzn/.test(text)) return "AMAZON";
+  if (/TOLL/.test(String(transaction.category_detail || "")) || TOLL_TEXT.test(text)) return "TOLLS";
+  if (GROCERY_STORES.test(text)) return "GROCERIES";
+  if (FOOD_STORES.test(text)) return "FOOD_AND_DRINK";
+  if (transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
   return transaction.category && CATEGORY_NAMES[transaction.category] ? transaction.category : "OTHER";
 }
 
@@ -145,4 +162,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

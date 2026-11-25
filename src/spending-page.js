@@ -63,7 +63,9 @@ function showSpendingPage(settings) {
   const billMatches = matchBills(settings, store, marks, todayText());
   const isBill = (charge) => Boolean(billMatches.billCharges[charge.transaction_id]);
   const allCharges = spendingCharges(store);
-  const charges = allCharges.filter((charge) => !isBill(charge));
+  // Charges that fit your refill-style subscription (the toll tag) by text go to the Tolls category.
+  const refillBills = recurringBills(settings).filter((bill) => bill.anyDay);
+  const charges = allCharges.filter((charge) => !isBill(charge)).map((charge) => refillBills.some((bill) => textMatches(bill, charge)) ? { ...charge, category: "TOLLS" } : charge);
   if (allCharges.length === 0) {
 
   page.innerHTML = `<h2>Spending</h2><div class="tile small">${localStorage.getItem("finance_relay_address") ? "No transactions yet. Tap the refresh button at the top. The bank shares about the last 90 days, and the app keeps everything it receives from then on." : "This page fills in from your bank, so it stays empty until you link one. Linking is optional; Settings and the README explain how."}</div>`;
@@ -118,7 +120,7 @@ function showSpendingPage(settings) {
       <div class="small">Bills and subscriptions are left out.</div></div>
     ${comparisonTile}${pendingTile}${categoryRows}${billsTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div>
-    <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, so a few will be off.</div>`;
+    <div class="small">Bills and subscriptions are matched by amount, timing and account, so a few may slip through: tap \"mark as bill\" on one and its twins are left out from then on. Card payments, transfers and paychecks are left out. Refunds count against the category. Categories come from the bank and Plaid, except that grocery stores, Amazon and tolls get their own categories by name, so a few will be off.</div>`;
 }
 
 document.addEventListener("click", (event) => {
