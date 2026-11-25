@@ -60,10 +60,11 @@ The public app is a blank shell. Your data comes from a settings file that you l
 
 1. Copy `finance_settings.example.json` to a file named `finance_settings.json` (already git-ignored).
 2. Replace every example value with yours:
-   - `starting_balances`, `minimum_checking_floor`, `paycheck` (take-home, weekday, frequency).
+   - `minimum_checking_floor`, `paycheck` (take-home, weekday, frequency).
    - Each entry in `credit_cards`: `credit_limit`, `statement_close_day`, `payment_due_day`, and `payment_due_in_following_month` (true when the due date falls in the month after the close).
-   - `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` (`card` is a key from `credit_cards`).
-   - Optional: `card_benefits`, `annual_card_fees`, `car_loan`, `todo_items`, `overtime`, `hsa`. Use `null` for things you do not have.
+   - `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` (`card` is a key from `credit_cards`). If the bank prints something different from the bill's name, add `"charge_text_contains": ["text"]`.
+   - Optional: `card_benefits`, `annual_card_fees`, `car_loan`, `overtime`. Use `null` for things you do not have.
+   - Leave out balances, statements, savings, to-dos, HSA and retirement. The bank refresh fills balances and statements, and you type savings, to-dos, HSA and retirement in the app. Loading the file again never overwrites them.
    - Formats: dates are `YYYY-MM-DD`, card expiry months are `YYYY-MM` (for example `2030-01`).
 3. Get the file to your phone privately (AirDrop or the Files app). Do not email it or put it in a public folder.
 4. In the app: **menu → Settings → Load settings file**.

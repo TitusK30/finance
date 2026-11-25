@@ -204,12 +204,30 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
+  keepBankAndTypedData(incomingSettings, previousSettings);
   saveSettings(incomingSettings);
   localStorage.setItem(STORAGE_KEY + "_file_name", chosenFile.name);
   event.target.value = "";
   showEverything();
   showDataNote(`Settings file "${chosenFile.name}" loaded at ${timeNowText()}.`);
 });
+
+// The settings file holds set-up values only. Balances and statements (from the bank refresh) and savings (typed in the app) stay as they are on the phone.
+function keepBankAndTypedData(incomingSettings, previousSettings) {
+  const previous = previousSettings || {};
+  const previousBalances = previous.starting_balances || {};
+  incomingSettings.starting_balances = {
+    as_of_date: previousBalances.as_of_date || todayText(),
+    checking_balance: previousBalances.checking_balance ?? 0,
+    savings_balance: previousBalances.savings_balance ?? 0,
+    ...incomingSettings.starting_balances,
+  };
+  for (const [cardKey, card] of Object.entries(incomingSettings.credit_cards || {})) {
+    const previousCard = (previous.credit_cards || {})[cardKey] || {};
+    card.current_balance = card.current_balance ?? previousCard.current_balance ?? 0;
+    card.balances_by_statement = card.balances_by_statement || previousCard.balances_by_statement || [];
+  }
+}
 
 function timeNowText() {
   return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
