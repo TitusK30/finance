@@ -6,9 +6,7 @@
 //  - bills are paid from checking: the charge must be on a bank (deposit) account
 // Bills whose amount changes every month (like electricity) are matched by timing plus a utilities-style category.
 
-const BILL_DATE_WINDOW_DAYS = 4;
-const NAMED_BILL_WINDOW_DAYS = 15; // charge text names the bill and the amount is exact: trust it more
-const VARIABLE_BILL_WINDOW_DAYS = 7;
+const BILL_DATE_WINDOW_DAYS = 5; // rent posted 4 days after its due date in real data
 
 function dayNumber(dateText) {
   const [year, month, day] = dateText.split("-").map(Number);
@@ -34,11 +32,11 @@ function nameWords(text) {
 function recurringBills(settings) {
   const bills = (settings.monthly_bills_paid_from_checking || []).map((bill) => ({
     name: bill.name, amount: bill.amount, days: [bill.day_of_month], kind: "bill", cardKey: null,
-    varies: Boolean(bill.amount_changes_every_month), anyDay: false,
+    varies: Boolean(bill.amount_changes_every_month), anyDay: false, words: bill.charge_text_contains,
   }));
   const subscriptions = (settings.subscriptions_charged_to_cards || []).map((subscription) => ({
     name: subscription.name, amount: subscription.amount, days: subscription.assumed_days_of_month || [subscription.day_of_month], kind: "subscription",
-    cardKey: subscription.card, varies: false, anyDay: Boolean(subscription.refills_when_needed),
+    cardKey: subscription.card, varies: false, anyDay: Boolean(subscription.refills_when_needed), words: subscription.charge_text_contains,
   }));
   return [...bills, ...subscriptions];
 }
@@ -54,23 +52,24 @@ function onRightAccount(bill, charge, store, settings) {
   return account.type === "credit" && account.mask === (settings.card_masks || {})[bill.cardKey];
 }
 
-function amountFits(bill, charge) {
-  if (bill.varies) return charge.amount >= bill.amount * 0.3 && charge.amount <= bill.amount * 3;
-  return Math.abs(charge.amount - bill.amount) <= Math.max(1, bill.amount * 0.05);
+// Words that identify the bill in the charge text: "charge_text_contains" from the settings, otherwise the words in the bill's name.
+function billWords(bill) {
+  return bill.words && bill.words.length ? bill.words.map((word) => String(word).toLowerCase()) : nameWords(bill.name);
 }
 
-// The charge's own text contains a word from the bill's name.
-function nameMatches(bill, charge) {
-  const text = String(charge.merchant_name || "") + " " + String(charge.name || "");
-  return nameWords(bill.name).some((word) => text.toLowerCase().includes(word));
+function textMatches(bill, charge) {
+  const text = (String(charge.merchant_name || "") + " " + String(charge.name || "")).toLowerCase();
+  return billWords(bill).some((word) => text.includes(word));
 }
 
-function categoryHint(bill, charge) {
-  const detail = String(charge.category_detail || "");
-  if (bill.varies) return charge.category === "RENT_AND_UTILITIES" || /ELECTRIC|UTILIT/.test(detail);
-  if (bill.anyDay) return /TOLL/.test(detail) || nameWords(bill.name).some((word) => String(charge.merchant_name || charge.name || "").toLowerCase().includes(word));
-  return true;
+// Matching is by account, text and date. Amount is only a tie-break (or the test for a bill with no identifying words).
+function chargeFitsBill(bill, charge, store, settings, expected, yearMonth) {
+  if (!onRightAccount(bill, charge, store, settings)) return false;
+  if (bill.anyDay ? !charge.date.startsWith(yearMonth) : Math.abs(dayNumber(charge.date) - dayNumber(expected)) > BILL_DATE_WINDOW_DAYS) return false;
+  if (billWords(bill).length > 0) return textMatches(bill, charge) || (bill.anyDay && /TOLL/.test(String(charge.category_detail || "")));
+  return Math.abs(charge.amount - bill.amount) < 0.01;
 }
+
 
 // userMarks: ["merchant|12.34", ...] charges you marked as bills by hand.
 // Returns { billCharges: { transactionId: billName }, byMonth: { "2026-11": { seen: [{bill, charge}], unseen: [bill] } } }
@@ -90,23 +89,14 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
     for (const bill of bills) {
       for (const day of bill.days) {
         const expected = dueDateInMonth(yearMonth, day);
-        const window = bill.anyDay ? 31 : bill.varies ? VARIABLE_BILL_WINDOW_DAYS : BILL_DATE_WINDOW_DAYS;
-        const daysOff = (charge) => Math.abs(dayNumber(charge.date) - dayNumber(expected));
-        const candidates = charges.filter((charge) => !billCharges[charge.transaction_id] && amountFits(bill, charge)
-          && ((onRightAccount(bill, charge, store, settings) && categoryHint(bill, charge) && (bill.anyDay ? charge.date.startsWith(yearMonth) : daysOff(charge) <= window))
-            || (!bill.anyDay && !bill.varies && nameMatches(bill, charge) && daysOff(charge) <= NAMED_BILL_WINDOW_DAYS)));
+        const candidates = charges.filter((charge) => !billCharges[charge.transaction_id] && chargeFitsBill(bill, charge, store, settings, expected, yearMonth));
         // A refill-style bill can show up several times a month. Others match once per due day, nearest date first.
-        const best = bill.anyDay ? candidates : candidates.sort((first, second) => Math.abs(dayNumber(first.date) - dayNumber(expected)) - Math.abs(dayNumber(second.date) - dayNumber(expected))).slice(0, 1);
+        const best = bill.anyDay ? candidates : candidates.sort((first, second) => Math.abs(dayNumber(first.date) - dayNumber(expected)) - Math.abs(dayNumber(second.date) - dayNumber(expected)) || Math.abs(first.amount - bill.amount) - Math.abs(second.amount - bill.amount)).slice(0, 1);
         for (const charge of best) { billCharges[charge.transaction_id] = bill.name; seen.push({ bill, charge }); }
         if (best.length === 0 && !bill.anyDay && expected <= todayText && expected >= firstDate) unseen.push({ ...bill, expected });
       }
     }
     byMonth[yearMonth] = { seen, unseen };
-  }
-  // Leftovers whose text names a bill and whose amount is exact are that bill, whatever the date.
-  for (const charge of charges) {
-    const named = bills.find((bill) => !bill.varies && !bill.anyDay && amountFits(bill, charge) && nameMatches(bill, charge));
-    if (named && !billCharges[charge.transaction_id]) billCharges[charge.transaction_id] = named.name;
   }
   for (const charge of charges) {
     if (!billCharges[charge.transaction_id] && userMarks.includes(billMarkKey(charge))) billCharges[charge.transaction_id] = "Marked by you";

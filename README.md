@@ -239,4 +239,4 @@ relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
 finance_settings.example.json   fake data showing the file format
 ```
 
-**Bills are left out of Spending.** Recurring bills and subscriptions from your settings file are matched to charges by account, amount and timing, then removed from the totals, categories and pending list. They show in a "Bills and subscriptions" tile instead. If one slips through, tap "mark as bill" on it.
+**Bills are left out of Spending.** Recurring bills and subscriptions from your settings file are matched to charges by account, charge text and date (within 5 days of the due date). Amounts are not used, so rent or a tax-adjusted sub can drift. The text to look for is the bill's name by default; if the bank prints something different, add `"charge_text_contains": ["landlord text", "other text"]` to that bill. Matched charges are removed from the totals, categories and pending list and shown in a "Bills and subscriptions" tile. If one slips through, tap "mark as bill" on it.
