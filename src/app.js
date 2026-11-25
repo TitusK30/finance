@@ -338,6 +338,29 @@ document.getElementById("export-backup-button").addEventListener("click", () => 
   downloadLink.click();
 });
 
+// Spending history (every saved charge, plus the bills you marked by hand) in one file you can keep. Settings have their own backup above.
+document.getElementById("export-history-button").addEventListener("click", () => {
+  const history = { finance_os_backup: "spending_history", saved_on: todayText(), transactions: loadTransactionStore(), bill_marks: loadBillMarks() };
+  const downloadLink = document.createElement("a");
+  downloadLink.href = URL.createObjectURL(new Blob([JSON.stringify(history)], { type: "application/json" }));
+  downloadLink.download = `finance_spending_history_${todayText()}.json`;
+  downloadLink.click();
+  showDataNote(`Saved ${Object.keys(history.transactions.transactions).length} charges to a file.`);
+});
+
+document.getElementById("history-file-input").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  let merged = null;
+  try { merged = mergeHistoryBackup(loadTransactionStore(), JSON.parse(await file.text())); } catch (error) { merged = null; }
+  if (!merged) { showDataNote("That is not a spending history backup."); return; }
+  saveTransactionStore(merged.store);
+  saveBillMarks([...new Set([...loadBillMarks(), ...merged.billMarks])]);
+  showDataNote(`Restored. ${merged.addedCount} charges added back.`);
+  showEverything();
+});
+
 document.getElementById("what-if-add-button").addEventListener("click", () => {
   const amount = parseFloat(document.getElementById("what-if-amount").value);
   const date = document.getElementById("what-if-date").value;

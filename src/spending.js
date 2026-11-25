@@ -140,6 +140,17 @@ function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
   return { items, totalIn: sumOf(items.filter((transaction) => transaction.amount < 0)), totalOut: sumOf(items.filter((transaction) => transaction.amount > 0)) };
 }
 
+// Puts a spending-history backup back into the phone's saved copy. What is already on the phone wins; the backup only fills gaps.
+// Returns null when the file is not a spending-history backup. Plaid cursors are left alone so the next refresh stays valid.
+function mergeHistoryBackup(store, backup) {
+  if (!backup || backup.finance_os_backup !== "spending_history" || !backup.transactions || typeof backup.transactions.transactions !== "object") return null;
+  const merged = structuredClone(store);
+  merged.accounts = { ...backup.transactions.accounts, ...store.accounts };
+  merged.transactions = { ...backup.transactions.transactions, ...store.transactions };
+  const addedCount = Object.keys(merged.transactions).length - Object.keys(store.transactions).length;
+  return { store: merged, addedCount, billMarks: Array.isArray(backup.bill_marks) ? backup.bill_marks : [] };
+}
+
 function monthsWithSpending(charges) {
   return [...new Set(charges.map((charge) => charge.date.slice(0, 7)))].sort().reverse();
 }
@@ -215,4 +226,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
