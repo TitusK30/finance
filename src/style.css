@@ -131,7 +131,7 @@ input[type="month"] { min-width: 0; max-width: 100%; -webkit-appearance: none; a
 #pull-indicator[hidden] { display: none; }
 
 /* Swipe to delete */
-.swipe-row { position: relative; transition: transform 0.18s ease; }
+.swipe-row { touch-action: pan-y; position: relative; transition: transform 0.18s ease; }
 .swipe-delete { position: absolute; left: 100%; top: 0; bottom: 0; width: 90px; margin: 0; padding: 0; border-radius: 0 12px 12px 0; background: #d9433b; color: #fff; font-size: 15px; font-weight: 600; visibility: hidden; }
 .swipe-row.swiped .swipe-delete { visibility: visible; }
 
@@ -158,3 +158,5 @@ button:active, .list-row:active { transform: scale(0.96); }
 .wizard-buttons button { flex: 1; margin: 0; }
 .up-text { color: #ff6b6b; }
 .down-text { color: #4cd37f; }
+
+html, body { overflow-x: hidden; }

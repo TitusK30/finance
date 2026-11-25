@@ -54,7 +54,8 @@ document.addEventListener("touchmove", (event) => {
   swipeDistance = Math.max(-SWIPE_REVEAL_PIXELS, Math.min(0, alreadyOpen + sideways));
   swipeRow.style.transition = "none";
   swipeRow.style.transform = `translateX(${swipeDistance}px)`;
-}, { passive: true });
+  event.preventDefault(); // a sideways swipe on a row moves only the row, never the page
+}, { passive: false });
 
 document.addEventListener("touchend", () => {
   if (!swipeRow || !swipeIsHorizontal) { swipeRow = null; return; }
