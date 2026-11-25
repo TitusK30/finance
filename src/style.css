@@ -458,3 +458,7 @@ html, body { overflow-x: hidden; }
 .facts-grid > div { background: var(--bar-track); border-radius: 14px; padding: 12px 6px; display: grid; justify-items: center; gap: 3px; text-align: center; }
 .facts-grid b { font-size: 17px; }
 .fact-icon { font-size: 20px; }
+.score-home { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 20px; box-shadow: inset 5px 0 0 var(--accent); background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%); }
+.score-home .huge-number { font-size: 38px; font-weight: 800; line-height: 1.1; }
+.score-great { box-shadow: inset 5px 0 0 var(--good); } .score-good { box-shadow: inset 5px 0 0 var(--warning); } .score-low { box-shadow: inset 5px 0 0 var(--bad); }
+.score-button { margin: 0; padding: 10px 16px; border-radius: 999px; font-size: 14px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }

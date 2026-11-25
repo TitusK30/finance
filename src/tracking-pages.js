@@ -135,40 +135,15 @@ function historyRows(entries, valueKey, listName, isMoney, labelFor) {
   }).join("");
 }
 
-function showTrackPage(settings) {
-  const history = settings.net_worth_history;
+// The latest credit score as a tile on Home, with a button to log a new one.
+function showCreditScoreTile(settings) {
   const scores = settings.credit_scores;
-  const today = todayText();
-  const yearMonth = today.slice(0, 7);
-  const monthName = new Date(today + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
-
-  const fixedCosts = totalsForItems(monthlyItemsForTab(settings, "subscriptions")).monthlyTotal
-    + totalsForItems(monthlyItemsForTab(settings, "expenses")).monthlyTotal + totalAnnualFees(settings) / 12;
-  const recap = monthlyRecap({
-    netWorthHistory: history, creditScores: scores, goals: goalsWithSaved(settings.savings_goals, settings.starting_balances.savings_balance),
-    monthlyIncome: (settings.paycheck.usual_take_home_amount * 52) / 12, monthlyFixedCosts: fixedCosts, yearMonth,
-  });
-  const recapRows = [
-    ["Net worth this month", recap.netWorthChange === null ? "—" : changeText(recap.netWorthChange, true)],
-    ["Credit score this month", recap.creditScoreChange === null ? "—" : changeText(recap.creditScoreChange, false)],
-    ["Saved toward goals", settings.savings_goals.length ? `${formatMoney(recap.goalsSaved)} of ${formatMoney(recap.goalsTarget)}` : "No goals yet"],
-    ["Typical month: paychecks", formatMoney(recap.monthlyIncome)],
-    ["Typical month: bills, subs, fees", formatMoney(recap.monthlyFixedCosts)],
-  ].map(([label, value]) => `<div class="tile-row small"><span>${label}</span><span>${value}</span></div>`).join("");
-
-  document.getElementById("page-track").innerHTML = `<h2>${monthName} recap</h2>
-    <div class="tile recap-tile">${recapRows}
-      <div class="tile-row leftover-row"><b>Typical month left over</b><b class="${recap.leftOver < 0 ? "negative" : "positive"}">${formatMoney(recap.leftOver)}</b></div>
-      <div class="small">A dash means there is not a snapshot or score from both last month and this month yet. Typical month is an estimate from your paycheck and recurring bills, not real spending.</div></div>
-    <h2>Net worth</h2>
-    <div class="tile networth-tile"><div class="small">Right now</div><div class="huge-number">${formatMoney(netWorth(settings))}</div>
-      <div class="small">Checking + savings + retirement + HSA, minus card balances. Car value and loan are not in it.</div>
-      ${netWorthSparkline(history)}${historyRows(history, "net_worth", "net_worth_history", true, () => "")}</div>
-    <button id="save-net-worth-button" class="track-button">Save today's snapshot</button>
-    <h2>Credit score</h2>
-    <div class="tile score-tile">${scores.length ? `<div class="huge-number">${scores[scores.length - 1].score}</div>` : `<div class="small">No scores logged yet.</div>`}
-      ${historyRows(scores, "score", "credit_scores", false, (entry) => (entry.source ? ` (${escapeHtml(entry.source)})` : ""))}</div>
-    <button id="add-score-button" class="track-button">Log a score</button>`;
+  const latest = scores[scores.length - 1];
+  const band = !latest ? "" : latest.score >= 740 ? "score-great" : latest.score >= 670 ? "score-good" : "score-low";
+  document.getElementById("credit-score-tile").innerHTML = `<div class="tile score-home ${band}">
+    <div><div class="small">Credit score</div>
+      ${latest ? `<div class="huge-number">${latest.score}</div><div class="small">${latest.source ? escapeHtml(latest.source) + " &middot; " : ""}${formatDate(latest.date)}</div>` : `<div class="small">No scores logged yet.</div>`}</div>
+    <button id="add-score-button" class="score-button">Log a score</button></div>`;
 }
 
 const URGENCY_WORDS = { overdue: "overdue", soon: "due soon", upcoming: "coming up", later: "later", none: "no date" };
@@ -232,7 +207,7 @@ function askChoice(question, choices) {
 function showTrackingPages(settings) {
   showTodoPage(settings);
   showGoalsPage(settings);
-  showTrackPage(settings);
+  showCreditScoreTile(settings);
 }
 
 // Ticking a task off: the circle fills and the name is struck through first, then the task moves to done.
@@ -298,8 +273,6 @@ document.addEventListener("click", async (event) => {
   } else if (event.target.closest("[data-remove-goal]")) {
     if (!confirm("Remove this goal?")) return;
     settings.savings_goals.splice(Number(event.target.closest("[data-remove-goal]").dataset.removeGoal), 1);
-  } else if (event.target.id === "save-net-worth-button") {
-    settings.net_worth_history = addEntryForDate(settings.net_worth_history, { date: todayText(), net_worth: netWorth(settings) });
   } else if (event.target.id === "add-score-button") {
     const score = parseInt(prompt("Credit score"), 10);
     if (!score || score < 300 || score > 850) return;

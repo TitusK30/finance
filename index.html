@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon.png">
   <title>Finance OS</title>
-  <link rel="stylesheet" href="src/style.css?v=20261127p">
+  <link rel="stylesheet" href="src/style.css?v=20261127q">
 </head>
 <body>
   <div id="lock-screen" hidden>
@@ -19,7 +19,7 @@
     <div id="lock-pad"></div>
     <button id="lock-side-button" style="visibility:hidden"></button>
   </div>
-  <script src="src/lock.js?v=20261127p"></script>
+  <script src="src/lock.js?v=20261127q"></script>
   <header id="top-bar"><button id="menu-button" aria-label="Menu">&#9776;</button><h1 id="page-title">Finance OS</h1><button id="apply-top-button" hidden>Apply</button><button id="refresh-top-button" aria-label="Refresh balances">&#8635;</button></header>
   <div id="pull-indicator" hidden></div>
   <div id="menu-overlay" hidden></div>
@@ -39,6 +39,7 @@
   <p id="data-status" class="small"></p>
   <section id="month-outlook"></section>
   <section id="balance-tiles"></section>
+  <section id="credit-score-tile"></section>
   <section id="transfer-advice"></section>
 
   <h2>Checking, next 40 days</h2>
@@ -146,7 +147,6 @@
     </div>
     <div id="plan-what-if-result"></div>
   </div>
-  <div id="page-track" hidden></div>
   <div id="page-car" hidden>
     <div id="car-summary"></div>
     <div class="tile planner-card"><div class="planner-head"><span class="planner-icon">&#9889;</span><span><b>Pay extra</b></span></div>
@@ -169,23 +169,22 @@
     <button id="tab-hsa" data-title="HSA"><span class="menu-icon">🩺</span>HSA</button>
     <button id="tab-pto" data-title="PTO"><span class="menu-icon">🌴</span>PTO</button>
     <button id="tab-car" data-title="Car loan"><span class="menu-icon">🚗</span>Car loan</button>
-    <button id="tab-track" data-title="Track"><span class="menu-icon">📈</span>Track</button>
     <button id="tab-setup" data-title="Set up" hidden></button>
     <button id="tab-settings" data-title="Settings"><span class="menu-icon">⚙️</span>Settings</button>
   </nav>
 
-  <script src="src/forecast.js?v=20261127p"></script>
-  <script src="src/summaries.js?v=20261127p"></script>
-  <script src="src/spending.js?v=20261127p"></script>
-  <script src="src/plaid-sync.js?v=20261127p"></script>
-  <script src="src/loan.js?v=20261127p"></script>
-  <script src="src/bills.js?v=20261127p"></script>
-  <script src="src/spending-page.js?v=20261127p"></script>
-  <script src="src/tracking.js?v=20261127p"></script>
-  <script src="src/tracking-pages.js?v=20261127p"></script>
-  <script src="src/extra-pages.js?v=20261127p"></script>
-  <script src="src/gestures.js?v=20261127p"></script>
-  <script src="src/setup-page.js?v=20261127p"></script>
-  <script src="src/app.js?v=20261127p"></script>
+  <script src="src/forecast.js?v=20261127q"></script>
+  <script src="src/summaries.js?v=20261127q"></script>
+  <script src="src/spending.js?v=20261127q"></script>
+  <script src="src/plaid-sync.js?v=20261127q"></script>
+  <script src="src/loan.js?v=20261127q"></script>
+  <script src="src/bills.js?v=20261127q"></script>
+  <script src="src/spending-page.js?v=20261127q"></script>
+  <script src="src/tracking.js?v=20261127q"></script>
+  <script src="src/tracking-pages.js?v=20261127q"></script>
+  <script src="src/extra-pages.js?v=20261127q"></script>
+  <script src="src/gestures.js?v=20261127q"></script>
+  <script src="src/setup-page.js?v=20261127q"></script>
+  <script src="src/app.js?v=20261127q"></script>
 </body>
 </html>

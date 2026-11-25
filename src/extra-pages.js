@@ -1,6 +1,6 @@
 // Tab bar, plus the Subscriptions, Rewards and HSA pages. Taps on dotted numbers edit them.
 
-const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goals", "track", "hsa", "pto", "todo", "setup", "settings"];
+const PAGE_NAMES = ["home", "planner", "bills", "cards", "spending", "car", "goals", "hsa", "pto", "todo", "setup", "settings"];
 
 const DEFAULT_EXTRA_SETTINGS = {
   rewards: {},
