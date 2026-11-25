@@ -51,12 +51,12 @@ function showWhatIfSaving(settings) {
   const result = savingsUntilDate(settings.starting_balances.savings_balance, weeklyAmount, endDate, todayText(), settings.expected_money, goal);
   if (!result) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
   const weeks = result.weeks;
-  resultBox.innerHTML = `<div class="tile good"><div class="small">By ${formatDate(result.endDate)} (${weeks} week${weeks === 1 ? "" : "s"}) savings would be</div>
+  resultBox.innerHTML = `<div class="tile result-hero"><div class="small">By ${formatDate(result.endDate)} &middot; ${weeks} week${weeks === 1 ? "" : "s"}, savings would be</div>
     <div class="big-number">${formatMoney(result.finalBalance)}</div>
-    <div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
-    <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span>+${formatMoney(result.fromSaving)}</span></div>
-    ${expectedMoneyRows(result.expected)}
-    ${goal && result.goalPercent !== null ? `<div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div>` : ""}</div>`;
+    ${goal && result.goalPercent !== null ? `<div class="result-goal"><div class="bar goal-bar"><div class="bar-fill" style="width:${Math.min(100, result.goalPercent)}%"></div></div><div class="small">${result.goalPercent}% of ${escapeHtml(goal.name)}</div></div>` : ""}
+    <div class="result-rows"><div class="tile-row small"><span>Savings today</span><span>${formatMoney(settings.starting_balances.savings_balance)}</span></div>
+    <div class="tile-row small"><span>${formatMoney(weeklyAmount)} x ${weeks} weeks</span><span class="positive">+${formatMoney(result.fromSaving)}</span></div>
+    ${expectedMoneyRows(result.expected)}</div></div>`;
 }
 
 // The list of money you know is coming in (goes to savings) or going out (leaves checking).
@@ -99,13 +99,12 @@ function showGoalDatePlanner(settings) {
   const expectedLines = expectedMoneyRows(plan.expected);
   const hasListedMoney = plan.expected.inItems.length + plan.expected.outItems.length > 0;
   resultBox.innerHTML = plan.remaining === 0
-    ? `<div class="tile good"><b>${escapeHtml(goal.name)} ${hasListedMoney ? "is covered by the money you listed. Nothing to save each week." : "is already fully funded."}</b>${expectedLines}</div>`
-    : `<div class="tile good"><div class="big-number">${formatMoney(plan.perWeek)} a week</div>
-      <div class="tile-row small"><span>Left to reach the goal</span><span>${formatMoney(plan.remainingBeforeExpected)}</span></div>${expectedLines}
-      <div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div>
-      <div class="tile-row small"><span>Weeks until ${formatDate(targetDate)}</span><span>${plan.weeksLeft}</span></div>
-      <div class="tile-row small"><span>About per month</span><span>${formatMoney(plan.perMonth)}</span></div>
-      <div class="tile-row small"><span>Share of a ${formatMoney(paycheck)} paycheck</span><span>${percentOfPaycheck}%</span></div></div>`;
+    ? `<div class="tile result-hero"><b>${escapeHtml(goal.name)} ${hasListedMoney ? "is covered by the money you listed. Nothing to save each week." : "is already fully funded."}</b>${expectedLines}</div>`
+    : `<div class="tile result-hero"><div class="small">To finish ${escapeHtml(goal.name)} by ${formatDate(targetDate)}, save</div>
+      <div class="big-number">${formatMoney(plan.perWeek)}<span class="per-week"> a week</span></div>
+      <div class="result-stats"><div><b>${formatMoney(plan.perMonth)}</b><span class="small">per month</span></div><div><b>${plan.weeksLeft}</b><span class="small">weeks left</span></div><div><b>${percentOfPaycheck}%</b><span class="small">of a ${formatMoney(paycheck)} check</span></div></div>
+      <div class="result-rows"><div class="tile-row small"><span>Left to reach the goal</span><span>${formatMoney(plan.remainingBeforeExpected)}</span></div>${expectedLines}
+      <div class="tile-row small"><span>To save</span><span>${formatMoney(plan.remaining)}</span></div></div></div>`;
 }
 
 for (const inputId of ["goal-plan-goal", "goal-plan-date"]) {
@@ -213,6 +212,23 @@ function askForDate(question, currentDate) {
   });
 }
 
+// A pop-up with a question and buttons whose labels say what they do. Resolves with the chosen value (or undefined if dismissed).
+function askChoice(question, choices) {
+  return new Promise((resolve) => {
+    const cover = document.createElement("div");
+    cover.className = "date-cover";
+    cover.innerHTML = `<div class="date-box"><div class="date-question"></div><div class="choice-list">${choices.map((choice, position) =>
+      `<button class="choice-button" data-choice="${position}"><b>${escapeHtml(choice.title)}</b><span class="small">${escapeHtml(choice.detail)}</span></button>`).join("")}</div></div>`;
+    cover.querySelector(".date-question").textContent = question;
+    cover.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-choice]");
+      if (button) { cover.remove(); resolve(choices[Number(button.dataset.choice)].value); }
+      else if (event.target === cover) { cover.remove(); resolve(undefined); }
+    });
+    document.body.appendChild(cover);
+  });
+}
+
 function showTrackingPages(settings) {
   showTodoPage(settings);
   showGoalsPage(settings);
@@ -248,7 +264,12 @@ document.addEventListener("click", async (event) => {
     if (!name) return;
     const target = parseFloat(prompt("Goal amount ($)"));
     if (!target || target <= 0) return;
-    if (confirm("Should this goal follow your savings account balance?\n\nOK = follows my savings\nCancel = keep a separate tally")) {
+    const tally = await askChoice("How should this goal count what you've saved?", [
+      { title: "Follow my savings account", detail: "Saved amount always equals your savings balance", value: "follow" },
+      { title: "Keep its own tally", detail: "You type in how much is saved toward it", value: "separate" },
+    ]);
+    if (!tally) return;
+    if (tally === "follow") {
       settings.savings_goals.push({ name, target, saved: settings.starting_balances.savings_balance, tracks_savings: true });
     } else {
       const saved = parseFloat(prompt("Already saved toward it ($)", "0")) || 0;

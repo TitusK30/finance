@@ -336,3 +336,29 @@ html, body { overflow-x: hidden; }
 #add-goal-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
 #page-goals select, #page-goals input[type="date"], #page-goals input[type="number"] { width: 100%; box-sizing: border-box; background: var(--page-background); color: var(--main-text); border: 1px solid var(--bar-track); border-radius: 12px; padding: 12px; font-size: 16px; margin: 6px 0 10px; }
 #page-goals .tile.good .big-number { font-size: 28px; }
+
+/* Goals planners */
+#page-goals .planner-card { display: grid; gap: 4px; padding: 16px; background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%); }
+#page-goals .planner-head { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted-text); margin-bottom: 6px; }
+#page-goals .planner-icon { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; font-size: 20px; background: color-mix(in srgb, var(--accent) 20%, transparent); }
+#page-goals .planner-field { display: block; }
+#page-goals .planner-label { display: block; font-size: 13px; font-weight: 600; color: var(--muted-text); margin: 8px 0 2px; }
+#page-goals .planner-input { position: relative; display: block; }
+#page-goals .planner-input input { margin: 4px 0 4px; min-height: 50px; padding-right: 70px; }
+#page-goals .planner-input input[type="date"] { -webkit-appearance: none; appearance: none; }
+#page-goals .planner-input input.has-left { padding-left: 30px; font-size: 20px; font-weight: 600; }
+#page-goals .planner-adorn { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted-text); font-size: 14px; pointer-events: none; }
+#page-goals .planner-adorn.planner-left { right: auto; left: 14px; font-size: 20px; color: var(--accent); }
+#page-goals select#goal-plan-goal { font-weight: 600; min-height: 50px; }
+#page-goals .result-hero { padding: 18px 16px; background-image: linear-gradient(135deg, color-mix(in srgb, var(--good) 16%, transparent), transparent 65%); box-shadow: inset 5px 0 0 var(--good); display: grid; gap: 10px; }
+#page-goals .result-hero .big-number { font-size: 38px; font-weight: 800; line-height: 1; }
+#page-goals .per-week { font-size: 16px; font-weight: 600; color: var(--muted-text); }
+#page-goals .result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#page-goals .result-stats > div { background: var(--bar-track); border-radius: 12px; padding: 10px 6px; text-align: center; display: grid; gap: 2px; }
+#page-goals .result-stats b { font-size: 18px; }
+#page-goals .result-rows { display: grid; gap: 6px; border-top: 1px solid var(--bar-track); padding-top: 10px; }
+#page-goals .result-goal { display: grid; gap: 4px; }
+.choice-list { display: grid; gap: 10px; }
+.choice-button { margin: 0; padding: 14px 16px; border-radius: 14px; text-align: left; display: grid; gap: 3px; background: var(--bar-track); color: var(--main-text); }
+.choice-button:first-child { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.choice-button b { font-size: 16px; }
