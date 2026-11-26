@@ -66,7 +66,9 @@ function showTransferAdvice(settings, forecast) {
 
 // Line chart of the predicted checking balance, one point per day: a single line with a soft fill, a dashed floor and the lowest day marked.
 function showBalanceChart(settings, forecast) {
-  const days = forecast.days.slice(0, 40);
+  // Day 1 is today, at the balance the bank shows now; the 39 days after it follow.
+  const startDay = { date: settings.starting_balances.as_of_date, checking_balance: settings.starting_balances.checking_balance };
+  const days = [startDay, ...forecast.days].slice(0, 40);
   const balances = days.map((day) => day.checking_balance);
   const floor = settings.minimum_checking_floor;
   const low = Math.min(...balances, floor);
@@ -81,7 +83,7 @@ function showBalanceChart(settings, forecast) {
     `<line x1="${left}" y1="${yFor(balance)}" x2="${right}" y2="${yFor(balance)}" stroke="var(--bar-track)" stroke-width="1" opacity="0.6"/>
      <text x="${left - 8}" y="${yFor(balance) + 4}" text-anchor="end" class="chart-label">$${Math.round(balance).toLocaleString("en-US")}</text>`).join("");
   const dateLabels = [1, 10, 20, 30, 40].map((dayNumber) =>
-    `<text x="${xFor(dayNumber)}" y="${bottom + 18}" text-anchor="${dayNumber === 1 ? "start" : dayNumber === 40 ? "end" : "middle"}" class="chart-label">${dayNumber === 1 ? "Tomorrow" : shortMonthDay(days[dayNumber - 1].date)}</text>`).join("");
+    `<text x="${xFor(dayNumber)}" y="${bottom + 18}" text-anchor="${dayNumber === 1 ? "start" : dayNumber === 40 ? "end" : "middle"}" class="chart-label">${dayNumber === 1 ? (days[0].date === todayText() ? "Today" : shortMonthDay(days[0].date)) : shortMonthDay(days[dayNumber - 1].date)}</text>`).join("");
   const lowestPosition = balances.indexOf(Math.min(...balances));
   const lowestX = xFor(lowestPosition + 1), lowestY = yFor(balances[lowestPosition]);
   const lowestIsSafe = balances[lowestPosition] >= floor;
