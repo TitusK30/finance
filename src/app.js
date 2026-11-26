@@ -498,6 +498,22 @@ async function refreshFromBank(quiet = false) {
 }
 
 document.getElementById("connect-relay-button").addEventListener("click", connectToRelay);
+// Shows what the bank link sent (names, kinds, last 4 digits, no balances) so a missing account can be traced.
+document.getElementById("show-accounts-button").addEventListener("click", async () => {
+  const note = document.getElementById("refresh-note");
+  const address = localStorage.getItem(RELAY_ADDRESS_KEY), appKey = localStorage.getItem(RELAY_APP_KEY_KEY);
+  if (!address || !appKey) { note.textContent = "Connect to the relay first."; return; }
+  note.textContent = "Asking the relay...";
+  try {
+    const response = await fetch(address + "/refresh", { headers: { "x-finance-key": appKey } });
+    const data = await response.json();
+    if (!response.ok) { note.textContent = "Relay said: " + (data.error || response.status); return; }
+    const lines = data.accounts.map((account) => account.login + ": " + account.name + " | " + account.type + " | " + account.subtype + " | ..." + account.mask);
+    (data.problems || []).forEach((problem) => lines.push(problem.login + ": PROBLEM " + problem.error));
+    note.textContent = lines.length ? lines.join("\n") : "No accounts are linked yet.";
+    note.style.whiteSpace = "pre-wrap";
+  } catch (error) { note.textContent = "Could not reach the relay."; }
+});
 document.getElementById("refresh-button").addEventListener("click", () => refreshFromBank());
 document.getElementById("refresh-top-button").addEventListener("click", () => refreshFromBank());
 document.getElementById("undo-refresh-button").addEventListener("click", () => {
