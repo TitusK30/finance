@@ -6,6 +6,8 @@ A private cash-flow forecaster for your iPhone. It shows what will be in checkin
 - Your numbers live **only on your phone**. The public code contains none of them.
 - $0/month at personal scale (see [Limits and costs](#limits-and-costs)).
 
+**See it in action:** [animated preview with sample data](https://titusk30.github.io/finance/preview.html)
+
 > Not financial advice. Not affiliated with Plaid, Cloudflare, GitHub or any bank.
 
 ---
