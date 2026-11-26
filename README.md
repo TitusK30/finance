@@ -2,7 +2,7 @@
 
 ### 👉 **Want to set it up? Follow the step-by-step guide: [titusk30.github.io/finance/guide.html](https://titusk30.github.io/finance/guide.html)**
 
-A private cash-flow forecaster for your iPhone: a weather forecast for your bank account. It shows what will be in checking 10, 20, 30 and 40 days from now, which card statements are closed or open and when they are due, where your spending goes, and how your net worth moves. Optionally it pulls live balances from your banks.
+A private cash-flow forecaster for your iPhone: a weather forecast for your bank account. It predicts your checking balance day by day for the next 40 days, warns you before it would drop below the floor you set (and tells you when to move money from savings), tracks each card's closed and open statements and due dates, and shows where your spending goes. Optionally it pulls live balances from your banks.
 
 - Plain HTML and JavaScript. No frameworks, no build step, no server you pay for.
 - Your numbers live **only on your phone**. The public code contains none of them.
@@ -95,14 +95,15 @@ Tap **↻** (or open the app after 30 minutes away).
 | Savings | A savings, cash management or money market account. If your bank calls it "checking", the manual refresh asks once which account is your savings and remembers it. Otherwise stays as typed |
 | Each card | Balance, limit, **Closed** and **Open** amounts, due dates |
 | Retirement and HSA | Linked investment and HSA accounts |
-| Net worth | Recalculated and saved to your history |
+| Net worth | Recalculated from your accounts |
 | Transactions | Saved on the phone, used by the Spending page |
 
 - **Automatic:** on opening or returning to the app, it refreshes quietly if the last refresh was over 30 minutes ago. It never shows errors and keeps your old numbers if it cannot connect.
 - **Manual (↻):** shows progress and errors, and asks which account is which if it cannot tell. Your answer is remembered by the account's last 4 digits.
 - **Undo last refresh** is in Settings. A web app cannot refresh while closed; that is an iPhone limit.
 - **Settings → Show linked accounts** lists what each bank sent (name, type, subtype, last 4 digits), which helps when an account does not land where you expect.
-- Everything else (forecast, outlook tiles, chart, Cards, Goals) is calculated from those numbers, so it all updates together.
+- Everything else (the forecast, chart, card countdowns, Cards, Goals) is calculated from those numbers, so it all updates together.
+- **Pull down** on Home also refreshes.
 
 ---
 
@@ -112,25 +113,24 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 
 | Page | What it gives you |
 |---|---|
-| **Home** | Left to spend this month, checking, savings, retirement, net worth, credit score (tap the number to log one), whether a savings transfer is needed, 10/20/30/40-day outlook and a 40-day chart, card countdowns |
-| **Spending** | This month by category with pending charges, earned vs spent, top places, compared with last month |
-| **Cards** | Utilization plan, closed and open amounts, due dates, expiry, fees, rewards and benefits |
+| **Home** | Left to spend this month (needs a bank link), checking, savings, retirement and net worth, your credit score (tap the number to log a new one), a "move money from savings" warning or "no transfer needed", a 40-day chart of your checking balance, each card's closed and open statements with due and close dates, and a 40-day timeline of paydays, bills and card payments |
+| **Spending** | The month at a glance, then categories you can tap open, pending charges, bills and subscriptions, transfers, and top places. Browse earlier months with the arrows (needs a bank link) |
+| **Cards** | Each card's utilization plan (how much you can spend before its statement closes to stay under your target), expiry and annual fee, your other cards, and rewards points and card benefits |
 | **Bills** | Bills from checking and subscriptions on cards, with one monthly total |
 | **Goals** | Savings goals with a finish-by-date planner |
 | **Planner** | Overtime planner and a what-if simulator |
 | **Tasks, HSA, PTO, Car loan** | Dated to-dos, HSA and PTO numbers, loan payoff |
 | **Set up** | Every setting, in sections (Basics, Paycheck, Cards, Bills and more) |
-| **Settings** | Update app, refresh, relay connection, PIN, backups |
+| **Settings** | Load a settings file, export a backup, back up and restore spending history, update the app, refresh, connect to the relay, show linked accounts, undo the last refresh, PIN |
 
 ### How the numbers work
 
-- **Forecast:** day by day from your checking balance, adding paydays and subtracting bills, subscriptions, card payments on their due dates, and annual fees. Paydays follow your pay schedule: weekly, every two weeks, twice a month or monthly. An optional everyday spending number adds a weekly estimate for groceries and gas.
+- **Forecast:** day by day from your checking balance, adding paydays and subtracting bills, subscriptions, card payments on their due dates, and annual fees. It looks about 60 days ahead for the transfer warning and shows 40 days on Home. Paydays follow your pay schedule: weekly, every two weeks, twice a month or monthly. An optional everyday spending number adds a weekly estimate for groceries and gas.
 - **Closed** = last statement balance minus payments since it was issued. **Open** = current balance minus the unpaid closed amount, plus pending charges. Open is an estimate; banks do not report it.
 - **Pending charges** show in a card's Open amount (so the forecast and utilization include them). They are worked out from the bank's available credit, so it works even for banks that do not list pending items.
 - **Spending** groups every charge by month and category. Card payments, transfers and paychecks are left out; refunds count against their category. Categories come from Plaid and are sometimes wrong, so add your own rules (Set up → Spending tab). Transactions live only on the phone and anything older than about 400 days is dropped.
 - **Earned this month** adds deposits to your bank accounts that the bank calls income or that mention payroll or direct deposit. If your pay is not picked up, add a word from its description under **Set up → Paycheck**.
 - **Bills are left out of Spending.** Bills and subscriptions are matched to charges by account, charge text and date (within 5 days of the due date), never by amount. If one slips through, tap **mark as bill** on it. If your bank writes a bill differently from its name, put the bank's wording in the bill's "text on the bank statement" box.
-- **Room to put on your cards** (Home): the lowest checking day in the next 60 days minus your floor, counting statements, pending, bills, subscriptions and fees.
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
 - **Typed in by you:** savings (unless linked), rewards, benefits, car loan, goals, credit scores, PTO, tasks.
 - Swipe left on a task, goal or Set up row to reveal **Delete**.
