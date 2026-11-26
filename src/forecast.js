@@ -56,6 +56,9 @@ function dueDateForCharge(card, chargeDate) {
 // Paydays whose paycheck already arrived early (set from the bank's deposits), so the forecast does not add it twice.
 let paidEarlyDates = [];
 function setPaidEarlyDates(dates) { paidEarlyDates = dates || []; }
+// Paychecks typed in by hand ([{date, amount}]) that are added on their own date.
+let typedPaychecks = [];
+function setTypedPaychecks(paychecks) { typedPaychecks = paychecks || []; }
 
 function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   const startDate = settings.starting_balances.as_of_date;
@@ -120,6 +123,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       const paycheckAmount = settings.paycheck.one_time_amount_overrides[date] ?? settings.paycheck.usual_take_home_amount;
       events.push({ label: "Paycheck", amount: paycheckAmount });
     }
+    for (const typed of typedPaychecks) if (typed.date === date) events.push({ label: "Paycheck", amount: typed.amount });
 
     if (weeklyEverydaySpending > 0 && dayOfWeek === 0) events.push({ label: "Everyday spending", amount: -weeklyEverydaySpending, is_estimate: true });
 
@@ -169,4 +173,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { setPaidEarlyDates, buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };
+if (typeof module !== "undefined") module.exports = { setTypedPaychecks, setPaidEarlyDates, buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };

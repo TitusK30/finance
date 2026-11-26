@@ -146,6 +146,30 @@ function paidEarlyPaydays(store, settings, today) {
   return Object.keys(paydayDepositMatches(store, settings, today)).filter((payday) => payday > today);
 }
 
+// Paychecks you typed in ahead of time (settings.paycheck.expected_paychecks: [{date, amount}]). Each one stands in for the
+// scheduled payday closest to it (same window as a real deposit) until the bank shows a pay deposit within 4 days of that
+// date; then the real deposit takes over and the typed one is ignored. Typed paychecks more than 7 days old with no
+// deposit are dropped. Returns { list: still-expected paychecks, replacedPaydays: scheduled paydays they stand in for }.
+function expectedPaychecks(store, settings, today) {
+  const result = { list: [], replacedPaydays: [] };
+  const typed = (settings && settings.paycheck && settings.paycheck.expected_paychecks) || [];
+  if (!typed.length) return result;
+  const shift = (dateText, days) => new Date(Date.parse(dateText + "T00:00:00Z") + days * 86400000).toISOString().slice(0, 10);
+  for (const entry of typed) {
+    if (entry.date < shift(today, -7)) continue;
+    const realDepositArrived = payDeposits(store, settings, (transaction) => transaction.date >= shift(entry.date, -4) && transaction.date <= shift(entry.date, 4)).length > 0;
+    if (realDepositArrived) continue;
+    result.list.push(entry);
+    let closestPayday = null;
+    for (let gap = -4; gap <= 6; gap++) {
+      const payday = shift(entry.date, gap);
+      if (isPaydayOn(settings.paycheck, payday) && (closestPayday === null || Math.abs(gap) < Math.abs(closestPayday.gap))) closestPayday = { payday, gap };
+    }
+    if (closestPayday) result.replacedPaydays.push(closestPayday.payday);
+  }
+  return result;
+}
+
 // The most common pay deposit amount the bank has shown (a bonus or overtime check is a one-off, so it loses).
 // Returns null when there are no pay deposits yet.
 function usualPayDeposit(store, settings) {
@@ -259,4 +283,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

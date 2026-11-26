@@ -265,7 +265,9 @@ function showEverything() {
   document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);
   if (!settings) { document.getElementById("start-here").hidden = true; return; }
   showStartHere(settings);
-  setPaidEarlyDates(paidEarlyPaydays(loadTransactionStore(), settings, todayText()));
+  const typedPay = expectedPaychecks(loadTransactionStore(), settings, todayText());
+  setPaidEarlyDates([...paidEarlyPaydays(loadTransactionStore(), settings, todayText()), ...typedPay.replacedPaydays]);
+  setTypedPaychecks(typedPay.list);
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   showStatusLine(settings);
   showBalances(settings);
