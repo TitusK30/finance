@@ -181,9 +181,9 @@ function showSpendingPage(settings) {
   const expectedPayLeft = ahead.amount;
   const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
   const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}${deposit.pending ? " (pending)" : ""}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
-  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => `<div class="tile-row small"><span>${entry.date} (you typed this in)</span><span><span class="positive">${formatMoney(entry.amount)}</span> <button class="mark-button" data-remove-typed-pay="${entry.date}">remove</button></span></div>`).join("") : "";
+  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => `<div class="tile-row small"><span>${entry.date} (you typed this in)<br>${entry.in_balance ? "already in your bank balance" : "arrives that day"}</span><span><span class="positive">${formatMoney(entry.amount)}</span> <button class="mark-button" data-toggle-typed-pay="${entry.date}">${entry.in_balance ? "not in balance yet" : "already in balance"}</button> <button class="mark-button" data-remove-typed-pay="${entry.date}">remove</button></span></div>`).join("") : "";
   const typedPayForm = isCurrentMonthShown ? `<div class="small">Know your next paycheck? Type it in. Once the bank shows the real deposit, the real one replaces it.</div>
-    <input id="typed-pay-date" type="date" value="${todayText()}"><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="Amount ($)"><button id="typed-pay-add">Add upcoming paycheck</button><div id="typed-pay-message" class="small"></div>` : "";
+    <input id="typed-pay-date" type="date" value="${todayText()}"><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="Amount ($)"><label class="small"><input id="typed-pay-in-balance" type="checkbox"> Already in my bank balance (the bank shows it as pending)</label><button id="typed-pay-add">Add upcoming paycheck</button><div id="typed-pay-message" class="small"></div>` : "";
   const earnedTile = `<details class="tile category-tile spending-accent" style="--tile-accent:var(--good)"${earnedTileOpen ? " open" : ""}><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
     <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"}</div>
     ${paydaysLine}</summary>${depositRows}${typedPayRows}${typedPayForm}</details>`;
@@ -249,7 +249,8 @@ document.addEventListener("click", (event) => {
 document.addEventListener("click", (event) => {
   const addButton = event.target.closest("#typed-pay-add");
   const removeButton = event.target.closest("[data-remove-typed-pay]");
-  if (!addButton && !removeButton) return;
+  const toggleButton = event.target.closest("[data-toggle-typed-pay]");
+  if (!addButton && !removeButton && !toggleButton) return;
   event.preventDefault();
   const settings = loadSettings();
   const typed = (settings.paycheck.expected_paychecks || []).filter((entry) => entry.date >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
@@ -257,7 +258,9 @@ document.addEventListener("click", (event) => {
     const date = document.getElementById("typed-pay-date").value;
     const amount = Number(document.getElementById("typed-pay-amount").value);
     if (!date || !(amount > 0)) { document.getElementById("typed-pay-message").textContent = "Pick the pay date and type the amount."; return; }
-    settings.paycheck.expected_paychecks = [...typed.filter((entry) => entry.date !== date), { date, amount }];
+    settings.paycheck.expected_paychecks = [...typed.filter((entry) => entry.date !== date), { date, amount, in_balance: document.getElementById("typed-pay-in-balance").checked }];
+  } else if (toggleButton) {
+    settings.paycheck.expected_paychecks = typed.map((entry) => entry.date === toggleButton.dataset.toggleTypedPay ? { ...entry, in_balance: !entry.in_balance } : entry);
   } else {
     settings.paycheck.expected_paychecks = typed.filter((entry) => entry.date !== removeButton.dataset.removeTypedPay);
   }

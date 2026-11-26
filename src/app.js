@@ -267,7 +267,7 @@ function showEverything() {
   showStartHere(settings);
   const typedPay = expectedPaychecks(loadTransactionStore(), settings, todayText());
   setPaidEarlyDates([...paidEarlyPaydays(loadTransactionStore(), settings, todayText()), ...typedPay.replacedPaydays]);
-  setTypedPaychecks(typedPay.list);
+  setTypedPaychecks(typedPay.list.filter((entry) => !entry.in_balance)); // one the bank balance already holds must not be added again
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   showStatusLine(settings);
   showBalances(settings);
