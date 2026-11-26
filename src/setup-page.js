@@ -47,8 +47,8 @@ function textHintsFromInput(id) {
 
 function basicsSectionHtml(settings) {
   return `${setupField("setup-floor", "Lowest checking balance you want to stay above ($)", "number", settings.minimum_checking_floor)}
-    ${setupField("setup-checking", "Checking balance now ($). The bank refresh keeps this up to date.", "number", settings.starting_balances.checking_balance)}
-    ${setupField("setup-savings", "Savings balance ($)", "number", settings.starting_balances.savings_balance)}
+    ${setupField("setup-checking", "Checking balance ($, optional). A bank link fills this in each refresh.", "number", settings.starting_balances.checking_balance)}
+    ${setupField("setup-savings", "Savings balance ($, optional). A bank link fills it in if the linked bank has a savings account.", "number", settings.starting_balances.savings_balance)}
     ${setupField("setup-retirement", "Retirement balance ($, optional). Shows on Home; a bank link fills it in for you.", "number", (settings.retirement || {}).balance)}
     ${setupField("setup-allowance", "Everyday spending per month ($, optional). The forecast takes it out of checking in weekly pieces.", "number", settings.optional_monthly_variable_spending_allowance)}`;
 }
