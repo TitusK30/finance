@@ -517,3 +517,18 @@ html, body { overflow-x: hidden; }
 #page-setup .setup-body > button:not(.small-button) { width: 100%; margin: 8px 0 0; padding: 13px; border-radius: 14px; font-size: 16px; }
 #page-setup .charge-row { background: var(--bar-track); border-radius: 12px; padding: 10px 12px; border: 0; }
 #page-setup #wizard-start-button { width: 100%; margin: 4px 0 8px; padding: 13px; border-radius: 14px; font-size: 16px; }
+
+/* Set up: section headers, add boxes */
+#page-setup .setup-section summary { gap: 14px; }
+#page-setup .section-icon { --section-color: var(--accent); width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; font-size: 22px; background: color-mix(in srgb, var(--section-color) 22%, transparent); }
+#page-setup .section-text { display: grid; gap: 2px; min-width: 0; }
+#page-setup .section-text .small { margin: 0; }
+#page-setup .setup-section summary::after { margin-left: auto; font-size: 22px; }
+#page-setup .setup-section[open] { box-shadow: inset 5px 0 0 var(--section-color); background-image: linear-gradient(135deg, color-mix(in srgb, var(--section-color) 12%, transparent), transparent 60%); }
+#page-setup .setup-add { margin-top: 12px; padding: 14px; border-radius: 16px; background: color-mix(in srgb, var(--section-color) 10%, var(--page-background)); border: 1px dashed color-mix(in srgb, var(--section-color) 45%, transparent); display: grid; gap: 4px; }
+#page-setup .setup-add .setup-subtitle { margin: 0 0 4px; padding: 0; border: 0; color: var(--section-color); }
+#page-setup .setup-heading { color: var(--main-text); }
+#page-setup .setup-label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 10px; background: var(--bar-track); border-radius: 12px; padding: 12px; font-weight: 500; color: var(--main-text); }
+#page-setup input[type="checkbox"] { width: 22px; height: 22px; flex: none; accent-color: var(--section-color, var(--accent)); margin: 0; }
+#page-setup .apply-bottom { width: 100%; margin: 6px 0 24px; padding: 15px; border-radius: 16px; font-size: 17px; font-weight: 700; }
+#page-setup .small-button { width: 100%; margin: 6px 0 0; padding: 12px; border-radius: 14px; background: var(--bar-track); }

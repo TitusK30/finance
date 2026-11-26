@@ -70,17 +70,17 @@ function payScheduleFieldsHtml(paycheck, prefix) {
 }
 
 // Reads those boxes into the paycheck settings. Returns "invalid" (after telling the person why) or nothing.
-function readPaySchedule(prefix, paycheck) {
+function readPaySchedule(prefix, paycheck, say = alert) {
   const frequency = document.getElementById(`${prefix}-frequency`).value;
   const weekday = document.getElementById(`${prefix}-weekday`).value;
   const recentPayday = inputText(`${prefix}-biweekly-start`);
   if (frequency === "biweekly") {
-    if (!recentPayday) { alert("Pick a recent payday so I know which weeks you are paid."); return "invalid"; }
-    if (new Date(recentPayday + "T00:00:00Z").getUTCDay() !== WEEKDAY_NUMBERS[weekday]) { alert(`That date is not a ${weekday}. Pick a recent ${weekday} you were paid.`); return "invalid"; }
+    if (!recentPayday) { say("Pick a recent payday so I know which weeks you are paid."); return "invalid"; }
+    if (new Date(recentPayday + "T00:00:00Z").getUTCDay() !== WEEKDAY_NUMBERS[weekday]) { say(`That date is not a ${weekday}. Pick a recent ${weekday} you were paid.`); return "invalid"; }
   }
   const firstDay = Number(document.getElementById(`${prefix}-day-1`).value);
   const secondDay = Number(document.getElementById(`${prefix}-day-2`).value);
-  if (frequency === "semimonthly" && firstDay === secondDay) { alert("Pick two different paydays."); return "invalid"; }
+  if (frequency === "semimonthly" && firstDay === secondDay) { say("Pick two different paydays."); return "invalid"; }
   paycheck.frequency = frequency;
   paycheck.pay_weekday = weekday;
   paycheck.biweekly_start_date = recentPayday || undefined;
@@ -109,12 +109,10 @@ function paycheckSectionHtml(settings) {
       <span>${formatMoney(amount)}<br><button class="mark-button" data-setup-remove-override="${date}">remove</button></span></div>`).join("");
   return `${setupField("setup-takehome", "Take-home pay per paycheck ($)", "number", settings.paycheck.usual_take_home_amount)}
     ${payScheduleFieldsHtml(settings.paycheck, "setup")}
-    <b class="setup-subtitle">One-time paycheck amounts</b>
+    <b class="setup-subtitle setup-heading">One-time paycheck amounts</b>
     <div class="small">For a bonus or a short check. That payday uses this amount instead of the usual one.</div>
-    ${rows || '<div class="small">None.</div>'}
-    ${setupField("setup-override-date", "Payday", "date")}
-    ${setupField("setup-override-amount", "Amount that day ($)", "number")}
-    <button id="setup-add-override">Add amount</button>`;
+    ${rows}
+    ${setupAddBox("Add a one-time amount", `${setupField("setup-override-date", "Payday", "date")}${setupField("setup-override-amount", "Amount that day ($)", "number")}<button id="setup-add-override">Add amount</button>`)}`;
 }
 
 function spendingTabSectionHtml(settings) {
@@ -136,19 +134,57 @@ function moreCardsSectionHtml(settings) {
        <button id="setup-add-benefit">Add benefit</button>`
     : '<div class="small">Add a card first.</div>';
   return `${setupField("setup-util-target", "Credit utilization goal (% of each limit to report)", "number", settings.credit_utilization.target_percent)}
-    <b class="setup-subtitle">Other cards</b>
+    <b class="setup-subtitle setup-heading">Other cards</b>
     <div class="small">Cards you only want to track the expiry of.</div>
-    ${otherRows || '<div class="small">None yet.</div>'}
-    ${setupField("setup-other-name", "Card name")}
-    ${setupField("setup-other-expiry", "Expires (month, optional)", "month")}
-    <button id="setup-add-other">Add card</button>
-    <b class="setup-subtitle">Card benefits</b>
-    ${benefitRows || '<div class="small">None yet.</div>'}
-    ${benefitForm}`;
+    ${otherRows}
+    ${setupAddBox("Add another card", `${setupField("setup-other-name", "Card name")}${setupField("setup-other-expiry", "Expires (month, optional)", "month")}<button id="setup-add-other">Add card</button>`)}
+    <b class="setup-subtitle setup-heading">Card benefits</b>
+    ${benefitRows}
+    ${setupAddBox("Add a benefit", benefitForm)}`;
 }
 
 function hsaSectionHtml(settings) {
-  return setupField("setup-hsa-provider", "HSA provider name (optional)", "text", (settings.hsa || {}).provider);
+  const hsa = settings.hsa || {};
+  return `${setupField("setup-hsa-provider", "HSA provider name (optional)", "text", hsa.provider)}
+    ${setupField("setup-hsa-balance", "Balance ($)", "number", hsa.balance)}
+    ${setupField("setup-hsa-weekly", "Put in each week ($)", "number", hsa.weekly_contribution)}
+    ${setupField("setup-hsa-bill-payment", "Medical bill payment each month ($)", "number", hsa.monthly_bill_payment)}
+    ${setupField("setup-hsa-bill-left", "Medical bill still owed ($)", "number", hsa.medical_bill_remaining)}`;
+}
+
+function ptoSectionHtml(settings) {
+  const pto = settings.pto || {};
+  return `${setupField("setup-pto-hours", "PTO (hours)", "number", pto.pto_hours)}
+    ${setupField("setup-pto-comp", "Comp time (hours)", "number", pto.comp_time_hours)}
+    ${setupField("setup-pto-holiday", "Holiday hours", "number", pto.holiday_hours)}`;
+}
+
+function closedAmountOf(card) {
+  const closed = card ? card.balances_by_statement.find((statement) => !statement.still_accumulating) : null;
+  return closed ? closed.amount : "";
+}
+
+function openAmountOf(card) {
+  const open = card ? card.balances_by_statement.find((statement) => statement.still_accumulating) : null;
+  return open ? open.amount : "";
+}
+
+// The most recent statement close on or before today.
+function lastStatementCloseDate(card, todayDateText) {
+  for (let date = todayDateText; ; date = addDays(date, -1)) if (dayOfMonthOn(date, card.statement_close_day)) return date;
+}
+
+// What you owe on a card, typed in: a closed statement (due on its date) and the open one that is still building.
+function statementsFromTypedAmounts(card, closedAmount, openAmount, todayDateText) {
+  const statements = [];
+  const lastClose = lastStatementCloseDate(card, todayDateText);
+  const closedDue = dueDateForCharge(card, lastClose);
+  if (closedAmount > 0 && closedDue >= todayDateText) statements.push({ amount: closedAmount, statement_closed_on: lastClose, due_date: closedDue });
+  if (openAmount > 0) {
+    const closeDate = nextStatementCloseDate(card, todayDateText);
+    statements.push({ amount: openAmount, statement_closes_on: closeDate, due_date: dueDateForCharge(card, closeDate), still_accumulating: true });
+  }
+  return statements;
 }
 
 function cardFormFieldsHtml(settings) {
@@ -160,6 +196,10 @@ function cardFormFieldsHtml(settings) {
     ${setupSelect("setup-card-close", "Statement closes on day", dayOptions, editing ? String(editing.statement_close_day) : "1")}
     ${setupSelect("setup-card-due", "Payment is due on day", dayOptions, editing ? String(editing.payment_due_day) : "1")}
     <label class="small setup-label"><input id="setup-card-next-month" type="checkbox"${!editing || editing.payment_due_in_following_month ? " checked" : ""}> The due date falls in the month after the statement closes</label>
+    ${setupField("setup-card-closed", "Owed on the last closed statement ($, optional)", "number", closedAmountOf(editing))}
+    ${setupField("setup-card-open", "Owed so far on the open statement ($, optional)", "number", openAmountOf(editing))}
+    ${setupField("setup-card-program", "Rewards program (optional, for example: Chase points)", "text", editing && settings.rewards[cardBeingEdited] ? settings.rewards[cardBeingEdited].program : "")}
+    ${setupField("setup-card-points", "Points balance (optional)", "number", editing && settings.rewards[cardBeingEdited] ? settings.rewards[cardBeingEdited].points_balance : "")}
     ${setupField("setup-card-expiry", "Card expires (month)", "month", expiry)}
     ${setupField("setup-card-fee", "Annual fee ($, leave empty if none)", "number", fee ? fee.amount : "")}
     ${setupSelect("setup-card-fee-month", "Annual fee is charged in month", Array.from({ length: 12 }, (unused, index) => [String(index + 1), new Date(2000, index, 1).toLocaleString("en-US", { month: "long" })]), fee ? String(fee.month) : "1")}`;
@@ -171,9 +211,8 @@ function cardsSectionHtml(settings) {
       <span>${escapeHtml(card.display_name)}<br><span class="charge-card">${formatMoney(card.credit_limit)} limit · closes day ${card.statement_close_day} · due day ${card.payment_due_day}</span></span>
       <span><button class="mark-button" data-setup-edit-card="${cardKey}">edit</button><br><button class="mark-button" data-setup-remove-card="${cardKey}">remove</button></span></div>`).join("");
   return `${rows || '<div class="small">No cards yet.</div>'}
-    <b class="setup-subtitle">${editing ? "Change this card" : "Add a card"}</b>
-    ${cardFormFieldsHtml(settings)}
-    <button id="setup-save-card">${editing ? "Save changes" : "Add card"}</button>${editing ? '<button id="setup-cancel-card" class="small-button">Cancel</button>' : ""}`;
+    ${setupAddBox(editing ? "Change this card" : "Add a card", `${cardFormFieldsHtml(settings)}
+    <button id="setup-save-card">${editing ? "Save changes" : "Add card"}</button>${editing ? '<button id="setup-cancel-card" class="small-button">Cancel</button>' : ""}`)}`;
 }
 
 function billsSectionHtml(settings) {
@@ -181,9 +220,7 @@ function billsSectionHtml(settings) {
       <span>${escapeHtml(bill.name)}<br><span class="charge-card">day ${bill.day_of_month}${bill.amount_changes_every_month ? " · amount changes" : ""}</span></span>
       <span>${formatMoney(bill.amount)}<br><button class="mark-button" data-setup-remove-bill="${position}">remove</button></span></div>`).join("");
   return `${rows || '<div class="small">None yet.</div>'}
-    <b class="setup-subtitle">Add a bill</b>
-    ${billFormFieldsHtml()}
-    <button id="setup-add-bill">Add bill</button>`;
+    ${setupAddBox("Add a bill", `${billFormFieldsHtml()}<button id="setup-add-bill">Add bill</button>`)}`;
 }
 
 function billFormFieldsHtml() {
@@ -208,7 +245,7 @@ function subscriptionsSectionHtml(settings) {
       <span>${escapeHtml(subscription.name)}<br><span class="charge-card">${escapeHtml((settings.credit_cards[subscription.card] || {}).display_name || "")} · day ${subscription.day_of_month || (subscription.assumed_days_of_month || []).join("/")}</span></span>
       <span>${formatMoney(subscription.amount)}<br><button class="mark-button" data-setup-remove-subscription="${position}">remove</button></span></div>`).join("");
   const form = Object.keys(settings.credit_cards).length ? `${subFormFieldsHtml(settings)}<button id="setup-add-subscription">Add subscription</button>` : '<div class="small">Add a card first.</div>';
-  return `${rows || '<div class="small">None yet.</div>'}<b class="setup-subtitle">Add a subscription</b>${form}`;
+  return `${rows || '<div class="small">None yet.</div>'}${setupAddBox("Add a subscription", form)}`;
 }
 
 function loanSectionHtml(settings) {
@@ -248,11 +285,20 @@ function menuTabsSectionHtml(settings) {
 
 // ---- Collapsible sections (the normal view) ----
 
+const SETUP_ICONS = { basics: ["&#127974;", "#5aa2ff"], paycheck: ["&#128181;", "#4ade80"], overtime: ["&#9201;&#65039;", "#f87171"], cards: ["&#128179;", "#a78bfa"], morecards: ["&#127873;", "#f472b6"],
+  bills: ["&#129534;", "#fbbf24"], subscriptions: ["&#128257;", "#2dd4bf"], spendingtab: ["&#128722;", "#fb923c"], loan: ["&#128663;", "#94a3b8"], hsa: ["&#129658;", "#ff6b6b"], pto: ["&#127796;", "#86efac"], tabs: ["&#129517;", "#8c909b"] };
+
+// A tinted box around a small "add something" form, so it is obvious where to type.
+function setupAddBox(title, bodyHtml) {
+  return `<div class="setup-add"><b class="setup-subtitle">${title}</b>${bodyHtml}</div>`;
+}
+
 const openSetupSections = new Set();
 
 function setupSection(id, title, summary, bodyHtml) {
-  return `<details class="tile setup-section" data-setup-section="${id}"${openSetupSections.has(id) ? " open" : ""}>
-    <summary><b>${title}</b><span class="small">${summary}</span></summary><div class="setup-body">${bodyHtml}</div></details>`;
+  const [icon, color] = SETUP_ICONS[id] || ["&#9881;&#65039;", "#5aa2ff"];
+  return `<details class="tile setup-section" data-setup-section="${id}" style="--section-color:${color}"${openSetupSections.has(id) ? " open" : ""}>
+    <summary><span class="section-icon">${icon}</span><span class="section-text"><b>${title}</b><span class="small">${summary}</span></span></summary><div class="setup-body">${bodyHtml}</div></details>`;
 }
 
 function plural(count, word) {
@@ -269,19 +315,21 @@ function showSetupPage(settings) {
   const overtimeRate = settings.overtime.gross_hourly_rate;
   const tabsHidden = settings.hidden_tabs.length;
   page.innerHTML = `<h2>Set up</h2>
-    <div class="small">Open a section to change it. Tap Apply (top right) to save the plain boxes. Anything with its own Add button saves when you tap it.</div>
+    <div class="small">Tap a section to open it. Boxes save with Apply (top right) or Save changes at the bottom. Add buttons save right away.</div>
     <button id="wizard-start-button" class="small-button">Start the guided set-up</button>
     ${setupSection("basics", "Basics", `Floor ${formatMoney(settings.minimum_checking_floor)}`, basicsSectionHtml(settings))}
     ${setupSection("paycheck", "Paycheck", `${formatMoney(settings.paycheck.usual_take_home_amount)} · ${payScheduleText(settings.paycheck)}`, paycheckSectionHtml(settings))}
+    ${setupSection("overtime", "Overtime", overtimeRate ? `${formatMoney(overtimeRate)} an hour` : "Not set", overtimeSectionHtml(settings))}
     ${setupSection("cards", "Credit cards", plural(Object.keys(settings.credit_cards).length, "card"), cardsSectionHtml(settings))}
     ${setupSection("morecards", "Card extras", `${plural(settings.card_benefits.length, "benefit")} · ${plural(settings.other_cards.length, "other card")}`, moreCardsSectionHtml(settings))}
     ${setupSection("bills", "Bills", plural(bills, "bill"), billsSectionHtml(settings))}
     ${setupSection("subscriptions", "Subscriptions", plural(subscriptions, "subscription"), subscriptionsSectionHtml(settings))}
     ${setupSection("spendingtab", "Spending tab", "Paycheck match · ignored transfers", spendingTabSectionHtml(settings))}
     ${setupSection("loan", "Car loan", loan ? `${formatMoney(loan.payment)} a month` : "None", loanSectionHtml(settings))}
-    ${setupSection("overtime", "Overtime", overtimeRate ? `${formatMoney(overtimeRate)} an hour` : "Not set", overtimeSectionHtml(settings))}
     ${setupSection("hsa", "HSA", settings.hsa && settings.hsa.provider ? escapeHtml(settings.hsa.provider) : "Not set", hsaSectionHtml(settings))}
-    ${setupSection("tabs", "Menu tabs", tabsHidden ? `${tabsHidden} hidden` : "All shown", menuTabsSectionHtml(settings))}`;
+    ${setupSection("pto", "Time off", "PTO, comp time, holiday", ptoSectionHtml(settings))}
+    ${setupSection("tabs", "Menu tabs", tabsHidden ? `${tabsHidden} hidden` : "All shown", menuTabsSectionHtml(settings))}
+    <button id="apply-bottom-button" class="apply-bottom">Save changes</button>`;
 }
 
 // A details element does not bubble its toggle, so listen on the way down.
@@ -370,6 +418,16 @@ function saveCardFromForm(settings) {
     payment_due_day: Number(document.getElementById("setup-card-due").value),
     payment_due_in_following_month: document.getElementById("setup-card-next-month").checked,
   };
+  const closedTyped = inputNumber("setup-card-closed") || 0;
+  const openTyped = inputNumber("setup-card-open") || 0;
+  const amountsChanged = closedTyped !== (closedAmountOf(previous.balances_by_statement ? previous : null) || 0) || openTyped !== (openAmountOf(previous.balances_by_statement ? previous : null) || 0);
+  if (amountsChanged) {
+    settings.credit_cards[cardKey].balances_by_statement = statementsFromTypedAmounts(settings.credit_cards[cardKey], closedTyped, openTyped, todayText());
+    settings.credit_cards[cardKey].current_balance = Math.round((closedTyped + openTyped) * 100) / 100;
+  }
+  settings.rewards = settings.rewards || {};
+  const previousReward = settings.rewards[cardKey] || {};
+  settings.rewards[cardKey] = { program: inputText("setup-card-program") || previousReward.program || "Points", points_balance: inputNumber("setup-card-points") ?? previousReward.points_balance ?? null };
   const expiry = inputText("setup-card-expiry");
   if (expiry) settings.card_expirations[cardKey] = expiry;
   else delete settings.card_expirations[cardKey];
@@ -409,6 +467,7 @@ function saveSubscriptionFromForm(settings) {
 function saveAndRefresh(settings) {
   saveSettings(settings);
   showEverything();
+  showToast("Saved.");
 }
 
 // Opens Set up. A first-timer (no cards, bills or subscriptions yet) gets the guided version.
@@ -424,17 +483,23 @@ function openSetupPage() {
   document.getElementById("apply-top-button").hidden = wizardActive;
 }
 
-// Apply: saves everything in the plain boxes on this page (basics, car loan, overtime, menu tabs) in one go.
-function applySetupPage(settings) {
+// Copies every plain box on the page into the settings. Quiet mode (used before an Add or Remove button re-draws the page)
+// skips anything half-filled instead of complaining, so nothing typed is lost.
+function readPlainBoxes(settings, quiet = false) {
+  if (!document.getElementById("setup-floor")) return;
+  const say = quiet ? () => {} : alert;
   settings.minimum_checking_floor = inputNumber("setup-floor") ?? 0;
   settings.starting_balances.checking_balance = inputNumber("setup-checking") ?? 0;
   settings.starting_balances.savings_balance = inputNumber("setup-savings") ?? 0;
   settings.paycheck.usual_take_home_amount = inputNumber("setup-takehome") ?? 0;
-  if (readPaySchedule("setup", settings.paycheck) === "invalid") return;
+  const scheduleBefore = JSON.stringify(settings.paycheck);
+  if (readPaySchedule("setup", settings.paycheck, say) === "invalid") { if (!quiet) return "invalid"; settings.paycheck = JSON.parse(scheduleBefore); }
   settings.retirement = { ...(settings.retirement || {}), balance: inputNumber("setup-retirement") };
   settings.optional_monthly_variable_spending_allowance = inputNumber("setup-allowance");
   settings.credit_utilization = { ...(settings.credit_utilization || {}), target_percent: inputNumber("setup-util-target") ?? 9 };
-  settings.hsa = { ...(settings.hsa || {}), provider: inputText("setup-hsa-provider") };
+  settings.hsa = { ...(settings.hsa || {}), provider: inputText("setup-hsa-provider"), balance: inputNumber("setup-hsa-balance"), weekly_contribution: inputNumber("setup-hsa-weekly"),
+    monthly_bill_payment: inputNumber("setup-hsa-bill-payment"), medical_bill_remaining: inputNumber("setup-hsa-bill-left") };
+  settings.pto = { ...(settings.pto || {}), pto_hours: inputNumber("setup-pto-hours"), comp_time_hours: inputNumber("setup-pto-comp"), holiday_hours: inputNumber("setup-pto-holiday") };
   const depositWords = textHintsFromInput("setup-deposit-text");
   if (depositWords) settings.paycheck.deposit_text_contains = depositWords; else delete settings.paycheck.deposit_text_contains;
   settings.transfers_ignore_text = textHintsFromInput("setup-ignore-text") || [];
@@ -443,16 +508,24 @@ function applySetupPage(settings) {
   const loanPayment = inputNumber("setup-loan-payment");
   const loanFirstPayment = inputText("setup-loan-first");
   const loanFilledIn = loanAmount != null || loanPayment != null || loanFirstPayment;
-  if (loanFilledIn && (loanAmount == null || loanPayment == null || !loanFirstPayment)) return alert("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them.");
-  if (loanFilledIn) settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
-
+  const loanComplete = loanAmount != null && loanPayment != null && loanFirstPayment;
+  if (loanFilledIn && !loanComplete) {
+    if (!quiet) { say("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them."); return "invalid"; }
+  } else if (loanFilledIn) {
+    settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
+  }
   settings.overtime = { gross_hourly_rate: inputNumber("setup-ot-gross"), take_home_per_overtime_hour: inputNumber("setup-ot-takehome"), paid_days_after_period_ends: inputNumber("setup-ot-days") ?? 7 };
   settings.hidden_tabs = hideableTabs().filter((name) => !document.querySelector(`[data-setup-tab="${name}"]`).checked);
+}
 
+// Apply: saves everything in the plain boxes on this page in one go.
+function applySetupPage(settings) {
+  if (readPlainBoxes(settings) === "invalid") return;
   saveAndRefresh(settings);
   const applyButton = document.getElementById("apply-top-button");
   applyButton.textContent = "Applied ✓";
   setTimeout(() => { applyButton.textContent = "Apply"; }, 1500);
+  showToast("Saved. Everything is updated.");
 }
 
 document.addEventListener("click", (event) => {
@@ -461,7 +534,10 @@ document.addEventListener("click", (event) => {
   const settings = loadSettings();
   if (!settings || document.getElementById("page-setup").hidden) return;
 
-  if (target.id === "apply-top-button") return applySetupPage(settings);
+  if (target.id === "apply-top-button" || target.id === "apply-bottom-button") return applySetupPage(settings);
+
+  // Add, save and remove buttons re-draw the page, so keep what was typed in the plain boxes first.
+  if (/^setup-(add|save|remove)/.test(target.id) || Object.keys(target.dataset).some((key) => key.startsWith("setupRemove") || key === "setupEditCard")) readPlainBoxes(settings, true);
 
   if (target.id === "wizard-start-button") { wizardActive = true; wizardStep = 0; wizardAskingAgain = false; showSetupPage(settings); document.getElementById("apply-top-button").hidden = true; return; }
   if (target.id === "wizard-next-button") return wizardNext(settings);
