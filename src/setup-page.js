@@ -116,8 +116,17 @@ function paycheckSectionHtml(settings) {
 }
 
 function spendingTabSectionHtml(settings) {
+  const ruleRows = (settings.merchant_rules || []).map((rule, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(rule.text)}<br><span class="charge-card">${escapeHtml(CATEGORY_NAMES[rule.category] || rule.category)}</span></span>
+      <span><button class="mark-button" data-setup-remove-rule="${position}">remove</button></span></div>`).join("");
+  const ruleForm = `${setupField("setup-rule-text", "Charge contains (a store or word)")}
+    ${setupSelect("setup-rule-category", "Count it as", Object.entries(CATEGORY_NAMES).map(([key, name]) => [key, name]), "GROCERIES")}
+    <button id="setup-add-rule">Add rule</button>`;
   return `${setupField("setup-deposit-text", "Words in your bank's paycheck deposit (optional, separate with commas). Paychecks that say payroll or direct deposit are found on their own.", "text", ((settings.paycheck || {}).deposit_text_contains || []).join(", "))}
-    ${setupField("setup-ignore-text", "Transfers to leave out of Spending, like your savings bank (optional, words separated with commas)", "text", (settings.transfers_ignore_text || []).join(", "))}`;
+    ${setupField("setup-ignore-text", "Transfers to leave out of Spending, like your savings bank (optional, words separated with commas)", "text", (settings.transfers_ignore_text || []).join(", "))}
+    <b class="setup-subtitle setup-heading">Your own category rules</b>
+    <div class="small">When a charge contains a word, it goes in the category you pick. Your rules win over the built-in ones.</div>
+    ${ruleRows}
+    ${setupAddBox("Add a rule", ruleForm)}`;
 }
 
 function moreCardsSectionHtml(settings) {
@@ -622,6 +631,17 @@ document.addEventListener("click", (event) => {
   }
   if (target.dataset.setupRemoveOverride) {
     delete settings.paycheck.one_time_amount_overrides[target.dataset.setupRemoveOverride];
+    return saveAndRefresh(settings);
+  }
+  if (target.id === "setup-add-rule") {
+    const text = inputText("setup-rule-text");
+    if (!text) { alert("Type a store name or word to look for."); return; }
+    settings.merchant_rules = [...(settings.merchant_rules || []), { text, category: document.getElementById("setup-rule-category").value }];
+    openSetupSections.add("spendingtab");
+    return saveAndRefresh(settings);
+  }
+  if (target.dataset.setupRemoveRule) {
+    settings.merchant_rules.splice(Number(target.dataset.setupRemoveRule), 1);
     return saveAndRefresh(settings);
   }
   if (target.id === "setup-add-other") {

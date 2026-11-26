@@ -57,24 +57,29 @@ function applyTransactionChanges(store, relayReply, todayText) {
 }
 
 // Store names that override the bank's category. Names are compared with punctuation removed ("Trader Joe's" becomes "trader joes").
-const GROCERY_STORES = /sprouts|trader joes?|whole foods|brookshire|kroger|walmart|target|\bheb\b|tom thumb|family dollar/;
-const FOOD_STORES = /bucees/;
+const GROCERY_STORES = /sprouts|trader joes?|whole foods|kroger|walmart|target|\bheb\b|family dollar/;
 const TOLL_TEXT = /toll/;
 
 function plainMerchantText(transaction) {
   return (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ");
 }
 
+// The person's own rules from settings.merchant_rules: [{ text: "word in the charge", category: "GROCERIES" }]. They win over the built-in ones.
+let customMerchantRules = [];
+function setMerchantRules(rules) {
+  customMerchantRules = (rules || []).filter((rule) => rule && rule.text && rule.category).map((rule) => ({ text: String(rule.text).toLowerCase().replace(/[^a-z0-9 ]/g, "").trim(), category: rule.category }));
+}
+
 function categoryOf(transaction) {
   const text = plainMerchantText(transaction);
+  const customRule = customMerchantRules.find((rule) => rule.text && text.includes(rule.text));
+  if (customRule) return customRule.category;
   if (/amazon|amzn/.test(text)) return "AMAZON";
   if (/TOLL/.test(String(transaction.category_detail || "")) || TOLL_TEXT.test(text)) return "TOLLS";
   if (GROCERY_STORES.test(text)) return "GROCERIES";
-  if (FOOD_STORES.test(text)) return "FOOD_AND_DRINK";
   if (/sephora/.test(text) || transaction.category === "HOME_IMPROVEMENT") return "GENERAL_MERCHANDISE";
-  if (/walgreens|lone star/.test(text)) return "MEDICAL";
-  if (/csc serviceworks|airup|7eleven/.test(text)) return "TRANSPORTATION";
-  if (/onxmaps/.test(text)) return "GENERAL_SERVICES";
+  if (/walgreens/.test(text)) return "MEDICAL";
+  if (/7eleven/.test(text)) return "TRANSPORTATION";
   if (transaction.category === "GOVERNMENT_AND_NON_PROFIT") return "GENERAL_SERVICES";
   return transaction.category && CATEGORY_NAMES[transaction.category] ? transaction.category : "OTHER";
 }
@@ -123,11 +128,9 @@ function usualPayDeposit(store, settings) {
 // Money moved in or out of your bank accounts that is neither pay nor spending: Zelle, Venmo, Cash App, PayPal,
 // Apple Cash and transfers the bank labels as transfers. Card payments are left out (cards are not bank accounts).
 // Transfers to or from your own savings are not spending and are skipped. Add other names to settings.transfers_ignore_text.
-const OWN_SAVINGS_TEXT = ["wealthfront"];
-
 function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
   const payIds = new Set(payDeposits(store, settings, (transaction) => transaction.date.startsWith(yearMonth)).map((transaction) => transaction.transaction_id));
-  const ignoredWords = [...OWN_SAVINGS_TEXT, ...((settings && settings.transfers_ignore_text) || []).map((word) => String(word).toLowerCase())];
+  const ignoredWords = [...((settings && settings.transfers_ignore_text) || []).map((word) => String(word).toLowerCase())];
   const items = Object.values(store.transactions).filter((transaction) => {
     if (ignoredWords.some((word) => plainMerchantText(transaction).includes(word))) return false;
     if (transaction.pending || !transaction.date.startsWith(yearMonth) || payIds.has(transaction.transaction_id) || isBill(transaction)) return false;
@@ -226,4 +229,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

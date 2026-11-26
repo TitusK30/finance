@@ -55,11 +55,13 @@ Keep the repo free of personal data. Never commit your settings file, backups or
 
 The public app starts empty. Choose either method (you can mix them).
 
-**Method 1: inside the app (no file).** Menu → **Settings → Set up in the app**. A first-timer gets a guided set-up, one question per screen with Back and Next. After that it is a list of collapsible sections, each showing a one-line summary. Fill in:
-- the basics: lowest checking balance to stay above, balances, take-home pay, payday
-- credit cards: name, limit, statement closing day, payment due day, expiry, annual fee
-- monthly bills paid from checking, and subscriptions charged to cards
-- car loan and overtime (optional)
+**Method 1: inside the app (no file).** Menu → **Settings → Set up in the app**. A first-timer gets a friendly guided set-up of 17 short steps (Back, Next, Skip). After that it is a list of collapsible sections with icons, and you can change anything later. It covers:
+- basics: lowest checking balance to stay above, balances (optional once a bank is linked), everyday spending allowance
+- paycheck: weekly, every two weeks, twice a month or monthly, one-time pay amounts, deposit text
+- credit cards (limit, statement day, due day, expiry, fee), other cards, card benefits, rewards name
+- monthly bills, subscriptions, Spending tab words, your own category rules, transfers to leave out
+- car loan, overtime, HSA, PTO, retirement, credit utilization target
+- which menu tabs to show
 
 Tap **Apply** at the top right to save. Cards, bills and subscriptions save with their own Add buttons. At the bottom, untick any menu tab you do not use; tick it again and Apply to bring it back.
 
@@ -83,10 +85,7 @@ Then, recommended: **Settings → Set / change PIN** (keeps casual snoopers out;
 
 1. Free Cloudflare account. **Workers & Pages → Create → Worker**, name it, deploy the starter.
 2. **Edit code**: replace everything with `relay/worker.mjs` from this repo.
-3. Edit one line near the top so only your app can call the relay:
-   `const ALLOWED_ORIGIN = "https://<your-github-username>.github.io";`
-   (origin only, no path, no trailing slash.)
-4. Click **Deploy**.
+3. Click **Deploy**. (You tell it which website may call it in Step 5, with a variable, so you never edit the code.)
 5. **Storage & Databases → KV → Create namespace**. In the Worker: **Settings → Bindings → Add → KV namespace**, variable name exactly **`TOKENS`**.
 6. Write down your relay address: `https://<worker-name>.<your-subdomain>.workers.dev`. Step 4 needs it.
 
@@ -122,6 +121,9 @@ Worker **Settings → Variables and Secrets**:
 | `PLAID_SECRET` | Secret | your Plaid secret |
 | `APP_KEY` | Secret | a long random string from your password manager |
 | `PLAID_ENV` | Plain text | `production` (anything else means sandbox) |
+| `ALLOWED_ORIGIN` | Plain text | `https://<your-github-username>.github.io` (origin only, no path, no trailing slash) |
+
+No app key yet? In the app, **Settings → Connect to relay**, leave the key empty and it makes a long random one for you to paste into `APP_KEY`.
 
 **Deploy again.** Then open the relay address in a browser. You should see `{"error":"no"}`: it is running and locked.
 
@@ -152,7 +154,7 @@ Limits to plan around:
 
 ## Step 7. Connect the app and refresh
 
-1. In the app: **Settings → Connect to relay**. Enter the relay address and the app key. Both are stored only in this phone's browser storage.
+1. In the app: **Settings → Connect to relay**. Enter the relay address and the app key (or leave the key empty to make one). Both are stored only in this phone's browser storage. The app then tests the connection and tells you in plain words what is wrong, if anything (wrong key, bad Plaid keys, wrong site address).
 2. Tap **↻** in the top bar (or Settings → Refresh balances).
 
 What a refresh updates:
@@ -163,10 +165,10 @@ What a refresh updates:
 | Savings | Only if one savings account is linked; otherwise stays as typed |
 | Each card | Balance, limit, **Closed** and **Open** amounts, due dates |
 | Retirement and HSA | Linked investment and HSA accounts |
-| Net worth | Recalculated, and saved to Track history |
+| Net worth | Recalculated, and saved to your history |
 | Transactions | Saved on the phone, used by the Spending page |
 
-Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals, Track) is calculated from those numbers, so it all updates together.
+Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals) is calculated from those numbers, so it all updates together.
 
 - **Automatic:** on opening or returning to the app, it refreshes quietly if the last refresh was over 30 minutes ago. It never shows errors and keeps your old numbers if it cannot connect.
 - **Manual (↻):** shows progress and errors, and asks which account is which if it cannot tell. Your answer is remembered.
@@ -244,12 +246,14 @@ src/lock.js              4-digit PIN lock
 src/loan.js              car-loan math
 src/tracking*.js         goals, tracking, tasks
 src/extra-pages.js       bills, rewards, HSA, PTO, car loan pages
-relay/worker.mjs         Cloudflare Worker (edit ALLOWED_ORIGIN)
+relay/worker.mjs         Cloudflare Worker (set ALLOWED_ORIGIN as a variable)
+relay/wrangler.toml      optional: deploy with `npx wrangler deploy` instead of pasting
 finance_settings.example.json   fake data showing the file format
 ```
 
 ### Spending tab
-- "Earned this month" adds deposits to your bank accounts that the bank calls income or that mention payroll or direct deposit. If your pay is not picked up, add a word from its description to `paycheck.deposit_text_contains` in the settings file, for example `["acme"]`.
+- "Earned this month" adds deposits to your bank accounts that the bank calls income or that mention payroll or direct deposit. If your pay is not picked up, add a word from its description in **Set up → Paycheck** ("Pay deposit text").
+- Category rules: **Set up → Spending tab → Your own category rules** (for example, a store name that always counts as Groceries). Transfers to your own savings are hidden with "Transfers to leave out".
 
 ### Goals tab
 - "Finish by a date" shows how much to save each week to reach a goal by a date.

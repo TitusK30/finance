@@ -260,6 +260,7 @@ document.addEventListener("click", (event) => {
 
 function showEverything() {
   const settings = loadSettings();
+  setMerchantRules(settings && settings.merchant_rules);
   document.getElementById("setup").hidden = Boolean(settings);
   document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);
   if (!settings) { document.getElementById("start-here").hidden = true; return; }
@@ -283,7 +284,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "optional_monthly_variable_spending_allowance"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "optional_monthly_variable_spending_allowance"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);
@@ -411,14 +412,34 @@ const BEFORE_REFRESH_KEY = "finance_os_before_refresh";
 const LAST_REFRESH_KEY = "finance_last_refresh_ms";
 const AUTO_REFRESH_AFTER_MINUTES = 30;
 
-function connectToRelay() {
-  const address = prompt("Relay address", localStorage.getItem(RELAY_ADDRESS_KEY) || "https://");
+// Makes a long random app key for people setting up their own relay.
+function makeAppKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function connectToRelay() {
+  const note = document.getElementById("refresh-note");
+  const address = prompt("Relay address (the https://...workers.dev link from Cloudflare)", localStorage.getItem(RELAY_ADDRESS_KEY) || "https://");
   if (!address) return;
-  const appKey = prompt("App key");
-  if (!appKey) return;
-  localStorage.setItem(RELAY_ADDRESS_KEY, address.trim());
-  localStorage.setItem(RELAY_APP_KEY_KEY, appKey.trim());
-  document.getElementById("refresh-note").textContent = "Connected. Tap Refresh balances.";
+  const typedKey = prompt("App key. Leave it empty to make a new one (then paste it into Cloudflare as the APP_KEY secret).");
+  if (typedKey === null) return;
+  const appKey = typedKey.trim() || makeAppKey();
+  if (!typedKey.trim()) prompt("Your new app key. Copy it now and paste it into Cloudflare as the secret named APP_KEY.", appKey);
+  const cleanAddress = address.trim().replace(/\/+$/, "");
+  localStorage.setItem(RELAY_ADDRESS_KEY, cleanAddress);
+  localStorage.setItem(RELAY_APP_KEY_KEY, appKey);
+  note.textContent = "Testing the connection...";
+  try {
+    const response = await fetch(cleanAddress + "/diag", { headers: { "x-finance-key": appKey } });
+    const result = await response.json().catch(() => ({}));
+    if (response.status === 401) note.textContent = "The relay is there, but the app key does not match the APP_KEY secret in Cloudflare.";
+    else if (!response.ok) note.textContent = "The relay answered with a problem: " + (result.error || response.status) + ".";
+    else if (result.client_id_length !== 24 || result.secret_length < 20) note.textContent = "Connected, but the Plaid keys in Cloudflare look wrong or missing. Re-paste PLAID_CLIENT_ID and PLAID_SECRET.";
+    else note.textContent = "Connected and working (" + result.plaid_env + "). Open your relay address plus /link in Safari to link a bank.";
+  } catch (error) {
+    note.textContent = "Could not reach that address. Check the link, and that ALLOWED_ORIGIN in Cloudflare is this site's address.";
+  }
 }
 
 async function refreshFromBank(quiet = false) {

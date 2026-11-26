@@ -2,7 +2,9 @@
 // Holds the Plaid keys and bank links so neither sits on the phone or in the public repo.
 // Sends back balances and card statement details only. It never returns a bank link token.
 
-const ALLOWED_ORIGIN = "https://YOUR-GITHUB-USERNAME.github.io"; // change this to your own site
+// Which website may call this relay. Set the ALLOWED_ORIGIN variable in Cloudflare (for example https://your-name.github.io).
+// The line below is only the fallback if that variable is missing.
+const ALLOWED_ORIGIN_FALLBACK = "https://YOUR-GITHUB-USERNAME.github.io";
 const FRESH_ENOUGH_DAYS = 3;
 
 
@@ -24,7 +26,7 @@ button{width:100%;margin-top:16px;padding:16px;font-size:17px;border:0;border-ra
 <h2>Link a bank</h2>
 <div class="tile">
 <label>App key</label><input id="app-key" type="password" autocomplete="off">
-<label>Name for this login (Chase, Capital One, Citi, Empower)</label><input id="login-label">
+<label>Name for this login (for example, your bank's name)</label><input id="login-label">
 <label>Type</label><select id="login-kind"><option value="bank">Bank or credit card</option><option value="investments">Retirement / investments</option></select>
 <button id="link-button">Link</button>
 <div id="status"></div>
@@ -90,12 +92,14 @@ function sameText(first, second) {
   return differences === 0;
 }
 
+let allowedOrigin = ALLOWED_ORIGIN_FALLBACK;
+
 function jsonReply(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+      "Access-Control-Allow-Origin": allowedOrigin,
       "Access-Control-Allow-Headers": "content-type, x-finance-key",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     },
@@ -223,6 +227,7 @@ async function allTransactionChanges(env, cursorsByItem) {
 
 export default {
   async fetch(request, env) {
+    allowedOrigin = env.ALLOWED_ORIGIN || ALLOWED_ORIGIN_FALLBACK;
     if (request.method === "OPTIONS") return jsonReply({});
     if (request.method === "GET" && new URL(request.url).pathname === "/link") {
       return new Response(LINK_PAGE, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
