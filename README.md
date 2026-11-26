@@ -51,47 +51,57 @@ Keep the repo free of personal data. Never commit your settings file, backups or
 
 ---
 
-## Step 2. Put your numbers in
+## Step 2. Set up in the app
 
-The public app starts empty. Choose either method (you can mix them).
+No files and no computer. Everything happens on your phone, and nothing leaves it.
 
-**Method 1: inside the app (no file).** Menu → **Settings → Set up in the app**. A first-timer gets a friendly guided set-up of 17 short steps (Back, Next, Skip). After that it is a list of collapsible sections with icons, and you can change anything later. It covers:
-- basics: lowest checking balance to stay above, balances (optional once a bank is linked), everyday spending allowance
-- paycheck: weekly, every two weeks, twice a month or monthly, one-time pay amounts, deposit text
-- credit cards (limit, statement day, due day, expiry, fee), other cards, card benefits, rewards name
-- monthly bills, subscriptions, Spending tab words, your own category rules, transfers to leave out
-- car loan, overtime, HSA, PTO, retirement, credit utilization target
-- which menu tabs to show
+1. Open the app from your Home Screen. A brand-new app shows a **Welcome to Finance OS** card.
+2. Tap **Set up in the app (about 5 minutes)**. A guided set-up asks one question at a time, with **Back**, **Next** and **Skip** on every step.
+3. Answer what you know and skip the rest. Every answer can be changed later.
 
-Tap **Apply** at the top right to save. Cards, bills and subscriptions save with their own Add buttons. At the bottom, untick any menu tab you do not use; tick it again and Apply to bring it back.
+**What the guided set-up asks**
 
-**Method 2: a settings file.**
-1. Copy `finance_settings.example.json` to `finance_settings.json` (already git-ignored) and replace the fake values with yours. Anything you leave out can be added later in the app.
-2. Leave out balances and card statements (the bank link fills them). Everything else in the table below is fine to include.
-3. Get it to your phone privately (AirDrop or Files app, not email).
-4. In the app: **Settings → Load settings file**. The Data section confirms it loaded.
+| Step | What to have ready | Needed? |
+|---|---|---|
+| How often you are paid | Weekly, every two weeks, twice a month or monthly, and which day | Yes |
+| Each paycheck, after tax | Your usual take-home amount | Yes |
+| Checking balance | Today's balance (a bank link fills it later) | Yes, unless you link a bank |
+| Savings balance | Today's balance | Optional |
+| Lowest checking balance | The amount you never want to drop below. The app warns you before it happens | Yes |
+| Credit cards | Name, limit, the day the statement closes, the day it is due. Optional: what you owe on the closed and open statements, rewards, expiry, annual fee | Optional, add as many as you like |
+| Monthly bills from checking | Name, amount, due day (rent, car payment, power) | Optional, add as many as you like |
+| Subscriptions on a card | Name, amount, day, which card | Optional |
+| Car loan | Amount, rate, payment, first payment date | Optional |
+| Overtime | Your hourly rates, for the Planner tab | Optional |
+| Everyday spending | About how much a month on groceries, gas and going out, so the forecast's low point is realistic | Optional |
+| Retirement, HSA, time off | Balances and hours | Optional |
+| Menu tabs | Untick tabs you will not use | Optional |
 
-**What the settings file can hold**
+Tip: a card's statement-close and due days are on its monthly statement or in the card's app.
 
-| Key | What it is |
-|---|---|
-| `minimum_checking_floor` | Lowest checking balance you want to stay above |
-| `paycheck` | `usual_take_home_amount`, `frequency` (`weekly`, `biweekly`, `semimonthly`, `monthly`), then `pay_weekday` (weekly or biweekly), `biweekly_start_date` (biweekly), `semimonthly_days` like `[1, 15]` (twice a month) or `month_day` (monthly). Optional: `one_time_amount_overrides` (`{"2026-12-25": 1650}`) and `deposit_text_contains` (words that mark your pay deposits) |
-| `credit_cards` | Per card: `display_name`, `credit_limit`, `statement_close_day`, `payment_due_day`, `payment_due_in_following_month` |
-| `card_expirations`, `annual_card_fees`, `other_cards`, `card_benefits`, `rewards`, `credit_utilization` | Card extras: expiry (`YYYY-MM`), yearly fee (card, amount, month, day), cards without a limit tracked, credits like a travel credit (`total`, `used`), points program name, target utilization percent |
-| `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` | Name, amount, `day_of_month` (subscriptions also name the `card`). Optional `charge_text_contains` words to match the bank's wording |
-| `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
-| `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
-| `car_loan` | `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months` |
-| `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
+**Changing things later:** Menu → **Settings → Set up in the app**. It is a list of sections with icons (Basics, Paycheck, Overtime, Credit cards, Card extras, Bills, Subscriptions, Spending tab, Car loan, HSA, Time off, Menu tabs). Tap a section to open it.
+- Cards, bills and subscriptions save with their own **Add** buttons. Swipe a row left to delete it.
+- Everything else saves when you tap **Apply** at the top right.
+- **Spending tab** (only matters with a bank link): your own category rules (for example, a store that always counts as Groceries), and words for transfers to your own savings so they are not counted as spending.
+- If your bank writes a bill differently from its name, put the bank's wording in the bill's "text on the bank statement" box.
 
-Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`. The Set up page has a dropdown, so you only need these names for the file.
+Then, recommended:
+- **Settings → Set / change PIN** keeps casual snoopers out (it is not encryption).
+- **Settings → Export backup** now and then. iOS can clear a web app's storage, and the backup is your only copy.
 
-Formats: dates `YYYY-MM-DD`, card expiry `YYYY-MM`. If a bank prints a bill differently from its name, add `"charge_text_contains": ["text on statement"]` to that bill.
+<details>
+<summary><b>Optional: a settings file instead (you can skip this)</b></summary>
 
-Loading a file never wipes balances, statements, savings, to-dos or tab choices already on the phone.
+Most people never need this. It is for anyone who would rather type everything once on a computer, or move set-up between phones.
 
-Then, recommended: **Settings → Set / change PIN** (keeps casual snoopers out; it is not encryption), and **Export backup** now and then. iOS can clear browser storage, and the backup is your only copy.
+1. Copy `finance_settings.example.json` to `finance_settings.json` and replace the fake values. It shows every field. Leave out anything you don't use.
+2. Send it to your phone privately (AirDrop or the Files app, not email).
+3. In the app: **Settings → Load settings file**.
+
+Loading a file only changes what it contains. It never wipes balances, statements, tasks, goals or tab choices already on the phone. Dates are `YYYY-MM-DD`; card expiry is `YYYY-MM`. Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`.
+
+Never commit `finance_settings.json` to GitHub. The included `.gitignore` already leaves it out.
+</details>
 
 **Path A ends here.** Type your checking and savings balances in the app and update them when you like.
 
@@ -102,8 +112,8 @@ Then, recommended: **Settings → Set / change PIN** (keeps casual snoopers out;
 1. Free Cloudflare account. **Workers & Pages → Create → Worker**, name it, deploy the starter.
 2. **Edit code**: replace everything with `relay/worker.mjs` from this repo.
 3. Click **Deploy**. (You tell it which website may call it in Step 5, with a variable, so you never edit the code.)
-5. **Storage & Databases → KV → Create namespace**. In the Worker: **Settings → Bindings → Add → KV namespace**, variable name exactly **`TOKENS`**.
-6. Write down your relay address: `https://<worker-name>.<your-subdomain>.workers.dev`. Step 4 needs it.
+4. **Storage & Databases → KV → Create namespace**. In the Worker: **Settings → Bindings → Add → KV namespace**, variable name exactly **`TOKENS`**.
+5. Write down your relay address: `https://<worker-name>.<your-subdomain>.workers.dev`. Step 4 needs it.
 
 Cloudflare quirks that cost time:
 - The editor is read-only unless the **newest version** is selected.
@@ -118,8 +128,9 @@ Cloudflare quirks that cost time:
 
 1. Sign up at `plaid.com`. Production keys may require Plaid to approve a short application first; allow time for that. Check Plaid's current rules.
 2. Dashboard → **Developers → Keys**: note your **client ID** and **Production secret**.
-3. **Pick one environment and stay in it.** The secret must match the environment you set in Step 5. A Production secret with `sandbox` (or the reverse) gives `INVALID_API_KEYS` even when typed correctly.
-4. **Developers → API → Allowed redirect URIs**: add exactly
+3. **Want to try it before Production is approved?** Use the Sandbox secret and set `PLAID_ENV` to `sandbox` in Step 5. Linking then shows Plaid's fake test banks, so you can check the whole set-up with no real accounts. Switch both the secret and `PLAID_ENV` to Production when you are ready.
+4. **Pick one environment and stay in it.** The secret must match the environment you set in Step 5. A Production secret with `sandbox` (or the reverse) gives `INVALID_API_KEYS` even when typed correctly.
+5. **Developers → API → Allowed redirect URIs**: add exactly
    `https://<worker-name>.<your-subdomain>.workers.dev/link`
    HTTPS, no query string. Banks that use OAuth (Chase is one) need it.
 
@@ -189,6 +200,16 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals) is calcul
 - **Automatic:** on opening or returning to the app, it refreshes quietly if the last refresh was over 30 minutes ago. It never shows errors and keeps your old numbers if it cannot connect.
 - **Manual (↻):** shows progress and errors, and asks which account is which if it cannot tell. Your answer is remembered.
 - **Undo last refresh** is in Settings. A web app cannot refresh while closed; that is an iPhone limit.
+
+### Sharing with a partner
+
+A second phone can show the same bank data without linking anything again (no extra Plaid logins used):
+
+1. On the second phone, open the same app address in Safari and **Add to Home Screen**.
+2. Run **Set up in the app** there (pay, bills and cards are kept per phone).
+3. **Settings → Connect to relay** with the **same relay address and app key**, then tap **↻**.
+
+Bank-fed numbers (balances, statements, spending) match on both phones. Things you type in (tasks, goals, credit scores, PTO) stay on the phone where you typed them. Only share the app key with someone you would hand your bank statements to.
 
 ---
 
