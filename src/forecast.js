@@ -123,7 +123,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       const paycheckAmount = settings.paycheck.one_time_amount_overrides[date] ?? settings.paycheck.usual_take_home_amount;
       events.push({ label: "Paycheck", amount: paycheckAmount });
     }
-    for (const typed of typedPaychecks) if (typed.date === date) events.push({ label: "Paycheck", amount: typed.amount });
+    for (const typed of typedPaychecks) if (typed.date === date || (date === firstForecastDate && typed.date <= startDate)) events.push({ label: "Paycheck", amount: typed.amount });
 
     if (weeklyEverydaySpending > 0 && dayOfWeek === 0) events.push({ label: "Everyday spending", amount: -weeklyEverydaySpending, is_estimate: true });
 
