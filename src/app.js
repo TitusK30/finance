@@ -474,6 +474,7 @@ async function refreshFromBank(quiet = false) {
   const pendingTotals = pendingTotalsByAccount(transactionStore);
 
   const settings = loadSettings();
+  if (!settings) { if (!quiet) say("Bank data came through, but this phone has no set-up yet. Load a settings file or backup (Settings), or finish Set up, then refresh again."); return; }
   localStorage.setItem(BEFORE_REFRESH_KEY, JSON.stringify(settings));
   let result = applyRefresh(settings, refresh, todayText(), pendingTotals);
   if (result.needChoice.length > 0 && !quiet) {
