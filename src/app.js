@@ -337,13 +337,9 @@ function showDataNote(text) {
   document.getElementById("data-note").textContent = text;
 }
 
-// The version tag on the script address tells which files this phone is really running.
-const appVersion = ((document.querySelector('script[src*="src/app.js"]') || {}).src || "").split("v=")[1] || "unknown";
-document.getElementById("app-version").textContent = "App version " + appVersion;
-
 // "Update app" reloads with ?fresh=...; say so once the new files are in, then tidy the address.
 if (location.search.includes("fresh=")) {
-  showDataNote(`App updated at ${timeNowText()} (version ${appVersion}).`);
+  showDataNote(`App updated at ${timeNowText()}.`);
   history.replaceState(null, "", location.pathname);
 }
 
@@ -505,21 +501,6 @@ async function refreshFromBank(quiet = false) {
 
 document.getElementById("connect-relay-button").addEventListener("click", connectToRelay);
 // Shows what the bank link sent (names, kinds, last 4 digits, no balances) so a missing account can be traced.
-// Shows the money-in transactions this phone has saved from the last 12 days (no network), to trace a missing paycheck.
-document.getElementById("show-deposits-button").addEventListener("click", () => {
-  const note = document.getElementById("refresh-note");
-  const store = loadTransactionStore();
-  const since = addDaysToDateText(todayText(), -12);
-  const rows = Object.values(store.transactions).filter((transaction) => transaction.amount < 0 && transaction.date >= since).sort((first, second) => second.date.localeCompare(first.date));
-  const total = Object.keys(store.transactions).length;
-  const lines = rows.map((transaction) => {
-    const account = store.accounts[transaction.account_id];
-    return [transaction.date, formatMoney(-transaction.amount), transaction.pending ? "PENDING" : "posted", (account && account.type) || "no account", transaction.category || "no category", String(transaction.name || "").slice(0, 28)].join(" | ");
-  });
-  note.textContent = `${total} transactions saved. Money in since ${since}:\n` + (lines.length ? lines.join("\n") : "none");
-  note.style.whiteSpace = "pre-wrap";
-});
-
 document.getElementById("show-accounts-button").addEventListener("click", async () => {
   const note = document.getElementById("refresh-note");
   const address = localStorage.getItem(RELAY_ADDRESS_KEY), appKey = localStorage.getItem(RELAY_APP_KEY_KEY);
