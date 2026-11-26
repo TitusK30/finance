@@ -348,44 +348,63 @@ let wizardStep = 0;
 let wizardAskingAgain = false; // after saving a card, bill or subscription: "add another?"
 
 const WIZARD_STEPS = [
-  { title: "How often are you paid?", fields: (s) => payScheduleFieldsHtml(s.paycheck, "wizard"), save: (s) => readPaySchedule("wizard", s.paycheck) },
-  { title: "How much is each paycheck, after tax?", fields: (s) => setupField("wizard-takehome", "Take-home pay ($)", "number", s.paycheck.usual_take_home_amount || ""), save: (s) => { s.paycheck.usual_take_home_amount = inputNumber("wizard-takehome") ?? 0; } },
-  { title: "What is in checking right now?", hint: "If you link your bank later, it fills this in for you.", fields: (s) => setupField("wizard-checking", "Checking balance ($)", "number", s.starting_balances.checking_balance || ""), save: (s) => { s.starting_balances.checking_balance = inputNumber("wizard-checking") ?? 0; s.starting_balances.as_of_date = todayText(); } },
-  { title: "How much is in savings?", fields: (s) => setupField("wizard-savings", "Savings balance ($)", "number", s.starting_balances.savings_balance || ""), save: (s) => { s.starting_balances.savings_balance = inputNumber("wizard-savings") ?? 0; } },
-  { title: "What is the lowest checking balance you want to stay above?", hint: "The app warns you before checking drops below this.", fields: (s) => setupField("wizard-floor", "Lowest balance ($)", "number", s.minimum_checking_floor), save: (s) => { s.minimum_checking_floor = inputNumber("wizard-floor") ?? 500; } },
-  { title: "Add a credit card", hint: "Leave the name empty to skip. You can add more later.", repeat: "card", fields: (s) => cardFormFieldsHtml(s), save: (s) => saveCardFromForm(s) },
-  { title: "Add a monthly bill paid from checking", hint: "Rent, car payment, power. Leave the name empty to skip.", repeat: "bill", fields: () => billFormFieldsHtml(), save: (s) => saveBillFromForm(s) },
-  { title: "Add a subscription charged to a card", hint: "Netflix, a gym, anything that bills a card each month. Leave the name empty to skip.", repeat: "subscription", needsCard: true, fields: (s) => subFormFieldsHtml(s), save: (s) => saveSubscriptionFromForm(s) },
+  { icon: "&#128075;", title: "Let's set up your app", intro: true, button: "Let's go",
+    hint: "About five minutes, one question at a time. Skip anything you don't have. Everything can be changed later in Settings → Set up in the app, and nothing leaves your phone." },
+  { icon: "&#128181;", title: "How often are you paid?", fields: (s) => payScheduleFieldsHtml(s.paycheck, "wizard"), save: (s) => readPaySchedule("wizard", s.paycheck) },
+  { icon: "&#128176;", title: "How much is each paycheck, after tax?", fields: (s) => setupField("wizard-takehome", "Take-home pay ($)", "number", s.paycheck.usual_take_home_amount || ""), save: (s) => { s.paycheck.usual_take_home_amount = inputNumber("wizard-takehome") ?? 0; } },
+  { icon: "&#127974;", title: "What is in checking right now?", hint: "A bank link fills this in for you later. Type it now if you like.", fields: (s) => setupField("wizard-checking", "Checking balance ($)", "number", s.starting_balances.checking_balance || ""), save: (s) => { s.starting_balances.checking_balance = inputNumber("wizard-checking") ?? 0; s.starting_balances.as_of_date = todayText(); } },
+  { icon: "&#128055;", title: "How much is in savings?", hint: "Optional. Leave it empty if you don't keep a savings balance here.", fields: (s) => setupField("wizard-savings", "Savings balance ($)", "number", s.starting_balances.savings_balance || ""), save: (s) => { s.starting_balances.savings_balance = inputNumber("wizard-savings") ?? 0; } },
+  { icon: "&#128735;&#65039;", title: "What is the lowest checking balance you want to stay above?", hint: "The app warns you before checking drops below this.", fields: (s) => setupField("wizard-floor", "Lowest balance ($)", "number", s.minimum_checking_floor), save: (s) => { s.minimum_checking_floor = inputNumber("wizard-floor") ?? 500; } },
+  { icon: "&#128179;", title: "Add a credit card", hint: "What you owe on it helps the forecast plan the payments. Leave the name empty to skip. You can add more.", repeat: "card", fields: (s) => cardFormFieldsHtml(s), save: (s) => saveCardFromForm(s) },
+  { icon: "&#129534;", title: "Add a monthly bill paid from checking", hint: "Rent, car payment, power. Leave the name empty to skip.", repeat: "bill", fields: () => billFormFieldsHtml(), save: (s) => saveBillFromForm(s) },
+  { icon: "&#128257;", title: "Add a subscription charged to a card", hint: "Netflix, a gym, anything that bills a card each month. Leave the name empty to skip.", repeat: "subscription", needsCard: true, fields: (s) => subFormFieldsHtml(s), save: (s) => saveSubscriptionFromForm(s) },
+  { icon: "&#128663;", title: "Do you have a car loan?", hint: "Optional. Leave it empty to skip.", fields: (s) => loanSectionHtml(s), save: (s) => readLoanBoxes(s) },
+  { icon: "&#9201;&#65039;", title: "Do you work overtime?", hint: "Optional. This powers the Planner tab. Leave it empty to skip.", fields: (s) => overtimeSectionHtml(s), save: (s) => readOvertimeBoxes(s) },
+  { icon: "&#128722;", title: "About how much do you spend each month on everyday things?", hint: "Optional. Groceries, gas, going out. The forecast takes it out of checking in weekly pieces so the low point is realistic.", fields: (s) => setupField("wizard-allowance", "Everyday spending per month ($)", "number", s.optional_monthly_variable_spending_allowance ?? ""), save: (s) => { s.optional_monthly_variable_spending_allowance = inputNumber("wizard-allowance"); } },
+  { icon: "&#128200;", title: "What is in your retirement account?", hint: "Optional. A bank link fills this in for you later.", fields: (s) => setupField("wizard-retirement", "Retirement balance ($)", "number", (s.retirement || {}).balance ?? ""), save: (s) => { s.retirement = { ...(s.retirement || {}), balance: inputNumber("wizard-retirement") }; } },
+  { icon: "&#129658;", title: "Do you have an HSA?", hint: "Optional. Leave it empty to skip.", fields: (s) => hsaSectionHtml(s), save: (s) => readHsaBoxes(s) },
+  { icon: "&#127796;", title: "How much time off do you have?", hint: "Optional. Hours of PTO, comp time and holiday time.", fields: (s) => ptoSectionHtml(s), save: (s) => readPtoBoxes(s) },
+  { icon: "&#129517;", title: "Which tabs do you want in the menu?", hint: "Untick anything you will not use. You can bring it back any time in Set up.", fields: (s) => hideableTabs().map((name) => `<label class="small setup-label"><input type="checkbox" data-setup-tab="${name}"${s.hidden_tabs.includes(name) ? "" : " checked"}> ${document.getElementById("tab-" + name).dataset.title}</label>`).join(""), save: (s) => readHiddenTabs(s) },
+  { icon: "&#128279;", title: "Link your bank (optional)", info: true, button: "Got it",
+    hint: "A free bank link fills in balances, card statements and your spending on its own. It needs a small free relay, and the README walks through it step by step. You can do this any time in Settings. The app works fine without it." },
 ];
+
+function wizardSummaryHtml(settings) {
+  const facts = [["&#128179;", plural(Object.keys(settings.credit_cards).length, "card")], ["&#129534;", plural(settings.monthly_bills_paid_from_checking.length, "bill")], ["&#128257;", plural(settings.subscriptions_charged_to_cards.length, "subscription")]];
+  return `<div class="wizard-facts">${facts.map(([icon, text]) => `<div><span>${icon}</span><b>${text}</b></div>`).join("")}</div>`;
+}
 
 function showWizard(settings, page) {
   const lastStep = WIZARD_STEPS.length;
   const step = WIZARD_STEPS[wizardStep];
   const percent = Math.round((wizardStep / lastStep) * 100);
-  const progress = `<div class="progress"><div class="progress-fill" style="width:${percent}%"></div></div><div class="small">${wizardStep >= lastStep ? "All done" : `Step ${wizardStep + 1} of ${lastStep}`}</div>`;
+  const progress = `<div class="wizard-progress"><div class="progress"><div class="progress-fill" style="width:${percent}%"></div></div><div class="small">${wizardStep >= lastStep ? "All done" : `Step ${wizardStep + 1} of ${lastStep}`}</div></div>`;
+  const card = (icon, title, hint, body, buttons) => `${progress}<div class="wizard-card"><div class="wizard-icon">${icon}</div><h2>${title}</h2>${hint ? `<div class="wizard-hint">${hint}</div>` : ""}${body}</div>${buttons}`;
   if (wizardStep >= lastStep) {
-    page.innerHTML = `${progress}<h2>You are set up</h2>
-      <div class="tile small">${plural(Object.keys(settings.credit_cards).length, "card")}, ${plural(settings.monthly_bills_paid_from_checking.length, "bill")}, ${plural(settings.subscriptions_charged_to_cards.length, "subscription")}.<br>Everything can be changed later in Settings → Set up in the app. Linking your bank is optional; the README explains how.</div>
-      <div class="wizard-buttons"><button id="wizard-back-button" class="small-button">Back</button><button id="wizard-finish-button">Go to Home</button></div>`;
+    page.innerHTML = card("&#127881;", "You are set up", "Everything can be changed later in Settings → Set up in the app.", wizardSummaryHtml(settings),
+      `<div class="wizard-buttons"><button id="wizard-back-button" class="small-button">Back</button><button id="wizard-finish-button">Go to Home</button></div>`);
     return;
   }
   if (wizardAskingAgain) {
-    page.innerHTML = `${progress}<h2>Saved</h2><div class="small">Add another ${step.repeat}?</div>
-      <div class="wizard-buttons"><button id="wizard-again-button" class="small-button">Add another</button><button id="wizard-continue-button">Continue</button></div>`;
+    page.innerHTML = card("&#9989;", "Saved", `Add another ${step.repeat}?`, "",
+      `<div class="wizard-buttons"><button id="wizard-again-button" class="small-button">Add another</button><button id="wizard-continue-button">Continue</button></div>`);
     return;
   }
   const body = step.needsCard && Object.keys(settings.credit_cards).length === 0
-    ? '<div class="small">You have not added a card yet, so there is nothing to charge it to. Tap Next to skip this.</div>'
-    : step.fields(settings);
-  page.innerHTML = `${progress}<h2>${step.title}</h2>${step.hint ? `<div class="small">${step.hint}</div>` : ""}<div class="wizard-body">${body}</div>
-    <div class="wizard-buttons"><button id="wizard-back-button" class="small-button"${wizardStep === 0 ? " disabled" : ""}>Back</button><button id="wizard-next-button">${step.repeat ? "Save and continue" : "Next"}</button></div>
-    <button id="wizard-exit-button" class="mark-button">Skip the guide and show everything</button>`;
+    ? '<div class="small">You have not added a card yet, so there is nothing to charge it to. Tap Skip to move on.</div>'
+    : step.fields ? `<div class="wizard-body">${step.fields(settings)}</div>` : "";
+  const nextLabel = step.button || (step.repeat ? "Save and continue" : "Next");
+  const canSkip = !step.intro && !step.info;
+  page.innerHTML = card(step.icon, step.title, step.hint, body,
+    `<div class="wizard-buttons"><button id="wizard-back-button" class="small-button"${wizardStep === 0 ? " disabled" : ""}>Back</button><button id="wizard-next-button">${nextLabel}</button></div>
+    ${canSkip ? '<button id="wizard-skip-button" class="mark-button">Skip this step</button>' : ""}
+    <button id="wizard-exit-button" class="mark-button">Skip the guide and show everything</button>`);
 }
 
 function wizardNext(settings) {
   const step = WIZARD_STEPS[wizardStep];
   if (step.needsCard && Object.keys(settings.credit_cards).length === 0) { wizardStep += 1; return showEverything(); }
-  const result = step.save(settings);
+  const result = step.save ? step.save(settings) : undefined;
   if (result === "invalid") return;
   saveSettings(settings);
   if (result === "saved") wizardAskingAgain = true;
@@ -483,6 +502,34 @@ function openSetupPage() {
   document.getElementById("apply-top-button").hidden = wizardActive;
 }
 
+function readHsaBoxes(settings) {
+  settings.hsa = { ...(settings.hsa || {}), provider: inputText("setup-hsa-provider"), balance: inputNumber("setup-hsa-balance"), weekly_contribution: inputNumber("setup-hsa-weekly"),
+    monthly_bill_payment: inputNumber("setup-hsa-bill-payment"), medical_bill_remaining: inputNumber("setup-hsa-bill-left") };
+}
+
+function readPtoBoxes(settings) {
+  settings.pto = { ...(settings.pto || {}), pto_hours: inputNumber("setup-pto-hours"), comp_time_hours: inputNumber("setup-pto-comp"), holiday_hours: inputNumber("setup-pto-holiday") };
+}
+
+function readOvertimeBoxes(settings) {
+  settings.overtime = { gross_hourly_rate: inputNumber("setup-ot-gross"), take_home_per_overtime_hour: inputNumber("setup-ot-takehome"), paid_days_after_period_ends: inputNumber("setup-ot-days") ?? 7 };
+}
+
+function readHiddenTabs(settings) {
+  settings.hidden_tabs = hideableTabs().filter((name) => !document.querySelector(`[data-setup-tab="${name}"]`).checked);
+}
+
+// The car loan boxes. All blank leaves the loan alone; part-filled is refused (returns "invalid") unless say does nothing.
+function readLoanBoxes(settings, say = alert) {
+  const loanAmount = inputNumber("setup-loan-amount");
+  const loanPayment = inputNumber("setup-loan-payment");
+  const loanFirstPayment = inputText("setup-loan-first");
+  const anythingFilled = loanAmount != null || loanPayment != null || loanFirstPayment;
+  if (!anythingFilled) return;
+  if (loanAmount == null || loanPayment == null || !loanFirstPayment) { say("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them."); return "invalid"; }
+  settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
+}
+
 // Copies every plain box on the page into the settings. Quiet mode (used before an Add or Remove button re-draws the page)
 // skips anything half-filled instead of complaining, so nothing typed is lost.
 function readPlainBoxes(settings, quiet = false) {
@@ -497,25 +544,15 @@ function readPlainBoxes(settings, quiet = false) {
   settings.retirement = { ...(settings.retirement || {}), balance: inputNumber("setup-retirement") };
   settings.optional_monthly_variable_spending_allowance = inputNumber("setup-allowance");
   settings.credit_utilization = { ...(settings.credit_utilization || {}), target_percent: inputNumber("setup-util-target") ?? 9 };
-  settings.hsa = { ...(settings.hsa || {}), provider: inputText("setup-hsa-provider"), balance: inputNumber("setup-hsa-balance"), weekly_contribution: inputNumber("setup-hsa-weekly"),
-    monthly_bill_payment: inputNumber("setup-hsa-bill-payment"), medical_bill_remaining: inputNumber("setup-hsa-bill-left") };
-  settings.pto = { ...(settings.pto || {}), pto_hours: inputNumber("setup-pto-hours"), comp_time_hours: inputNumber("setup-pto-comp"), holiday_hours: inputNumber("setup-pto-holiday") };
+  readHsaBoxes(settings);
+  readPtoBoxes(settings);
   const depositWords = textHintsFromInput("setup-deposit-text");
   if (depositWords) settings.paycheck.deposit_text_contains = depositWords; else delete settings.paycheck.deposit_text_contains;
   settings.transfers_ignore_text = textHintsFromInput("setup-ignore-text") || [];
 
-  const loanAmount = inputNumber("setup-loan-amount");
-  const loanPayment = inputNumber("setup-loan-payment");
-  const loanFirstPayment = inputText("setup-loan-first");
-  const loanFilledIn = loanAmount != null || loanPayment != null || loanFirstPayment;
-  const loanComplete = loanAmount != null && loanPayment != null && loanFirstPayment;
-  if (loanFilledIn && !loanComplete) {
-    if (!quiet) { say("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them."); return "invalid"; }
-  } else if (loanFilledIn) {
-    settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
-  }
-  settings.overtime = { gross_hourly_rate: inputNumber("setup-ot-gross"), take_home_per_overtime_hour: inputNumber("setup-ot-takehome"), paid_days_after_period_ends: inputNumber("setup-ot-days") ?? 7 };
-  settings.hidden_tabs = hideableTabs().filter((name) => !document.querySelector(`[data-setup-tab="${name}"]`).checked);
+  if (readLoanBoxes(settings, say) === "invalid" && !quiet) return "invalid";
+  readOvertimeBoxes(settings);
+  readHiddenTabs(settings);
 }
 
 // Apply: saves everything in the plain boxes on this page in one go.
@@ -541,6 +578,7 @@ document.addEventListener("click", (event) => {
 
   if (target.id === "wizard-start-button") { wizardActive = true; wizardStep = 0; wizardAskingAgain = false; showSetupPage(settings); document.getElementById("apply-top-button").hidden = true; return; }
   if (target.id === "wizard-next-button") return wizardNext(settings);
+  if (target.id === "wizard-skip-button") { wizardStep += 1; return showSetupPage(settings); }
   if (target.id === "wizard-back-button") { wizardAskingAgain = false; wizardStep = Math.max(0, wizardStep - 1); return showSetupPage(settings); }
   if (target.id === "wizard-again-button") { wizardAskingAgain = false; return showSetupPage(settings); }
   if (target.id === "wizard-continue-button") { wizardAskingAgain = false; wizardStep += 1; return showSetupPage(settings); }
