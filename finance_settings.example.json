@@ -1,11 +1,12 @@
 {
-  "_note": "Set-up values only. Balances and statements come from the bank refresh; to-dos, savings, HSA and retirement are typed in the app.",
+  "_note": "Fake example values. Copy to finance_settings.json and replace. Anything you leave out can be filled in the app (Menu, Settings, Set up in the app). Balances and card statements come from the bank refresh, so they are not here.",
   "minimum_checking_floor": 500,
   "paycheck": {
     "usual_take_home_amount": 1800,
     "frequency": "weekly",
     "pay_weekday": "Friday",
-    "one_time_amount_overrides": {}
+    "one_time_amount_overrides": { "2026-12-25": 1650 },
+    "deposit_text_contains": ["acme"]
   },
   "credit_cards": {
     "example_card_a": {
@@ -23,38 +24,32 @@
       "payment_due_in_following_month": true
     }
   },
+  "card_expirations": { "example_card_a": "2030-01", "example_card_b": "2029-06" },
+  "annual_card_fees": [{ "card": "example_card_a", "amount": 95, "month": 3, "day": 1 }],
+  "other_cards": [{ "name": "Store card", "expires": "2028-09" }],
+  "card_benefits": [{ "name": "Travel credit", "card": "example_card_a", "total": 300, "used": 0 }],
+  "rewards": { "example_card_a": { "program": "Points", "points_balance": null } },
+  "credit_utilization": { "target_percent": 9 },
   "monthly_bills_paid_from_checking": [
-    {
-      "name": "Rent",
-      "amount": 1200,
-      "day_of_month": 1
-    },
-    {
-      "name": "Phone",
-      "amount": 60,
-      "day_of_month": 15
-    }
+    { "name": "Rent", "amount": 1200, "day_of_month": 1 },
+    { "name": "Phone", "amount": 60, "day_of_month": 15, "charge_text_contains": ["mobile"] }
   ],
   "subscriptions_charged_to_cards": [
-    {
-      "name": "Streaming",
-      "amount": 15.99,
-      "card": "example_card_a",
-      "day_of_month": 12
-    }
+    { "name": "Streaming", "amount": 15.99, "card": "example_card_a", "day_of_month": 12 }
   ],
   "optional_monthly_variable_spending_allowance": null,
-  "card_benefits": [],
-  "card_expirations": {
-    "example_card_a": "2030-01",
-    "example_card_b": "2029-06"
+  "merchant_rules": [{ "text": "corner market", "category": "GROCERIES" }],
+  "transfers_ignore_text": ["my savings bank"],
+  "car_loan": {
+    "amount": 20000,
+    "annual_rate_percent": 5,
+    "payment": 400,
+    "first_payment_date": "2025-01-15",
+    "skipped_months": []
   },
-  "annual_card_fees": [],
-  "other_cards": [],
-  "car_loan": null,
-  "overtime": {
-    "gross_hourly_rate": null,
-    "take_home_per_overtime_hour": null,
-    "paid_days_after_period_ends": 7
-  }
+  "overtime": { "gross_hourly_rate": null, "take_home_per_overtime_hour": null, "paid_days_after_period_ends": 7 },
+  "hsa": { "provider": "My HSA", "balance": null, "weekly_contribution": null, "monthly_bill_payment": null, "medical_bill_remaining": null },
+  "pto": { "pto_hours": null, "comp_time_hours": null, "holiday_hours": null },
+  "retirement": { "balance": null },
+  "hidden_tabs": []
 }

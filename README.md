@@ -66,10 +66,26 @@ The public app starts empty. Choose either method (you can mix them).
 Tap **Apply** at the top right to save. Cards, bills and subscriptions save with their own Add buttons. At the bottom, untick any menu tab you do not use; tick it again and Apply to bring it back.
 
 **Method 2: a settings file.**
-1. Copy `finance_settings.example.json` to `finance_settings.json` (already git-ignored) and replace the example values with yours.
-2. Put only set-up values in it: paycheck, card limits and close/due days, bills, subscriptions, annual fees, car loan, overtime. Leave out balances, statements, savings, to-dos, HSA and retirement; the bank refresh and the app fill those.
+1. Copy `finance_settings.example.json` to `finance_settings.json` (already git-ignored) and replace the fake values with yours. Anything you leave out can be added later in the app.
+2. Leave out balances and card statements (the bank link fills them). Everything else in the table below is fine to include.
 3. Get it to your phone privately (AirDrop or Files app, not email).
 4. In the app: **Settings → Load settings file**. The Data section confirms it loaded.
+
+**What the settings file can hold**
+
+| Key | What it is |
+|---|---|
+| `minimum_checking_floor` | Lowest checking balance you want to stay above |
+| `paycheck` | `usual_take_home_amount`, `frequency` (`weekly`, `biweekly`, `semimonthly`, `monthly`), then `pay_weekday` (weekly or biweekly), `biweekly_start_date` (biweekly), `semimonthly_days` like `[1, 15]` (twice a month) or `month_day` (monthly). Optional: `one_time_amount_overrides` (`{"2026-12-25": 1650}`) and `deposit_text_contains` (words that mark your pay deposits) |
+| `credit_cards` | Per card: `display_name`, `credit_limit`, `statement_close_day`, `payment_due_day`, `payment_due_in_following_month` |
+| `card_expirations`, `annual_card_fees`, `other_cards`, `card_benefits`, `rewards`, `credit_utilization` | Card extras: expiry (`YYYY-MM`), yearly fee (card, amount, month, day), cards without a limit tracked, credits like a travel credit (`total`, `used`), points program name, target utilization percent |
+| `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` | Name, amount, `day_of_month` (subscriptions also name the `card`). Optional `charge_text_contains` words to match the bank's wording |
+| `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
+| `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
+| `car_loan` | `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months` |
+| `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
+
+Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`. The Set up page has a dropdown, so you only need these names for the file.
 
 Formats: dates `YYYY-MM-DD`, card expiry `YYYY-MM`. If a bank prints a bill differently from its name, add `"charge_text_contains": ["text on statement"]` to that bill.
 
@@ -162,7 +178,7 @@ What a refresh updates:
 | Item | Source |
 |---|---|
 | Checking | Available balance, as of today |
-| Savings | Only if one savings account is linked; otherwise stays as typed |
+| Savings | A savings, cash management or money market account. If your bank calls it "checking", the manual refresh asks once which account is your savings and remembers it. Otherwise stays as typed |
 | Each card | Balance, limit, **Closed** and **Open** amounts, due dates |
 | Retirement and HSA | Linked investment and HSA accounts |
 | Net worth | Recalculated, and saved to your history |
@@ -175,6 +191,15 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals) is calcul
 - **Undo last refresh** is in Settings. A web app cannot refresh while closed; that is an iPhone limit.
 
 ---
+
+## What is in the app
+
+Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Car loan**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up.
+
+- **Home:** left to spend this month, checking, savings, retirement, net worth, credit score (tap the number to log one), whether a savings transfer is needed, 10/20/30/40-day outlook and a 40-day chart, card countdowns.
+- **Spending:** this month by category with pending charges, earned vs spent, top places.
+- **Cards:** utilization plan, closed and open amounts, due dates, expiry, fees, rewards and benefits.
+- **Goals, Planner, Tasks, HSA, PTO, Car loan:** savings goals and a finish-by-date planner, overtime planner and what-if, dated to-dos, HSA and PTO numbers, loan payoff.
 
 ## Using the app
 
@@ -220,7 +245,9 @@ Everything else (forecast, 10/20/30/40-day cards, chart, Cards, Goals) is calcul
 | A card is not updating | Its statement details are missing from the bank. The refresh reports it skipped and leaves it alone |
 | Wrong account matched | Run a manual refresh; it asks which is which |
 | A number is a day behind | Some banks (Capital One cards, for example) cache balances |
-| A login says `ADDITIONAL_CONSENT_REQUIRED` | Re-approve that login's access with Plaid |
+| A login says `ADDITIONAL_CONSENT_REQUIRED` | Plaid wants extra approval for some data on that login. Balances may still work; if numbers go stale, re-approve that login with Plaid |
+| Savings or another account is not filling in | Settings → **Show linked accounts** lists what each bank sent (name, type, subtype, last 4 digits) so you can see how the bank labels it |
+| Wrong set-up numbers after loading a file | The file only changes what it contains; fix the rest in Set up |
 
 ---
 
