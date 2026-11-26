@@ -427,7 +427,7 @@ html, body { overflow-x: hidden; }
 #page-car .goal-bar { height: 12px; border-radius: 6px; } #page-car .goal-bar .bar-fill { border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--good)); }
 #page-car .car-hero, #page-hsa .hsa-hero { padding: 18px 16px; background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%); box-shadow: inset 5px 0 0 var(--accent); }
 #page-car .car-tile { padding: 14px 16px 14px 20px; display: grid; gap: 6px; box-shadow: inset 5px 0 0 var(--bar-track); }
-.split-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bar-track); margin: 4px 0; }
+.split-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--accent); margin: 4px 0; }
 .split-loan { background: var(--accent); } .split-interest { background: var(--warning); }
 .dot-loan { background: var(--accent); } .dot-interest { background: var(--warning); }
 #page-car .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
