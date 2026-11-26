@@ -337,9 +337,13 @@ function showDataNote(text) {
   document.getElementById("data-note").textContent = text;
 }
 
+// The version tag on the script address tells which files this phone is really running.
+const appVersion = ((document.querySelector('script[src*="src/app.js"]') || {}).src || "").split("v=")[1] || "unknown";
+document.getElementById("app-version").textContent = "App version " + appVersion;
+
 // "Update app" reloads with ?fresh=...; say so once the new files are in, then tidy the address.
 if (location.search.includes("fresh=")) {
-  showDataNote(`App updated at ${timeNowText()}.`);
+  showDataNote(`App updated at ${timeNowText()} (version ${appVersion}).`);
   history.replaceState(null, "", location.pathname);
 }
 
