@@ -31,8 +31,8 @@ function showBalances(settings) {
   const { checking_balance, savings_balance } = settings.starting_balances;
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
     <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
-    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
-    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div></div>
+    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? formatMoney(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
+    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? formatMoney(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div></div>
     <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div></div></div>`;
 }
 

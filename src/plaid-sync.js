@@ -98,7 +98,7 @@ function applyRefresh(settings, refresh, todayText, pendingTotalsByAccount = {})
   const hsaAccounts = investments.filter((account) => account.subtype === "hsa");
   const retirementAccounts = investments.filter((account) => account.subtype !== "hsa");
   if (retirementAccounts.length > 0) {
-    updated.retirement = { ...updated.retirement, balance: cents(retirementAccounts.reduce((sum, account) => sum + (account.current || 0), 0)) };
+    updated.retirement = { ...updated.retirement, linked: true, balance: cents(retirementAccounts.reduce((sum, account) => sum + (account.current || 0), 0)) };
     result.changed.push("retirement");
   }
   if (hsaAccounts.length > 0) {
