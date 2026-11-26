@@ -13,7 +13,7 @@ let swipeIsHorizontal = false;
 function rowToSwipe(target) {
   let found = null;
   for (let element = target.closest(".charge-row, .tile, .tile-row"); element; element = element.parentElement) {
-    if (element.querySelectorAll(DELETE_CONTROLS).length > 1) break;
+    if (element.querySelectorAll(DELETE_CONTROLS).length > 1 || element.matches(".no-swipe-parent")) break; // a tile marked no-swipe-parent is never swiped as a whole
     if (element.querySelectorAll(DELETE_CONTROLS).length === 1 && element.matches(".charge-row, .tile, .tile-row")) found = element;
   }
   return found;

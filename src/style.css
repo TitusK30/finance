@@ -558,3 +558,16 @@ html, body { overflow-x: hidden; }
 .wizard-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .wizard-facts > div { background: var(--bar-track); border-radius: 14px; padding: 12px 6px; display: grid; justify-items: center; gap: 4px; text-align: center; }
 .wizard-facts span { font-size: 22px; }
+
+/* Spending: Earned this month */
+.pay-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--bar-track); font-size: 15px; }
+.pay-row:first-of-type { margin-top: 10px; }
+.pay-row .remove-link { display: none; }
+.pay-chip { display: inline-block; margin: 0 0 0 8px; padding: 2px 9px; border-radius: 999px; background: var(--bar-track); color: var(--muted-text); font-size: 11px; font-weight: 500; }
+.pay-chip-button { width: auto; border: 0; }
+.pay-chip-good { background: rgba(74, 222, 128, 0.18); color: var(--good); }
+.add-pay { margin-top: 6px; border-top: 1px solid var(--bar-track); }
+.add-pay summary { padding: 12px 0 6px; color: var(--accent); font-size: 14px; font-weight: 500; list-style: none; }
+.add-pay summary::-webkit-details-marker { display: none; }
+.add-pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.add-pay button { width: 100%; margin: 0; padding: 12px; border-radius: 12px; }

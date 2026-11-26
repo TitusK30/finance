@@ -179,14 +179,17 @@ function showSpendingPage(settings) {
   const ahead = paydaysAhead(settings, store, spendingMonthShown);
   const paydaysLeft = ahead.count;
   const expectedPayLeft = ahead.amount;
-  const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
-  const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}${deposit.pending ? " (pending)" : ""}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
-  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => `<div class="tile-row small"><span>${entry.date} (you typed this in)<br>${entry.in_balance ? "already in your bank balance" : "arrives that day"}</span><span><span class="positive">${formatMoney(entry.amount)}</span> <button class="mark-button" data-toggle-typed-pay="${entry.date}">${entry.in_balance ? "not in balance yet" : "already in balance"}</button> <button class="mark-button" data-remove-typed-pay="${entry.date}">remove</button></span></div>`).join("") : "";
-  const typedPayForm = isCurrentMonthShown ? `<div class="small">Know your next paycheck? Type it in. Once the bank shows the real deposit, the real one replaces it.</div>
-    <input id="typed-pay-date" type="date" value="${todayText()}"><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="Amount ($)"><label class="small"><input id="typed-pay-in-balance" type="checkbox"> Already in my bank balance (the bank shows it as pending)</label><button id="typed-pay-add">Add upcoming paycheck</button><div id="typed-pay-message" class="small"></div>` : "";
-  const earnedTile = `<details class="tile category-tile spending-accent" style="--tile-accent:var(--good)"${earnedTileOpen ? " open" : ""}><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
-    <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"}</div>
-    ${paydaysLine}</summary>${depositRows}${typedPayRows}${typedPayForm}</details>`;
+  const expectedLine = ahead.known ? `${earned.count} deposit${earned.count === 1 ? "" : "s"} \u00b7 ${formatMoney(earned.total + expectedPayLeft)} expected by month end` : `${earned.count} deposit${earned.count === 1 ? "" : "s"}`;
+  const payRow = (dateText, amount, extra = "", chips = "") => `<div class="pay-row${extra}"><span>${shortMonthDay(dateText)}${chips}</span><b class="positive">${formatMoney(amount)}</b></div>`;
+  const depositRows = earned.deposits.map((deposit) => payRow(deposit.date, -deposit.amount, "", deposit.pending ? `<span class="pay-chip">pending</span>` : "")).join("");
+  // Paychecks typed in by hand: tap the chip to say whether the bank balance already holds it; swipe the row to delete.
+  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => `<div class="pay-row tile-row"><span>${shortMonthDay(entry.date)}<span class="pay-chip">upcoming</span><button class="pay-chip pay-chip-button${entry.in_balance ? " pay-chip-good" : ""}" data-toggle-typed-pay="${entry.date}">${entry.in_balance ? "in balance \u2713" : "arrives that day"}</button></span><b class="positive">${formatMoney(entry.amount)}</b><button class="remove-link" data-remove-typed-pay="${entry.date}">remove</button></div>`).join("") : "";
+  const typedPayForm = isCurrentMonthShown ? `<details class="add-pay"><summary>+ Add upcoming paycheck</summary>
+    <div class="add-pay-grid"><input id="typed-pay-date" type="date" value="${todayText()}"><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="Amount ($)"></div>
+    <select id="typed-pay-in-balance"><option value="">Arrives on that date</option><option value="yes">Already in my bank balance</option></select>
+    <button id="typed-pay-add">Add</button><div id="typed-pay-message" class="small"></div></details>` : "";
+  const earnedTile = `<details class="tile category-tile spending-accent no-swipe-parent" style="--tile-accent:var(--good)"${earnedTileOpen ? " open" : ""}><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
+    <div class="small">${expectedLine}</div></summary>${depositRows}${typedPayRows}${typedPayForm}</details>`;
 
   // Estimated month: pay earned plus paychecks still ahead, minus everything spent plus bills still to pay.
   const isCurrentMonth = spendingMonthShown === todayText().slice(0, 7);
@@ -258,7 +261,7 @@ document.addEventListener("click", (event) => {
     const date = document.getElementById("typed-pay-date").value;
     const amount = Number(document.getElementById("typed-pay-amount").value);
     if (!date || !(amount > 0)) { document.getElementById("typed-pay-message").textContent = "Pick the pay date and type the amount."; return; }
-    settings.paycheck.expected_paychecks = [...typed.filter((entry) => entry.date !== date), { date, amount, in_balance: document.getElementById("typed-pay-in-balance").checked }];
+    settings.paycheck.expected_paychecks = [...typed.filter((entry) => entry.date !== date), { date, amount, in_balance: document.getElementById("typed-pay-in-balance").value === "yes" }];
   } else if (toggleButton) {
     settings.paycheck.expected_paychecks = typed.map((entry) => entry.date === toggleButton.dataset.toggleTypedPay ? { ...entry, in_balance: !entry.in_balance } : entry);
   } else {
