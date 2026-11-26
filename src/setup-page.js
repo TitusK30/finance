@@ -49,8 +49,106 @@ function basicsSectionHtml(settings) {
   return `${setupField("setup-floor", "Lowest checking balance you want to stay above ($)", "number", settings.minimum_checking_floor)}
     ${setupField("setup-checking", "Checking balance now ($). The bank refresh keeps this up to date.", "number", settings.starting_balances.checking_balance)}
     ${setupField("setup-savings", "Savings balance ($)", "number", settings.starting_balances.savings_balance)}
-    ${setupField("setup-takehome", "Take-home pay per paycheck ($)", "number", settings.paycheck.usual_take_home_amount)}
-    ${setupSelect("setup-weekday", "Payday", SETUP_WEEKDAYS.map((day) => [day, day]), settings.paycheck.pay_weekday)}`;
+    ${setupField("setup-retirement", "Retirement balance ($, optional). Shows on Home; a bank link fills it in for you.", "number", (settings.retirement || {}).balance)}
+    ${setupField("setup-allowance", "Everyday spending per month ($, optional). The forecast takes it out of checking in weekly pieces.", "number", settings.optional_monthly_variable_spending_allowance)}`;
+}
+
+// ---- Pay schedule ----
+
+const PAY_FREQUENCIES = [["weekly", "Every week"], ["biweekly", "Every 2 weeks"], ["semimonthly", "Twice a month"], ["monthly", "Once a month"]];
+
+// The same boxes serve Set up (prefix "setup") and the guided first run (prefix "wizard"); only the ones for the chosen frequency show.
+function payScheduleFieldsHtml(paycheck, prefix) {
+  const frequency = paycheck.frequency || "weekly";
+  const [firstDay, secondDay] = paycheck.semimonthly_days || [1, 15];
+  const section = (kinds, html) => `<div data-pay-for="${kinds}"${kinds.split(" ").includes(frequency) ? "" : " hidden"}>${html}</div>`;
+  return `<div class="pay-schedule">${setupSelect(`${prefix}-frequency`, "How often are you paid?", PAY_FREQUENCIES, frequency)}
+    ${section("weekly biweekly", setupSelect(`${prefix}-weekday`, "Payday", SETUP_WEEKDAYS.map((day) => [day, day]), paycheck.pay_weekday))}
+    ${section("biweekly", setupField(`${prefix}-biweekly-start`, "A recent payday (so I know which weeks you are paid)", "date", paycheck.biweekly_start_date))}
+    ${section("semimonthly", setupSelect(`${prefix}-day-1`, "First payday of the month", dayOptions, String(firstDay)) + setupSelect(`${prefix}-day-2`, "Second payday of the month", dayOptions, String(secondDay)))}
+    ${section("monthly", setupSelect(`${prefix}-month-day`, "Paid on day", dayOptions, String(paycheck.month_day || 1)))}</div>`;
+}
+
+// Reads those boxes into the paycheck settings. Returns "invalid" (after telling the person why) or nothing.
+function readPaySchedule(prefix, paycheck) {
+  const frequency = document.getElementById(`${prefix}-frequency`).value;
+  const weekday = document.getElementById(`${prefix}-weekday`).value;
+  const recentPayday = inputText(`${prefix}-biweekly-start`);
+  if (frequency === "biweekly") {
+    if (!recentPayday) { alert("Pick a recent payday so I know which weeks you are paid."); return "invalid"; }
+    if (new Date(recentPayday + "T00:00:00Z").getUTCDay() !== WEEKDAY_NUMBERS[weekday]) { alert(`That date is not a ${weekday}. Pick a recent ${weekday} you were paid.`); return "invalid"; }
+  }
+  const firstDay = Number(document.getElementById(`${prefix}-day-1`).value);
+  const secondDay = Number(document.getElementById(`${prefix}-day-2`).value);
+  if (frequency === "semimonthly" && firstDay === secondDay) { alert("Pick two different paydays."); return "invalid"; }
+  paycheck.frequency = frequency;
+  paycheck.pay_weekday = weekday;
+  paycheck.biweekly_start_date = recentPayday || undefined;
+  paycheck.semimonthly_days = [firstDay, secondDay].sort((a, b) => a - b);
+  paycheck.month_day = Number(document.getElementById(`${prefix}-month-day`).value);
+}
+
+function payScheduleText(paycheck) {
+  const frequency = paycheck.frequency || "weekly";
+  if (frequency === "weekly") return paycheck.pay_weekday;
+  if (frequency === "biweekly") return `every other ${paycheck.pay_weekday}`;
+  if (frequency === "semimonthly") return `${(paycheck.semimonthly_days || [1, 15]).join(" & ")} of the month`;
+  return `day ${paycheck.month_day || 1} of the month`;
+}
+
+document.addEventListener("change", (event) => {
+  if (!event.target.id || !event.target.id.endsWith("-frequency")) return;
+  const schedule = event.target.closest(".pay-schedule");
+  if (!schedule) return;
+  for (const part of schedule.querySelectorAll("[data-pay-for]")) part.hidden = !part.dataset.payFor.split(" ").includes(event.target.value);
+});
+
+function paycheckSectionHtml(settings) {
+  const overrides = Object.entries(settings.paycheck.one_time_amount_overrides || {}).sort(([a], [b]) => (a < b ? -1 : 1));
+  const rows = overrides.map(([date, amount]) => `<div class="tile-row small charge-row"><span>${formatDate(date)}</span>
+      <span>${formatMoney(amount)}<br><button class="mark-button" data-setup-remove-override="${date}">remove</button></span></div>`).join("");
+  return `${setupField("setup-takehome", "Take-home pay per paycheck ($)", "number", settings.paycheck.usual_take_home_amount)}
+    ${payScheduleFieldsHtml(settings.paycheck, "setup")}
+    <b class="setup-subtitle">One-time paycheck amounts</b>
+    <div class="small">For a bonus or a short check. That payday uses this amount instead of the usual one.</div>
+    ${rows || '<div class="small">None.</div>'}
+    ${setupField("setup-override-date", "Payday", "date")}
+    ${setupField("setup-override-amount", "Amount that day ($)", "number")}
+    <button id="setup-add-override">Add amount</button>`;
+}
+
+function spendingTabSectionHtml(settings) {
+  return `${setupField("setup-deposit-text", "Words in your bank's paycheck deposit (optional, separate with commas). Paychecks that say payroll or direct deposit are found on their own.", "text", ((settings.paycheck || {}).deposit_text_contains || []).join(", "))}
+    ${setupField("setup-ignore-text", "Transfers to leave out of Spending, like your savings bank (optional, words separated with commas)", "text", (settings.transfers_ignore_text || []).join(", "))}`;
+}
+
+function moreCardsSectionHtml(settings) {
+  const cardEntries = Object.entries(settings.credit_cards);
+  const otherRows = settings.other_cards.map((otherCard, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(otherCard.name)}<br><span class="charge-card">${otherCard.expires ? "expires " + otherCard.expires : "no expiry"}</span></span>
+      <span><button class="mark-button" data-setup-remove-othercard="${position}">remove</button></span></div>`).join("");
+  const benefitRows = settings.card_benefits.map((benefit, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(benefit.name)}<br><span class="charge-card">${escapeHtml((settings.credit_cards[benefit.card] || {}).display_name || "")}</span></span>
+      <span>${formatMoney(benefit.used || 0)} of ${formatMoney(benefit.total)}<br><button class="mark-button" data-setup-remove-benefit="${position}">remove</button></span></div>`).join("");
+  const benefitForm = cardEntries.length
+    ? `${setupSelect("setup-benefit-card", "Card", cardEntries.map(([cardKey, card]) => [cardKey, card.display_name]), cardEntries[0][0])}
+       ${setupField("setup-benefit-name", "Benefit (for example: Airline fee credit)")}
+       ${setupField("setup-benefit-total", "Total credit ($)", "number")}
+       ${setupField("setup-benefit-used", "Already used ($, optional)", "number")}
+       <button id="setup-add-benefit">Add benefit</button>`
+    : '<div class="small">Add a card first.</div>';
+  return `${setupField("setup-util-target", "Credit utilization goal (% of each limit to report)", "number", settings.credit_utilization.target_percent)}
+    <b class="setup-subtitle">Other cards</b>
+    <div class="small">Cards you only want to track the expiry of.</div>
+    ${otherRows || '<div class="small">None yet.</div>'}
+    ${setupField("setup-other-name", "Card name")}
+    ${setupField("setup-other-expiry", "Expires (month, optional)", "month")}
+    <button id="setup-add-other">Add card</button>
+    <b class="setup-subtitle">Card benefits</b>
+    ${benefitRows || '<div class="small">None yet.</div>'}
+    ${benefitForm}`;
+}
+
+function hsaSectionHtml(settings) {
+  return setupField("setup-hsa-provider", "HSA provider name (optional)", "text", (settings.hsa || {}).provider);
 }
 
 function cardFormFieldsHtml(settings) {
@@ -171,14 +269,18 @@ function showSetupPage(settings) {
   const overtimeRate = settings.overtime.gross_hourly_rate;
   const tabsHidden = settings.hidden_tabs.length;
   page.innerHTML = `<h2>Set up</h2>
-    <div class="small">Open a section to change it. Tap Apply (top right) to save the basics, car loan, overtime and menu tabs. Cards, bills and subscriptions save with their own Add buttons.</div>
+    <div class="small">Open a section to change it. Tap Apply (top right) to save the plain boxes. Anything with its own Add button saves when you tap it.</div>
     <button id="wizard-start-button" class="small-button">Start the guided set-up</button>
-    ${setupSection("basics", "Basics", `Pay ${formatMoney(settings.paycheck.usual_take_home_amount)} · ${settings.paycheck.pay_weekday}`, basicsSectionHtml(settings))}
+    ${setupSection("basics", "Basics", `Floor ${formatMoney(settings.minimum_checking_floor)}`, basicsSectionHtml(settings))}
+    ${setupSection("paycheck", "Paycheck", `${formatMoney(settings.paycheck.usual_take_home_amount)} · ${payScheduleText(settings.paycheck)}`, paycheckSectionHtml(settings))}
     ${setupSection("cards", "Credit cards", plural(Object.keys(settings.credit_cards).length, "card"), cardsSectionHtml(settings))}
+    ${setupSection("morecards", "Card extras", `${plural(settings.card_benefits.length, "benefit")} · ${plural(settings.other_cards.length, "other card")}`, moreCardsSectionHtml(settings))}
     ${setupSection("bills", "Bills", plural(bills, "bill"), billsSectionHtml(settings))}
     ${setupSection("subscriptions", "Subscriptions", plural(subscriptions, "subscription"), subscriptionsSectionHtml(settings))}
+    ${setupSection("spendingtab", "Spending tab", "Paycheck match · ignored transfers", spendingTabSectionHtml(settings))}
     ${setupSection("loan", "Car loan", loan ? `${formatMoney(loan.payment)} a month` : "None", loanSectionHtml(settings))}
     ${setupSection("overtime", "Overtime", overtimeRate ? `${formatMoney(overtimeRate)} an hour` : "Not set", overtimeSectionHtml(settings))}
+    ${setupSection("hsa", "HSA", settings.hsa && settings.hsa.provider ? escapeHtml(settings.hsa.provider) : "Not set", hsaSectionHtml(settings))}
     ${setupSection("tabs", "Menu tabs", tabsHidden ? `${tabsHidden} hidden` : "All shown", menuTabsSectionHtml(settings))}`;
 }
 
@@ -198,7 +300,7 @@ let wizardStep = 0;
 let wizardAskingAgain = false; // after saving a card, bill or subscription: "add another?"
 
 const WIZARD_STEPS = [
-  { title: "What day are you paid?", fields: (s) => setupSelect("wizard-weekday", "Payday", SETUP_WEEKDAYS.map((day) => [day, day]), s.paycheck.pay_weekday), save: (s) => { s.paycheck.pay_weekday = document.getElementById("wizard-weekday").value; } },
+  { title: "How often are you paid?", fields: (s) => payScheduleFieldsHtml(s.paycheck, "wizard"), save: (s) => readPaySchedule("wizard", s.paycheck) },
   { title: "How much is each paycheck, after tax?", fields: (s) => setupField("wizard-takehome", "Take-home pay ($)", "number", s.paycheck.usual_take_home_amount || ""), save: (s) => { s.paycheck.usual_take_home_amount = inputNumber("wizard-takehome") ?? 0; } },
   { title: "What is in checking right now?", hint: "If you link your bank later, it fills this in for you.", fields: (s) => setupField("wizard-checking", "Checking balance ($)", "number", s.starting_balances.checking_balance || ""), save: (s) => { s.starting_balances.checking_balance = inputNumber("wizard-checking") ?? 0; s.starting_balances.as_of_date = todayText(); } },
   { title: "How much is in savings?", fields: (s) => setupField("wizard-savings", "Savings balance ($)", "number", s.starting_balances.savings_balance || ""), save: (s) => { s.starting_balances.savings_balance = inputNumber("wizard-savings") ?? 0; } },
@@ -328,7 +430,14 @@ function applySetupPage(settings) {
   settings.starting_balances.checking_balance = inputNumber("setup-checking") ?? 0;
   settings.starting_balances.savings_balance = inputNumber("setup-savings") ?? 0;
   settings.paycheck.usual_take_home_amount = inputNumber("setup-takehome") ?? 0;
-  settings.paycheck.pay_weekday = document.getElementById("setup-weekday").value;
+  if (readPaySchedule("setup", settings.paycheck) === "invalid") return;
+  settings.retirement = { ...(settings.retirement || {}), balance: inputNumber("setup-retirement") };
+  settings.optional_monthly_variable_spending_allowance = inputNumber("setup-allowance");
+  settings.credit_utilization = { ...(settings.credit_utilization || {}), target_percent: inputNumber("setup-util-target") ?? 9 };
+  settings.hsa = { ...(settings.hsa || {}), provider: inputText("setup-hsa-provider") };
+  const depositWords = textHintsFromInput("setup-deposit-text");
+  if (depositWords) settings.paycheck.deposit_text_contains = depositWords; else delete settings.paycheck.deposit_text_contains;
+  settings.transfers_ignore_text = textHintsFromInput("setup-ignore-text") || [];
 
   const loanAmount = inputNumber("setup-loan-amount");
   const loanPayment = inputNumber("setup-loan-payment");
@@ -386,6 +495,43 @@ document.addEventListener("click", (event) => {
   if (target.id === "setup-add-subscription") { if (saveSubscriptionFromForm(settings) === "saved") saveAndRefresh(settings); return; }
   if (target.dataset.setupRemoveSubscription) {
     settings.subscriptions_charged_to_cards.splice(Number(target.dataset.setupRemoveSubscription), 1);
+    return saveAndRefresh(settings);
+  }
+
+  if (target.id === "setup-add-override") {
+    const date = inputText("setup-override-date");
+    const amount = inputNumber("setup-override-amount");
+    if (!date || amount == null) { alert("Pick the payday and the amount for that day."); return; }
+    settings.paycheck.one_time_amount_overrides = { ...(settings.paycheck.one_time_amount_overrides || {}), [date]: amount };
+    openSetupSections.add("paycheck");
+    return saveAndRefresh(settings);
+  }
+  if (target.dataset.setupRemoveOverride) {
+    delete settings.paycheck.one_time_amount_overrides[target.dataset.setupRemoveOverride];
+    return saveAndRefresh(settings);
+  }
+  if (target.id === "setup-add-other") {
+    const name = inputText("setup-other-name");
+    if (!name) { alert("Give the card a name."); return; }
+    const expires = inputText("setup-other-expiry");
+    settings.other_cards.push({ name, ...(expires ? { expires } : {}) });
+    openSetupSections.add("morecards");
+    return saveAndRefresh(settings);
+  }
+  if (target.dataset.setupRemoveOthercard) {
+    settings.other_cards.splice(Number(target.dataset.setupRemoveOthercard), 1);
+    return saveAndRefresh(settings);
+  }
+  if (target.id === "setup-add-benefit") {
+    const name = inputText("setup-benefit-name");
+    const total = inputNumber("setup-benefit-total");
+    if (!name || !total) { alert("Give the benefit a name and a total amount."); return; }
+    settings.card_benefits.push({ name, card: document.getElementById("setup-benefit-card").value, total, used: inputNumber("setup-benefit-used") || 0 });
+    openSetupSections.add("morecards");
+    return saveAndRefresh(settings);
+  }
+  if (target.dataset.setupRemoveBenefit) {
+    settings.card_benefits.splice(Number(target.dataset.setupRemoveBenefit), 1);
     return saveAndRefresh(settings);
   }
 

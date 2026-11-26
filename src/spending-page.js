@@ -66,15 +66,14 @@ function nonBillCharges(settings, store, billMatches) {
     .map((charge) => refillBills.some((bill) => textMatches(bill, charge)) ? { ...charge, category: "TOLLS" } : charge);
 }
 
-// Pay weekdays still ahead (after today) in the current month, each worth your usual bank pay deposit (no overtime).
+// Paydays still ahead (after today) in the current month, each worth your usual bank pay deposit (no overtime).
 function paydaysAhead(settings, store, yearMonth) {
-  const payWeekdayNumber = PAY_WEEKDAY_NUMBERS[settings.paycheck && settings.paycheck.pay_weekday];
   const usualPay = usualPayDeposit(store, settings) ?? settings.paycheck.usual_take_home_amount;
-  const result = { count: 0, amount: 0, usualPay, known: payWeekdayNumber !== undefined && yearMonth === todayText().slice(0, 7) };
+  const result = { count: 0, amount: 0, usualPay, known: Boolean(settings.paycheck) && yearMonth === todayText().slice(0, 7) };
   if (!result.known) return result;
   const lastDayOfMonth = new Date(Date.UTC(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)), 0)).getUTCDate();
   for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
-    if (new Date(`${yearMonth}-${String(day).padStart(2, "0")}T00:00:00Z`).getUTCDay() === payWeekdayNumber) { result.count++; result.amount += usualPay; }
+    if (isPaydayOn(settings.paycheck, `${yearMonth}-${String(day).padStart(2, "0")}`)) { result.count++; result.amount += usualPay; }
   }
   return result;
 }

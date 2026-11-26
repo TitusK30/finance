@@ -24,6 +24,24 @@ function dayOfMonthOn(dateText, dayOfMonth) {
   return date.getUTCDate() === Math.min(dayOfMonth, lastDayOfMonth);
 }
 
+// Is this date a payday? frequency: weekly (default), biweekly (every other pay weekday, counted from biweekly_start_date),
+// semimonthly (two days a month) or monthly (one day a month).
+function isPaydayOn(paycheck, dateText) {
+  const frequency = paycheck.frequency || "weekly";
+  if (frequency === "monthly") return dayOfMonthOn(dateText, paycheck.month_day || 1);
+  if (frequency === "semimonthly") return (paycheck.semimonthly_days || [1, 15]).some((day) => dayOfMonthOn(dateText, day));
+  if (new Date(dateText + "T00:00:00Z").getUTCDay() !== WEEKDAY_NUMBERS[paycheck.pay_weekday]) return false;
+  if (frequency === "biweekly" && paycheck.biweekly_start_date) {
+    const weeksApart = Math.round((new Date(dateText + "T00:00:00Z") - new Date(paycheck.biweekly_start_date + "T00:00:00Z")) / (7 * 86400000));
+    return weeksApart % 2 === 0;
+  }
+  return true;
+}
+
+function paychecksPerYear(paycheck) {
+  return { weekly: 52, biweekly: 26, semimonthly: 24, monthly: 12 }[paycheck.frequency || "weekly"] || 52;
+}
+
 // Which statement a new charge lands on, and the date that statement is due.
 function dueDateForCharge(card, chargeDate) {
   let closeDate = chargeDate.slice(0, 8) + String(card.statement_close_day).padStart(2, "0");
@@ -38,7 +56,8 @@ function dueDateForCharge(card, chargeDate) {
 function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   const startDate = settings.starting_balances.as_of_date;
   const lastDate = addDays(startDate, horizonDays);
-  const payWeekdayNumber = WEEKDAY_NUMBERS[settings.paycheck.pay_weekday];
+  // Optional everyday spending: the monthly allowance, taken out of checking in one weekly piece each Sunday.
+  const weeklyEverydaySpending = roundToCents(((settings.optional_monthly_variable_spending_allowance || 0) * 12) / 52);
 
   // Card payments coming out of checking, keyed by due date.
   const cardPaymentsByDueDate = {};
@@ -93,10 +112,12 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
     const events = [];
     const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay();
 
-    if (dayOfWeek === payWeekdayNumber) {
+    if (isPaydayOn(settings.paycheck, date)) {
       const paycheckAmount = settings.paycheck.one_time_amount_overrides[date] ?? settings.paycheck.usual_take_home_amount;
       events.push({ label: "Paycheck", amount: paycheckAmount });
     }
+
+    if (weeklyEverydaySpending > 0 && dayOfWeek === 0) events.push({ label: "Everyday spending", amount: -weeklyEverydaySpending, is_estimate: true });
 
     for (const bill of settings.monthly_bills_paid_from_checking) {
       if (dayOfMonthOn(date, bill.day_of_month)) {
@@ -144,4 +165,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, cardRoom, balanceOn, dueDateForCharge };
+if (typeof module !== "undefined") module.exports = { buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };

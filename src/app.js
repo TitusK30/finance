@@ -32,7 +32,7 @@ function showBalances(settings) {
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
     <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
     <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
-    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${formatMoney(settings.retirement.balance || 0)}</div></div>
+    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div></div>
     <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div></div></div>`;
 }
 
@@ -283,7 +283,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "optional_monthly_variable_spending_allowance"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);

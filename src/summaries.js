@@ -1,5 +1,8 @@
 // Plain math for the Subscriptions, Rewards and HSA pages. No screen code in here.
 
+// In the browser forecast.js is already loaded; in the tests it is pulled in here.
+if (typeof require !== "undefined" && typeof isPaydayOn === "undefined") { var { isPaydayOn } = require("./forecast.js"); }
+
 function roundMoney(amount) {
   return Math.round(amount * 100) / 100;
 }
@@ -141,12 +144,22 @@ function netWorth(settings) {
 
 const PAY_WEEKDAY_NUMBERS = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
 
-// The pay period ends on payday's weekday (Friday 11:59pm). Overtime is paid one week after that.
+// Weekly and every-other-week pay: the pay period ends on payday's weekday (Friday 11:59pm) and overtime is paid a week after.
+// Twice a month or monthly: overtime lands on the first payday on or after the wait.
 function paydayForWorkDate(settings, workDateText) {
+  const frequency = settings.paycheck.frequency || "weekly";
+  const waitDays = settings.overtime.paid_days_after_period_ends ?? 7;
+  if (frequency === "semimonthly" || frequency === "monthly") {
+    let payday = addDaysToDateText(workDateText, waitDays);
+    while (!isPaydayOn(settings.paycheck, payday)) payday = addDaysToDateText(payday, 1);
+    return payday;
+  }
   const periodEndsOnWeekday = PAY_WEEKDAY_NUMBERS[settings.paycheck.pay_weekday];
   let periodEndDate = workDateText;
   while (new Date(periodEndDate + "T00:00:00Z").getUTCDay() !== periodEndsOnWeekday) periodEndDate = addDaysToDateText(periodEndDate, 1);
-  return addDaysToDateText(periodEndDate, settings.overtime.paid_days_after_period_ends ?? 7);
+  let payday = addDaysToDateText(periodEndDate, waitDays);
+  while (frequency === "biweekly" && !isPaydayOn(settings.paycheck, payday)) payday = addDaysToDateText(payday, 7);
+  return payday;
 }
 
 // The lowest checking balance on or after a date.

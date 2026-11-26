@@ -95,7 +95,7 @@ function showGoalDatePlanner(settings) {
   const plan = weeklySavingsNeeded(goal, todayText(), targetDate, settings.expected_money);
   if (!plan) { resultBox.innerHTML = `<div class="tile warning">Pick a date after today.</div>`; return; }
   const paycheck = settings.paycheck.usual_take_home_amount;
-  const percentOfPaycheck = Math.round((plan.perWeek / paycheck) * 100);
+  const percentOfPaycheck = Math.round(((plan.perWeek * 52) / paychecksPerYear(settings.paycheck) / paycheck) * 100);
   const expectedLines = expectedMoneyRows(plan.expected);
   const hasListedMoney = plan.expected.inItems.length + plan.expected.outItems.length > 0;
   resultBox.innerHTML = plan.remaining === 0
