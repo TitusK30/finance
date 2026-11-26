@@ -26,8 +26,13 @@ function findCardAccount(card, creditAccounts, savedMask) {
   return matches.length === 1 ? matches[0] : null;
 }
 
+// Banks label cash accounts differently (Wealthfront uses "cash management"), so savings accepts a few names.
+function isSlotKind(slot, subtype) {
+  return slot === "savings" ? ["savings", "cash management", "money market"].includes(subtype) : subtype === slot;
+}
+
 function findDepositAccount(subtype, depositAccounts, savedMask) {
-  const sameKind = depositAccounts.filter((account) => account.subtype === subtype);
+  const sameKind = depositAccounts.filter((account) => isSlotKind(subtype, account.subtype));
   const bySavedMask = savedMask && sameKind.find((account) => account.mask === savedMask);
   if (bySavedMask) return bySavedMask;
   return sameKind.length === 1 ? sameKind[0] : null;
@@ -71,7 +76,7 @@ function applyRefresh(settings, refresh, todayText, pendingTotalsByAccount = {})
 
   for (const slot of ["checking", "savings"]) {
     const account = findDepositAccount(slot, deposits, updated.account_masks[slot]);
-    const candidates = deposits.filter((candidate) => candidate.subtype === slot);
+    const candidates = deposits.filter((candidate) => isSlotKind(slot, candidate.subtype));
     if (account) {
       updated.account_masks[slot] = account.mask;
       updated.starting_balances[slot + "_balance"] = account.available ?? account.current;
