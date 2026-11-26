@@ -26,7 +26,7 @@ function findCardAccount(card, creditAccounts, savedMask) {
   return matches.length === 1 ? matches[0] : null;
 }
 
-// Banks label cash accounts differently (Wealthfront uses "cash management"), so savings accepts a few names.
+// Banks label cash accounts differently (some use "cash management"), so savings accepts a few names.
 function isSlotKind(slot, subtype) {
   return slot === "savings" ? ["savings", "cash management", "money market"].includes(subtype) : subtype === slot;
 }
