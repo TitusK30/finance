@@ -297,7 +297,6 @@ src/loan.js              car-loan math
 src/tracking*.js         goals, tracking, tasks
 src/extra-pages.js       bills, rewards, HSA, PTO, car loan pages
 relay/worker.mjs         Cloudflare Worker (set ALLOWED_ORIGIN as a variable)
-relay/wrangler.toml      optional: deploy with `npx wrangler deploy` instead of pasting
 finance_settings.example.json   fake data showing the file format
 ```
 
