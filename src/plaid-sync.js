@@ -75,14 +75,20 @@ function applyRefresh(settings, refresh, todayText, pendingTotalsByAccount = {})
   const credits = refresh.accounts.filter((account) => account.type === "credit");
 
   for (const slot of ["checking", "savings"]) {
-    const account = findDepositAccount(slot, deposits, updated.account_masks[slot]);
-    const candidates = deposits.filter((candidate) => isSlotKind(slot, candidate.subtype));
+    let candidates = deposits.filter((candidate) => isSlotKind(slot, candidate.subtype));
+    let account = findDepositAccount(slot, deposits, updated.account_masks[slot]);
+    // Some banks label a savings-like cash account "checking". If nothing is labelled savings, any deposit account
+    // that is not your checking can be your savings: remembered by its last digits, or asked about on a manual refresh.
+    if (slot === "savings" && !account && candidates.length === 0) {
+      candidates = deposits.filter((candidate) => candidate.mask !== updated.account_masks.checking);
+      account = candidates.find((candidate) => candidate.mask === updated.account_masks.savings) || null;
+    }
     if (account) {
       updated.account_masks[slot] = account.mask;
       updated.starting_balances[slot + "_balance"] = account.available ?? account.current;
       if (slot === "checking") updated.starting_balances.as_of_date = todayText;
       result.changed.push(slot);
-    } else if (candidates.length > 1) {
+    } else if (candidates.length > 1 || (slot === "savings" && candidates.length === 1)) {
       result.needChoice.push({ label: "your " + slot, maskGroup: "account_masks", slot, candidates });
     }
   }
