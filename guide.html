@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finance OS – Set-up guide</title>
+<style>
+:root { --page: #0d0e11; --tile: #1a1c21; --tile2: #22252c; --text: #ececf0; --muted: #8c909b; --accent: #5aa2ff; --track: #2c2f37; --good: #4ade80; --warn: #fbbf24; --line: #2a2d35; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: #08090b; color: var(--text); font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(90% 50% at 50% 0%, color-mix(in srgb, var(--glow, #5aa2ff) 20%, transparent), transparent 70%); transition: background 0.8s ease; }
+main { max-width: 520px; margin: 0 auto; padding: 20px 16px 90px; }
+h1 { font-size: 26px; margin: 4px 0 4px; letter-spacing: -0.4px; }
+.sub { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+
+/* progress */
+.hero { background: var(--tile); border-radius: 20px; padding: 16px; margin-bottom: 14px; }
+.hero-top { display: flex; align-items: center; gap: 14px; }
+.ring { --p: 0; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: conic-gradient(var(--good) calc(var(--p) * 1%), var(--track) 0); transition: background 0.4s; }
+.ring span { width: 54px; height: 54px; border-radius: 50%; background: var(--tile); display: grid; place-items: center; font-weight: 700; font-size: 16px; }
+.hero-title { font-weight: 700; font-size: 17px; }
+.hero-note { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.badge { background: var(--tile2); border-radius: 14px; padding: 10px 4px; text-align: center; font-size: 11.5px; color: var(--muted); transition: all 0.4s; }
+.badge .emoji { display: block; font-size: 22px; filter: grayscale(1) opacity(0.45); transition: all 0.4s; margin-bottom: 3px; }
+.badge.on { color: var(--text); background: color-mix(in srgb, var(--good) 16%, var(--tile2)); transform: translateY(-2px); }
+.badge.on .emoji { filter: none; }
+
+/* your details */
+.details { background: var(--tile); border-radius: 20px; padding: 16px; margin-bottom: 14px; }
+.details h2 { font-size: 16px; margin: 0 0 2px; }
+.details p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+.field { display: block; margin-bottom: 10px; }
+.field span { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.field input { width: 100%; background: var(--page); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 16px; }
+.field input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* parts */
+.part-title { display: flex; align-items: baseline; justify-content: space-between; margin: 22px 4px 8px; }
+.part-title b { font-size: 18px; }
+.part-title span { color: var(--muted); font-size: 13px; }
+
+/* steps */
+.step { background: var(--tile); border-radius: 20px; margin-bottom: 10px; overflow: hidden; border: 1px solid transparent; transition: border-color 0.3s; }
+.step.open { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.step.done { border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.step-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px; background: none; text-align: left; }
+.num { width: 34px; height: 34px; border-radius: 50%; background: var(--track); display: grid; place-items: center; font-weight: 700; flex: none; transition: all 0.3s; }
+.step.open .num { background: var(--accent); color: #fff; }
+.step.done .num { background: var(--good); color: #052e16; }
+.step-title { flex: 1; font-weight: 600; font-size: 16px; line-height: 1.25; }
+.step-meta { color: var(--muted); font-size: 12.5px; display: block; font-weight: 400; margin-top: 2px; }
+.chev { color: var(--muted); transition: transform 0.25s; }
+.step.open .chev { transform: rotate(90deg); }
+.step-body { display: none; padding: 0 14px 14px; animation: slide 0.25s ease; }
+.step.open .step-body { display: block; }
+@keyframes slide { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.todo { display: flex; gap: 12px; align-items: flex-start; padding: 11px 12px; border-radius: 14px; background: var(--tile2); margin-bottom: 8px; width: 100%; text-align: left; line-height: 1.45; font-size: 15px; }
+.box { width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--muted); flex: none; margin-top: 1px; display: grid; place-items: center; color: transparent; font-size: 15px; font-weight: 800; transition: all 0.2s; }
+.todo.checked .box { background: var(--good); border-color: var(--good); color: #052e16; }
+.todo.checked .txt { color: var(--muted); }
+.txt b { color: #fff; }
+.fill { color: var(--accent); font-weight: 600; word-break: break-all; }
+.fill.empty { color: var(--warn); }
+.check { margin: 2px 0 8px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--good) 12%, var(--tile)); font-size: 14px; line-height: 1.45; }
+.check b { color: var(--good); }
+.tool { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 8px; }
+.btn { background: var(--accent); color: #fff; font-weight: 600; padding: 11px 16px; border-radius: 12px; font-size: 14.5px; text-decoration: none; display: inline-block; }
+.btn.ghost { background: var(--track); color: var(--text); }
+.btn:active { transform: scale(0.97); }
+.key-out { width: 100%; background: var(--page); border: 1px dashed var(--muted); border-radius: 12px; padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; color: var(--good); display: none; margin-bottom: 8px; }
+.next-row { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+/* finish + toast */
+.finish { display: none; text-align: center; background: color-mix(in srgb, var(--good) 14%, var(--tile)); border-radius: 20px; padding: 22px 16px; margin-top: 16px; }
+.finish.show { display: block; animation: slide 0.4s ease; }
+.finish h2 { margin: 0 0 6px; }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 30px); background: #fff; color: #111; padding: 11px 18px; border-radius: 22px; font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 5; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.reset { display: block; margin: 26px auto 0; background: none; color: var(--muted); font-size: 13px; text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Set up Finance OS</h1>
+  <p class="sub">Follow the steps in order. Tick each box as you go. Your progress is saved on this phone.</p>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div class="ring" id="ring"><span id="ring-text">0%</span></div>
+      <div><div class="hero-title" id="hero-title">Let's begin</div><div class="hero-note" id="hero-note">Part 1 takes about 15 minutes.</div></div>
+    </div>
+    <div class="badges" id="badges"></div>
+  </div>
+
+  <div class="details">
+    <h2>Your details</h2>
+    <p>Type these once. They fill in every link and value below. (They stay in this browser.)</p>
+    <label class="field"><span>Your GitHub username</span><input id="in-user" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="for example: janedoe"></label>
+    <label class="field"><span>Your copy's name (leave as finance unless you renamed it)</span><input id="in-repo" autocapitalize="off" autocorrect="off" spellcheck="false" value="finance"></label>
+    <label class="field"><span>Your relay address (you get this in Part 2, step 9)</span><input id="in-relay" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://finance-relay.yourname.workers.dev"></label>
+  </div>
+
+  <div id="steps"></div>
+
+  <div class="finish" id="finish">
+    <h2>You're all set 🎉</h2>
+    <div>Finance OS is live on your phone with your real bank data. Open it from your Home Screen any time.</div>
+  </div>
+  <button class="reset" id="reset">Start over</button>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- the steps ----------
+// Tokens like {{app}} are filled from "Your details". Item types: text (default), copy (a copy button), widget.
+const PARTS = [
+  { id: 1, title: "Part 1 · Get the app on your phone", time: "about 15 minutes" },
+  { id: 2, title: "Part 2 · Turn on live bank data", time: "1 to 2 hours, optional" },
+];
+
+const STEPS = [
+  // ---------------- PART 1 ----------------
+  { part: 1, title: "Create your GitHub account", time: "5 min", items: [
+    { t: "Go to <b>github.com</b> and sign up (skip if you already have an account). Remember your username, then type it in <b>Your details</b> above." },
+    { t: "Turn on two-factor sign-in: <b>Settings → Password and authentication → Two-factor authentication</b>, and follow the prompts." },
+    { t: "Use a password manager for every password in this guide (the iPhone Passwords app works)." },
+  ]},
+  { part: 1, title: "Make your own copy of the app", time: "2 min", items: [
+    { t: "Open the original code in Safari or a browser:", link: "https://github.com/TitusK30/finance", label: "Open the Finance OS code" },
+    { t: "Tap <b>Fork</b>, then <b>Create fork</b>. Keep the name <b>finance</b>. Your copy must stay <b>public</b>." },
+  ], check: "You should now see <b>{{user}}/{{repo}}</b> at the top of the page." },
+  { part: 1, title: "Publish it as your own website", time: "3 min", items: [
+    { t: "In your copy, open <b>Settings → Pages</b>." },
+    { t: "Under <b>Source</b> choose <b>Deploy from a branch</b>. Set the branch to <b>main</b> and the folder to <b>/ (root)</b>, then tap <b>Save</b>." },
+    { t: "Wait 2 minutes, then open your app address:", linkToken: "app", label: "Open my app" },
+  ], check: "You should see Finance OS with a <b>Welcome</b> card. Your app address is <b class='fill'>{{app}}</b>." },
+  { part: 1, title: "Put the app on your Home Screen", time: "1 min", items: [
+    { t: "On your iPhone open your app address <b>in Safari</b> (not Chrome):", copyToken: "app", label: "Copy app address" },
+    { t: "Tap the <b>Share</b> button, then <b>Add to Home Screen</b>, then <b>Add</b>." },
+    { t: "From now on open Finance OS from your Home Screen icon." },
+  ]},
+  { part: 1, title: "Run the guided set-up in the app", time: "5 min", items: [
+    { t: "Open the app. On the <b>Welcome</b> card tap <b>Set up in the app</b>." },
+    { t: "Answer one question per screen: how often you are paid, your take-home pay, your checking balance, your lowest balance, your credit cards (limit, statement day, due day), bills, subscriptions. Use <b>Skip</b> for anything you do not have." },
+    { t: "Open <b>Menu → Settings → Set / change PIN</b> and choose a 4-digit PIN." },
+  ], check: "Home now shows your balance, your forecast, and a countdown for each card. <b>Part 1 is done.</b> You can stop here and type balances in by hand, or keep going for live bank data.", milestone: "app" },
+
+  // ---------------- PART 2 ----------------
+  { part: 2, title: "Create your Cloudflare account", time: "5 min", items: [
+    { t: "Go to <b>cloudflare.com</b> and sign up for the <b>free</b> plan." },
+    { t: "Turn on two-factor sign-in: <b>My Profile → Authentication</b>." },
+  ]},
+  { part: 2, title: "Create the relay and paste its code", time: "10 min", items: [
+    { t: "In Cloudflare open <b>Workers &amp; Pages → Create → Start with Hello World</b>. Name it <b>finance-relay</b> and tap <b>Deploy</b>." },
+    { t: "Tap <b>Edit code</b>. Make sure the <b>newest version</b> is selected, or the editor will not accept typing." },
+    { t: "Copy the relay code from your copy of the app. This button fetches it for you:", widget: "copycode" },
+    { t: "In the editor choose <b>Select All</b> (on iPhone use the editor menu or Command Palette), then <b>Paste</b> over everything." },
+    { t: "Tap <b>Deploy</b> (not Save version)." },
+  ]},
+  { part: 2, title: "Give the relay its storage", time: "5 min", items: [
+    { t: "In Cloudflare open <b>Storage &amp; Databases → KV → Create</b>. Name it <b>finance-tokens</b> and tap <b>Add</b>." },
+    { t: "Open your <b>finance-relay</b> Worker, then <b>Settings → Bindings → Add → KV namespace</b>." },
+    { t: "For <b>Variable name</b> type exactly <b>TOKENS</b> (capital letters). Pick <b>finance-tokens</b> and save." },
+    { t: "Tap <b>Deploy</b>." },
+  ]},
+  { part: 2, title: "Save your relay address", time: "2 min", items: [
+    { t: "On the Worker's page find its address. It ends in <b>.workers.dev</b>." },
+    { t: "Paste it into <b>Your relay address</b> at the top of this page (no slash at the end)." },
+  ], check: "Your Plaid redirect address is <b class='fill'>{{redirect}}</b>. You'll use it in the next step." },
+  { part: 2, title: "Create your Plaid account and keys", time: "20 min", items: [
+    { t: "Go to <b>plaid.com</b> and sign up. Turn on two-factor in your account security settings." },
+    { t: "Plaid may ask you to finish a short application before real banks work. Until it is approved, use <b>Sandbox</b> (fake banks) to try everything." },
+    { t: "In the Plaid dashboard open <b>Developers → Keys</b>. Write down your <b>client ID</b> and the <b>secret for the environment you will use</b> (Sandbox or Production) in your password manager." },
+    { t: "Open <b>Developers → API → Allowed redirect URIs</b> and add exactly this address, then save:", copyToken: "redirect", label: "Copy redirect address" },
+    { t: "Keep Plaid's products on <b>Balance, Transactions, Liabilities and Investments</b>." },
+  ], check: "Never paste the secret into chat, email or screenshots." },
+  { part: 2, title: "Add your secrets to the relay", time: "10 min", items: [
+    { t: "Make your app key (a long random password). Tap the button, copy it, and store it in your password manager now:", widget: "keymaker" },
+    { t: "In Cloudflare open your Worker → <b>Settings → Variables and Secrets → Add</b>. Add these five, one at a time:" },
+    { t: "<b>PLAID_CLIENT_ID</b> — type <b>Secret</b> — your Plaid client ID" },
+    { t: "<b>PLAID_SECRET</b> — type <b>Secret</b> — your Plaid secret for Sandbox or Production" },
+    { t: "<b>APP_KEY</b> — type <b>Secret</b> — the app key you just made" },
+    { t: "<b>PLAID_ENV</b> — type <b>Text</b> — <b>sandbox</b> or <b>production</b> (it must match the secret you used)", },
+    { t: "<b>ALLOWED_ORIGIN</b> — type <b>Text</b> —", copyToken: "origin", label: "Copy" },
+    { t: "Type or paste each value with <b>no spaces</b> before or after, then tap <b>Deploy</b>." },
+    { t: "Open your relay address in a browser:", linkToken: "relay", label: "Open my relay" },
+  ], check: "You should see <b>{\"error\":\"no\"}</b>. That means the relay is running and locked.", milestone: "relay" },
+  { part: 2, title: "Connect the app to the relay", time: "3 min", items: [
+    { t: "Open the Finance OS app, then <b>Menu → Settings → Connect to relay</b>." },
+    { t: "Paste your relay address, tap OK, then enter your app key and tap OK." },
+  ], check: "A green message says <b>Connected and working</b>." },
+  { part: 2, title: "Link your banks", time: "10 min per bank", items: [
+    { t: "Open this page in <b>Safari</b> (not the Home Screen app):", linkToken: "link", label: "Open the bank link page" },
+    { t: "Enter your <b>app key</b>, type a short name for the login (such as your bank's name), and choose the type: <b>Bank or credit card</b> for checking, savings and cards, or <b>Retirement / investments</b> for a 401(k) or IRA." },
+    { t: "Tap <b>Link</b>, pick your bank, and sign in. If your bank asks for an <b>app-specific password</b>, create one in your bank's security settings and use it instead of your normal password." },
+    { t: "Wait for <b>Linked. You can close this page.</b>, then repeat for each login. Link only what you will use." },
+    { t: "Practising in Sandbox? Plaid's test bank login is <b>user_good</b> and <b>pass_good</b>." },
+  ]},
+  { part: 2, title: "Refresh and check your numbers", time: "3 min", items: [
+    { t: "Open the Finance OS app and tap the <b>↻</b> button at the top right." },
+    { t: "If it asks <b>Which one is your savings?</b>, type the number of your savings account." },
+    { t: "Open <b>Menu → Settings → Show linked accounts</b> to see everything that is linked." },
+  ], check: "Your checking, cards, savings and retirement now fill in by themselves, and the app refreshes whenever you open it.", milestone: "banks" },
+];
+
+const BADGES = [
+  { id: "app", emoji: "📱", label: "App on phone" },
+  { id: "relay", emoji: "☁️", label: "Relay live" },
+  { id: "banks", emoji: "🏦", label: "Banks linked" },
+  { id: "all", emoji: "🏆", label: "All set" },
+];
+
+// ---------- saved state ----------
+let madeKey = "";
+const STORE = "finance_guide_v1";
+let state = { checked: {}, details: { repo: "finance" }, open: 0 };
+try { state = Object.assign(state, JSON.parse(localStorage.getItem(STORE) || "{}")); } catch (error) {}
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (error) {} }
+
+// ---------- values from "Your details" ----------
+function clean(text) { return String(text || "").trim().replace(/\/+$/, ""); }
+function values() {
+  const user = clean(state.details.user).toLowerCase(), repo = clean(state.details.repo) || "finance", relay = clean(state.details.relay);
+  return {
+    user, repo, relay,
+    origin: user ? `https://${user}.github.io` : "",
+    app: user ? `https://${user}.github.io/${repo}/` : "",
+    redirect: relay ? `${relay}/link` : "",
+    link: relay ? `${relay}/link` : "",
+    rawcode: user ? `https://raw.githubusercontent.com/${user}/${repo}/main/relay/worker.mjs` : "",
+  };
+}
+const PLACEHOLDERS = { user: "your-username", repo: "finance", app: "https://your-username.github.io/finance/", origin: "https://your-username.github.io", relay: "your relay address", redirect: "your relay address/link", link: "your relay address/link" };
+function fillTokens(html) {
+  const v = values();
+  return html.replace(/\{\{(\w+)\}\}/g, (_, key) => v[key] ? `<span class="fill">${v[key]}</span>` : `<span class="fill empty">${PLACEHOLDERS[key] || key}</span>`);
+}
+
+// ---------- drawing ----------
+const stepsBox = document.getElementById("steps");
+function itemId(stepIndex, itemIndex) { return stepIndex + "-" + itemIndex; }
+function stepDone(stepIndex) { return STEPS[stepIndex].items.every((_, itemIndex) => state.checked[itemId(stepIndex, itemIndex)]); }
+
+function itemHtml(step, stepIndex, item, itemIndex) {
+  const id = itemId(stepIndex, itemIndex);
+  const checked = state.checked[id] ? " checked" : "";
+  let extra = "";
+  if (item.link) extra += `<div class="tool"><a class="btn" href="${item.link}" target="_blank" rel="noopener">${item.label}</a></div>`;
+  if (item.linkToken) extra += `<div class="tool"><a class="btn" data-open="${item.linkToken}" href="#">${item.label}</a></div>`;
+  if (item.copyToken) extra += `<div class="tool"><button class="btn ghost" data-copy="${item.copyToken}">${item.label}</button></div>`;
+  if (item.widget === "copycode") extra += `<div class="tool"><button class="btn" id="copy-code">Copy the relay code</button></div>`;
+  if (item.widget === "keymaker") extra += `<div class="tool"><button class="btn" id="make-key">Make my app key</button><button class="btn ghost" id="copy-key" style="display:none">Copy key</button></div><div class="key-out" id="key-out"></div>`;
+  return `<div><button class="todo${checked}" data-todo="${id}"><span class="box">✓</span><span class="txt">${fillTokens(item.t)}</span></button>${extra}</div>`;
+}
+
+function render() {
+  let html = "", lastPart = 0;
+  STEPS.forEach((step, stepIndex) => {
+    if (step.part !== lastPart) {
+      const part = PARTS.find((p) => p.id === step.part);
+      html += `<div class="part-title"><b>${part.title}</b><span>${part.time}</span></div>`;
+      lastPart = step.part;
+    }
+    const done = stepDone(stepIndex), open = state.open === stepIndex;
+    const checkedCount = step.items.filter((_, itemIndex) => state.checked[itemId(stepIndex, itemIndex)]).length;
+    html += `<div class="step${open ? " open" : ""}${done ? " done" : ""}" data-step="${stepIndex}">
+      <button class="step-head" data-head="${stepIndex}"><span class="num">${done ? "✓" : stepIndex + 1}</span>
+        <span class="step-title">${step.title}<span class="step-meta">${step.time} · ${checkedCount} of ${step.items.length} done</span></span><span class="chev">›</span></button>
+      <div class="step-body">
+        ${step.items.map((item, itemIndex) => itemHtml(step, stepIndex, item, itemIndex)).join("")}
+        ${step.check ? `<div class="check"><b>You'll know it worked:</b> ${fillTokens(step.check)}</div>` : ""}
+        ${stepIndex < STEPS.length - 1 ? `<div class="next-row"><button class="btn ghost" data-next="${stepIndex}">${done ? "Next step →" : "Skip to next →"}</button></div>` : ""}
+      </div></div>`;
+  });
+  stepsBox.innerHTML = html;
+  if (madeKey && document.getElementById("key-out")) {
+    const out = document.getElementById("key-out"); out.textContent = madeKey; out.style.display = "block";
+    document.getElementById("copy-key").style.display = "inline-block"; document.getElementById("make-key").textContent = "Make a different key";
+  }
+  showProgress();
+}
+
+function showProgress() {
+  const total = STEPS.reduce((sum, step) => sum + step.items.length, 0);
+  const finished = Object.keys(state.checked).filter((id) => state.checked[id]).length;
+  const percent = Math.round((finished / total) * 100);
+  document.getElementById("ring").style.setProperty("--p", percent);
+  document.getElementById("ring-text").textContent = percent + "%";
+  const stepsDone = STEPS.filter((_, index) => stepDone(index)).length;
+  document.getElementById("hero-title").textContent = percent === 100 ? "All done" : stepsDone === 0 ? "Let's begin" : `${stepsDone} of ${STEPS.length} steps done`;
+  document.getElementById("hero-note").textContent = percent === 100 ? "Nice work." : STEPS.findIndex((_, i) => !stepDone(i)) < 5 ? "Part 1 takes about 15 minutes." : "Part 2 is optional: live bank data.";
+  const unlocked = new Set(STEPS.filter((step, index) => step.milestone && stepDone(index)).map((step) => step.milestone));
+  if (percent === 100) unlocked.add("all");
+  document.getElementById("badges").innerHTML = BADGES.map((badge) => `<div class="badge${unlocked.has(badge.id) ? " on" : ""}"><span class="emoji">${badge.emoji}</span>${badge.label}</div>`).join("");
+  document.body.style.setProperty("--glow", percent === 100 ? "#4ade80" : percent > 50 ? "#fbbf24" : "#5aa2ff");
+  document.getElementById("finish").classList.toggle("show", percent === 100);
+}
+
+// ---------- helpers ----------
+function toast(text) {
+  const box = document.getElementById("toast");
+  box.textContent = text; box.classList.add("show");
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => box.classList.remove("show"), 1800);
+}
+async function copyText(text, doneMessage) {
+  try { await navigator.clipboard.writeText(text); toast(doneMessage || "Copied"); return true; }
+  catch (error) {
+    const area = document.createElement("textarea"); area.value = text; document.body.appendChild(area); area.select();
+    let worked = false; try { worked = document.execCommand("copy"); } catch (e) {}
+    area.remove(); toast(worked ? (doneMessage || "Copied") : "Could not copy. Select it and copy by hand."); return worked;
+  }
+}
+function makeKey() {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+// ---------- clicks ----------
+document.addEventListener("click", async (event) => {
+  const target = event.target.closest("button, a");
+  if (!target) return;
+  if (target.dataset.head !== undefined) { const index = Number(target.dataset.head); state.open = state.open === index ? -1 : index; save(); render(); return; }
+  if (target.dataset.next !== undefined) { state.open = Number(target.dataset.next) + 1; save(); render(); document.querySelector(".step.open")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (target.dataset.todo) {
+    state.checked[target.dataset.todo] = !state.checked[target.dataset.todo];
+    const stepIndex = Number(target.dataset.todo.split("-")[0]);
+    if (stepDone(stepIndex) && state.checked[target.dataset.todo] && stepIndex < STEPS.length - 1) { toast("Step done ✓"); }
+    save(); render(); return;
+  }
+  if (target.dataset.open) {
+    event.preventDefault();
+    const url = values()[target.dataset.open];
+    if (!url) { toast("Fill in your details first"); return; }
+    window.open(url, "_blank", "noopener"); return;
+  }
+  if (target.dataset.copy) {
+    const value = values()[target.dataset.copy];
+    if (!value) { toast("Fill in your details first"); return; }
+    copyText(value); return;
+  }
+  if (target.id === "copy-code") {
+    const url = values().rawcode;
+    if (!url) { toast("Type your GitHub username first"); return; }
+    target.textContent = "Fetching...";
+    try {
+      const response = await fetch(url); if (!response.ok) throw new Error("not found");
+      const ok = await copyText(await response.text(), "Relay code copied");
+      target.textContent = ok ? "Copied. Paste it in Cloudflare" : "Copy the relay code";
+    } catch (error) { target.textContent = "Copy the relay code"; toast("Could not fetch it. Check your username and that your copy is public."); }
+    return;
+  }
+  if (target.id === "make-key") {
+    madeKey = makeKey();
+    const out = document.getElementById("key-out"); out.textContent = madeKey; out.style.display = "block";
+    document.getElementById("copy-key").style.display = "inline-block"; target.textContent = "Make a different key"; return;
+  }
+  if (target.id === "copy-key") { copyText(madeKey, "Key copied. Save it in your password manager"); return; }
+  if (target.id === "reset") { if (confirm("Clear your progress and start over?")) { state = { checked: {}, details: state.details, open: 0 }; save(); render(); } }
+});
+
+// "Your details" boxes
+for (const [id, key] of [["in-user", "user"], ["in-repo", "repo"], ["in-relay", "relay"]]) {
+  const box = document.getElementById(id);
+  if (state.details[key]) box.value = state.details[key];
+  box.addEventListener("input", () => { state.details[key] = box.value; save(); render(); });
+}
+render();
+</script>
+</body>
+</html>
