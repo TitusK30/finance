@@ -137,29 +137,40 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 
 ---
 
-## A second phone
+## Sharing with a spouse or partner
 
-A second phone can show the same bank data without linking anything again (no extra Plaid slots used):
+Your partner can see the same accounts on their own phone without linking any bank again, so no extra Plaid slots are used. Give them three things:
 
-1. Open the same app address in Safari and add it to the Home Screen.
-2. Connect it with the **same relay address and app key**: Settings → Connect to relay.
-3. Bring your set-up across: on the first phone use **Settings → Export backup**, send the file (AirDrop or Files, not email), and on the second use **Settings → Load settings file**. Or run Set up there by hand.
-4. Tap **↻**.
+| Give them | Where you find it |
+|---|---|
+| **The app address** | Your GitHub Pages address, like `https://yourname.github.io/finance/` |
+| **The relay address** | Your Cloudflare Worker's `.workers.dev` address |
+| **The app key** | Your password manager. Hand it over in person or through a password manager, never by text or email |
 
-Bank-fed numbers (balances, statements, spending) match on both phones. Things typed in (tasks, goals, credit scores, PTO, edits) stay on the phone where you typed them. Only share the app key with someone you would hand your bank statements to.
+Then on their phone:
+
+1. Open the app address in Safari and add it to the Home Screen.
+2. **Settings → Connect to relay**: enter the relay address and the app key. The app tests the connection.
+3. Bring your set-up across: on **your** phone use **Settings → Export backup**. This saves a JSON file. Send it to them privately (AirDrop or the Files app, not email).
+4. On **their** phone use **Settings → Load settings file** and pick that file.
+5. Tap **↻**. Their balances, statements and spending fill in from the same banks.
+
+Bank-fed numbers (balances, statements, spending) match on both phones. Things typed in (tasks, goals, credit scores, PTO, edits) stay on the phone where you typed them, and a change to bills or cards on one phone has to be repeated on the other (or send a fresh backup). Only share the app key with someone you would hand your bank statements to.
 
 ---
 
-<details>
-<summary><b>Optional: a settings file instead of the in-app Set up</b></summary>
+## Prefer a settings file to the in-app Set up?
 
-Most people never need this. It is for anyone who would rather type everything once on a computer, or move set-up between phones.
+You never have to use the in-app Set up. If you would rather fill in one file on a computer and load it, you can:
 
-1. Copy `finance_settings.example.json` to `finance_settings.json` and replace the fake values. It shows every field. Leave out anything you don't use.
+1. Copy `finance_settings.example.json` to `finance_settings.json` and replace the fake values. It shows every field; leave out anything you don't use.
 2. Send it to your phone privately (AirDrop or the Files app, not email).
 3. In the app: **Settings → Load settings file**.
 
-Loading a file only changes what it contains. It never wipes balances, statements, tasks, goals or tab choices already on the phone. Dates are `YYYY-MM-DD`; card expiry is `YYYY-MM`. Never commit `finance_settings.json` to GitHub; the included `.gitignore` leaves it out.
+The same button loads a backup made with **Export backup**, which is how you move your set-up between phones. Loading a file only changes what it contains. It never wipes balances, statements, tasks, goals or tab choices already on the phone. Dates are `YYYY-MM-DD`; card expiry is `YYYY-MM`. Never commit `finance_settings.json` to GitHub; the included `.gitignore` leaves it out.
+
+<details>
+<summary><b>Every field the settings file can hold</b></summary>
 
 | Key | What it is |
 |---|---|
