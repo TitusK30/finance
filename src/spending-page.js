@@ -119,7 +119,7 @@ function showMonthOutlook(settings) {
     </div>
     <div class="outlook-rows">
       <div class="tile-row"><span>Earned so far</span><b class="positive">${money(earnedSoFar)}</b></div>
-      <div class="tile-row"><span>${ahead.known ? `${ahead.count} more payday${ahead.count === 1 ? "" : "s"} (${money(ahead.usualPay)} each)` : "More paydays"}</span><b>+${money(ahead.amount)}</b></div>
+      <div class="tile-row"><span>${ahead.known ? `${ahead.count} more payday${ahead.count === 1 ? "" : "s"}` : "More paydays"}</span><b>+${money(ahead.amount)}</b></div>
       <div class="tile-row outlook-total"><span>Estimated earned</span><b>${money(estimatedEarned)}</b></div>
       <div class="tile-row"><span>Estimated spent, with bills still to pay</span><b>&minus;${money(estimatedSpent)}</b></div>
     </div></div>`;
