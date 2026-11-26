@@ -72,8 +72,10 @@ function paydaysAhead(settings, store, yearMonth) {
   const result = { count: 0, amount: 0, usualPay, known: Boolean(settings.paycheck) && yearMonth === todayText().slice(0, 7) };
   if (!result.known) return result;
   const lastDayOfMonth = new Date(Date.UTC(Number(yearMonth.slice(0, 4)), Number(yearMonth.slice(5, 7)), 0)).getUTCDate();
+  const paidEarly = paidEarlyPaydays(store, settings, todayText());
   for (let day = Number(todayText().slice(8, 10)) + 1; day <= lastDayOfMonth; day++) {
-    if (isPaydayOn(settings.paycheck, `${yearMonth}-${String(day).padStart(2, "0")}`)) { result.count++; result.amount += usualPay; }
+    const dateText = `${yearMonth}-${String(day).padStart(2, "0")}`;
+    if (isPaydayOn(settings.paycheck, dateText) && !paidEarly.includes(dateText)) { result.count++; result.amount += usualPay; }
   }
   return result;
 }
@@ -174,7 +176,7 @@ function showSpendingPage(settings) {
   const paydaysLeft = ahead.count;
   const expectedPayLeft = ahead.amount;
   const paydaysLine = ahead.known ? `<div class="small">${paydaysLeft} more payday${paydaysLeft === 1 ? "" : "s"} this month: ${formatMoney(earned.total + expectedPayLeft)}</div>` : "";
-  const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
+  const depositRows = earned.deposits.map((deposit) => `<div class="tile-row small"><span>${deposit.date}${deposit.pending ? " (pending)" : ""}</span><span class="positive">${formatMoney(-deposit.amount)}</span></div>`).join("");
   const earnedTile = `<details class="tile category-tile spending-accent" style="--tile-accent:var(--good)"><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
     <div class="small">${earned.count} deposit${earned.count === 1 ? "" : "s"}</div>
     ${paydaysLine}</summary>${depositRows}</details>`;

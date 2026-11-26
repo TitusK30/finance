@@ -53,6 +53,10 @@ function dueDateForCharge(card, chargeDate) {
 }
 
 // whatIfPurchases: [{ label, amount, date, paid_with: "checking" or a card key }]
+// Paydays whose paycheck already arrived early (set from the bank's deposits), so the forecast does not add it twice.
+let paidEarlyDates = [];
+function setPaidEarlyDates(dates) { paidEarlyDates = dates || []; }
+
 function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   const startDate = settings.starting_balances.as_of_date;
   const lastDate = addDays(startDate, horizonDays);
@@ -112,7 +116,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
     const events = [];
     const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay();
 
-    if (isPaydayOn(settings.paycheck, date)) {
+    if (isPaydayOn(settings.paycheck, date) && !paidEarlyDates.includes(date)) {
       const paycheckAmount = settings.paycheck.one_time_amount_overrides[date] ?? settings.paycheck.usual_take_home_amount;
       events.push({ label: "Paycheck", amount: paycheckAmount });
     }
@@ -165,4 +169,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };
+if (typeof module !== "undefined") module.exports = { setPaidEarlyDates, buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };

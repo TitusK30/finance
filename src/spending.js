@@ -1,3 +1,5 @@
+if (typeof require !== "undefined" && typeof isPaydayOn === "undefined") { var { isPaydayOn } = require("./forecast.js"); }
+
 // Spending math: keeps the phone's copy of your transactions up to date and groups them by month and category.
 // Pure math. It never talks to the network. Plaid sends amounts as positive = money out, negative = money in.
 
@@ -102,7 +104,7 @@ function spendingCharges(store) {
 function payDeposits(store, settings, isWanted) {
   const hintWords = ((settings && settings.paycheck && settings.paycheck.deposit_text_contains) || []).map((word) => String(word).toLowerCase());
   return Object.values(store.transactions).filter((transaction) => {
-    if (transaction.amount >= 0 || transaction.pending || !isWanted(transaction)) return false;
+    if (transaction.amount >= 0 || !isWanted(transaction)) return false; // a pending paycheck counts: it is already in the bank's available balance
     const account = store.accounts[transaction.account_id];
     if (!account || account.type !== "depository") return false;
     const text = (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase();
@@ -114,6 +116,34 @@ function payDeposits(store, settings, isWanted) {
 function earnedInMonth(store, yearMonth, settings) {
   const deposits = payDeposits(store, settings, (transaction) => transaction.date.startsWith(yearMonth));
   return { total: roundCents(-deposits.reduce((sum, transaction) => sum + transaction.amount, 0)), count: deposits.length, deposits };
+}
+
+
+// Which scheduled paydays already have their deposit? Each recent pay deposit is matched to the closest payday that is
+// up to 4 days before it or up to 6 days after it, so a paycheck sent early (before a holiday, say) is matched to the
+// payday it is for. Returns { "2026-11-27": deposit, ... }.
+function paydayDepositMatches(store, settings, today) {
+  const matches = {};
+  if (!settings || !settings.paycheck) return matches;
+  const shift = (dateText, days) => new Date(Date.parse(dateText + "T00:00:00Z") + days * 86400000).toISOString().slice(0, 10);
+  const deposits = payDeposits(store, settings, (transaction) => transaction.date >= shift(today, -24) && transaction.date <= today).reverse();
+  const paydays = [];
+  for (let offset = -28; offset <= 8; offset++) if (isPaydayOn(settings.paycheck, shift(today, offset))) paydays.push(shift(today, offset));
+  for (const deposit of deposits) {
+    let best = null, bestGap = Infinity;
+    for (const payday of paydays) {
+      const gap = Math.round((Date.parse(payday + "T00:00:00Z") - Date.parse(deposit.date + "T00:00:00Z")) / 86400000);
+      if (matches[payday] || gap < -4 || gap > 6) continue;
+      if (Math.abs(gap) < bestGap) { best = payday; bestGap = Math.abs(gap); }
+    }
+    if (best) matches[best] = deposit;
+  }
+  return matches;
+}
+
+// Upcoming paydays (after today) whose paycheck has already arrived, so they must not be counted again.
+function paidEarlyPaydays(store, settings, today) {
+  return Object.keys(paydayDepositMatches(store, settings, today)).filter((payday) => payday > today);
 }
 
 // The most common pay deposit amount the bank has shown (a bonus or overtime check is a one-off, so it loses).
@@ -229,4 +259,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
