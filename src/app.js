@@ -158,7 +158,9 @@ function showCalendar(forecast, settings) {
   });
   // First row is today: the balance the bank shows now, plus any typed-in paycheck the balance already holds.
   const todayParts = new Date(settings.starting_balances.as_of_date + "T00:00:00Z");
-  const alreadyInBalance = expectedPaychecks(loadTransactionStore(), settings, todayText()).list.filter((entry) => entry.in_balance)
+  const depositsToday = payDeposits(loadTransactionStore(), settings, (transaction) => transaction.date === todayText())
+    .map((deposit) => `<div class="timeline-event"><span class="timeline-icon timeline-in">&#8593;</span><span class="timeline-label">Paycheck${deposit.pending ? " (pending)" : ""} \u00b7 already in your balance</span><b class="positive">${formatMoney(-deposit.amount)}</b></div>`).join("");
+  const alreadyInBalance = depositsToday + expectedPaychecks(loadTransactionStore(), settings, todayText()).list.filter((entry) => entry.in_balance)
     .map((entry) => `<div class="timeline-event"><span class="timeline-icon timeline-in">&#8593;</span><span class="timeline-label">Paycheck (already in your balance)</span><b class="positive">${formatMoney(entry.amount)}</b></div>`).join("");
   dayBlocks.unshift(`<div class="timeline-day"><div class="timeline-date"><span class="small">${todayParts.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}</span><b>${todayParts.getUTCDate()}</b><span class="small">${todayParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}</span></div>
       <div class="timeline-dot"></div>
