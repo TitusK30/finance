@@ -119,7 +119,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 | **Bills** | Bills from checking and subscriptions on cards, with one monthly total |
 | **Goals** | Savings goals with a finish-by-date planner |
 | **Planner** | Overtime planner and a what-if simulator |
-| **Tasks, HSA, PTO, Car loan** | Dated to-dos, HSA and PTO numbers, loan payoff |
+| **Tasks, HSA, PTO, Car loan** | Dated to-dos, HSA and PTO numbers (the HSA page also takes money you expect to put in or pay out on a date, and shows the balance after each), loan payoff |
 | **Set up** | Every setting, in sections (Basics, Paycheck, Cards, Bills and more) |
 | **Settings** | Load a settings file, export a backup, back up and restore spending history, update the app, refresh, connect to the relay, show linked accounts, undo the last refresh, PIN |
 

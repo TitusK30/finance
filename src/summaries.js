@@ -67,11 +67,26 @@ function hsaMonthsUntilBillPaidOff(hsa) {
   return Math.ceil(hsa.medical_bill_remaining / hsa.monthly_bill_payment);
 }
 
+// Money you listed on the HSA page (hsa.expected_items: [{date, amount, kind: "in" or "out", label}]) dated after today
+// and on or before throughDateText. Items dated today or earlier are not counted (they are in the balance already).
+function hsaExpectedBetween(hsa, todayDateText, throughDateText) {
+  const items = (hsa.expected_items || []).filter((item) => item.date > todayDateText && item.date <= throughDateText);
+  const sumOf = (kind) => roundMoney(items.filter((item) => item.kind === kind).reduce((sum, item) => sum + item.amount, 0));
+  return { items, inTotal: sumOf("in"), outTotal: sumOf("out") };
+}
+
+function hsaDateAfterMonths(dateText, months) {
+  const date = new Date(dateText + "T00:00:00Z");
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate())).toISOString().slice(0, 10);
+}
+
 // Balance after N months of contributions, minus bill payments until the bill is gone.
-function hsaBalanceAfterMonths(hsa, months) {
+// Pass today's date to also count the money you listed that lands within those months.
+function hsaBalanceAfterMonths(hsa, months, todayDateText) {
   const billPaymentsIfNoLimit = months * (hsa.monthly_bill_payment || 0);
   const billPaid = hsa.medical_bill_remaining == null ? billPaymentsIfNoLimit : Math.min(hsa.medical_bill_remaining, billPaymentsIfNoLimit);
-  return roundMoney((hsa.balance || 0) + months * (((hsa.weekly_contribution || 0) * 52) / 12) - billPaid);
+  const listed = todayDateText ? hsaExpectedBetween(hsa, todayDateText, hsaDateAfterMonths(todayDateText, months)) : { inTotal: 0, outTotal: 0 };
+  return roundMoney((hsa.balance || 0) + months * (((hsa.weekly_contribution || 0) * 52) / 12) - billPaid + listed.inTotal - listed.outTotal);
 }
 
 // ---- Credit utilization planner ----
@@ -211,5 +226,5 @@ function totalAnnualFees(settings) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
+  module.exports = { monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, hsaExpectedBetween, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
 }

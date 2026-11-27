@@ -208,11 +208,42 @@ function showCreditPage(settings) {
   document.getElementById("page-credit").innerHTML = `<h2>Credit utilization</h2>${noCardsYet}${cardTiles}${otherCardsTile}`;
 }
 
+let hsaMessage = ""; // one-time confirmation shown after adding money to the list
+let hsaFormOpen = false;
+
+// The money you listed: each row shows what the HSA holds right after it. Swipe a row to delete it.
+function hsaExpectedHtml(hsa) {
+  const today = todayText();
+  const items = (hsa.expected_items || []).map((item, position) => ({ ...item, position })).sort((a, b) => (a.date < b.date ? -1 : 1));
+  let running = hsa.balance || 0;
+  const rows = items.map((item) => {
+    const isOut = item.kind === "out";
+    const counted = item.date > today;
+    if (counted) running = Math.round((running + (isOut ? -item.amount : item.amount)) * 100) / 100;
+    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
+      <div class="expected-body"><b>${escapeHtml(item.label || (isOut ? "Money going out" : "Money coming in"))}</b>
+        <div class="small">${shortMonthDay(item.date)}${counted ? ` \u00b7 HSA then ${formatMoney(running)}` : " \u00b7 date has passed, not counted"}</div></div>
+      <b class="${isOut ? "negative" : "positive"}">${isOut ? "-" : "+"}${formatMoney(item.amount)}</b>
+      <button class="remove-link" data-remove-hsa-item="${item.position}">remove</button></div>`;
+  }).join("");
+  const totals = hsaExpectedBetween(hsa, today, "9999-12-31");
+  const summary = totals.items.length ? `<div class="tile hsa-after"><div class="small">HSA after everything you listed</div><div class="big-number">${formatMoney(Math.round(((hsa.balance || 0) + totals.inTotal - totals.outTotal) * 100) / 100)}</div>
+      <div class="small"><span class="positive">+${formatMoney(totals.inTotal)}</span> coming in \u00b7 <span class="negative">-${formatMoney(totals.outTotal)}</span> going out</div></div>` : "";
+  const form = `<details class="tile hsa-add"${hsaFormOpen ? " open" : ""}><summary>+ Add money coming in or going out</summary>
+      <div class="hsa-kind"><button class="hsa-kind-button active" data-hsa-kind="in">&#8593; Coming in</button><button class="hsa-kind-button" data-hsa-kind="out">&#8595; Going out</button></div>
+      <input id="hsa-item-label" type="text" placeholder="What is it? (employer deposit, dentist...)">
+      <div class="add-pay-grid"><input id="hsa-item-date" type="date" value="${today}"><input id="hsa-item-amount" type="number" inputmode="decimal" placeholder="Amount ($)"></div>
+      <button id="hsa-item-add">Add</button></details>`;
+  const message = hsaMessage ? `<div class="small positive hsa-message">${hsaMessage}</div>` : "";
+  hsaMessage = "";
+  return `<h3 class="hsa-heading">Money coming and going</h3>${summary}${rows || `<div class="tile small">Nothing listed yet. Add an employer deposit, a dentist visit, anything with a known date.</div>`}${form}${message}`;
+}
+
 function showHsaPage(settings) {
   const hsa = settings.hsa;
   const monthsLeft = hsaMonthsUntilBillPaidOff(hsa);
   const projectionCells = [1, 3, 6, 12].map((months) =>
-    `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months))}</b></div>`).join("");
+    `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months, todayText()))}</b></div>`).join("");
   const payoffText = monthsLeft == null ? "Set the remaining bill amount to see the payoff date." : `About ${monthsLeft} more monthly payment${monthsLeft === 1 ? "" : "s"} to pay it off.`;
   document.getElementById("page-hsa").innerHTML = `<h2>HSA${hsa.provider ? ` (${escapeHtml(hsa.provider)})` : ""}</h2>
     <div class="tile hsa-hero"><div class="small">&#129657; Balance</div><div class="huge-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div></div>
@@ -224,8 +255,37 @@ function showHsaPage(settings) {
     <div class="tile hsa-owed"><div class="small">Medical bill still owed</div><div class="big-number">${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</div>
       <div class="small">${payoffText}</div></div>
     <div class="tile"><b>Projected balance</b><div class="projection-grid">${projectionCells}</div>
-      <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA.</div></div>`;
+      <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA${(hsa.expected_items || []).length ? ", plus the money you listed below" : ""}.</div></div>
+    ${hsaExpectedHtml(hsa)}`;
 }
+
+// Add money coming in or going out on the HSA page.
+document.addEventListener("click", (event) => {
+  const kindButton = event.target.closest("[data-hsa-kind]");
+  if (kindButton) {
+    for (const button of kindButton.parentElement.children) button.classList.toggle("active", button === kindButton);
+    return;
+  }
+  const removeButton = event.target.closest("[data-remove-hsa-item]");
+  if (!event.target.closest("#hsa-item-add") && !removeButton) return;
+  event.preventDefault();
+  const settings = loadSettings();
+  settings.hsa.expected_items = settings.hsa.expected_items || [];
+  if (removeButton) {
+    settings.hsa.expected_items.splice(Number(removeButton.dataset.removeHsaItem), 1);
+  } else {
+    const kind = document.querySelector(".hsa-kind-button.active").dataset.hsaKind;
+    const date = document.getElementById("hsa-item-date").value;
+    const amount = Number(document.getElementById("hsa-item-amount").value);
+    const label = document.getElementById("hsa-item-label").value.trim();
+    if (!date || !(amount > 0)) { alert("Pick a date and type the amount."); return; }
+    settings.hsa.expected_items.push({ date, amount, kind, label });
+    hsaMessage = `Added ${escapeHtml(label || (kind === "out" ? "money going out" : "money coming in"))}: ${kind === "out" ? "-" : "+"}${formatMoney(amount)} on ${shortMonthDay(date)}.`;
+    hsaFormOpen = true;
+  }
+  saveSettings(settings);
+  showHsaPage(settings);
+});
 
 function showPtoPage(settings) {
   const blocks = [["PTO", "pto_hours", "&#127796;", "#4ade80"], ["Comp Time", "comp_time_hours", "&#128260;", "#5aa2ff"], ["Holiday Hours", "holiday_hours", "&#127876;", "#fb923c"]].map(([title, key, icon, color]) => {

@@ -571,3 +571,21 @@ html, body { overflow-x: hidden; }
 .add-pay summary::-webkit-details-marker { display: none; }
 .add-pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .add-pay button { width: 100%; margin: 0; padding: 12px; border-radius: 12px; }
+
+/* HSA: money coming and going */
+.hsa-heading { margin: 22px 0 10px; font-size: 18px; }
+#page-hsa .expected-tile .remove-link { display: none; }
+#page-hsa .expected-tile { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 16px 12px 20px; }
+#page-hsa .expected-in { box-shadow: inset 5px 0 0 var(--good); background-image: linear-gradient(135deg, color-mix(in srgb, var(--good) 11%, transparent), transparent 60%); }
+#page-hsa .expected-out { box-shadow: inset 5px 0 0 var(--bad); background-image: linear-gradient(135deg, color-mix(in srgb, var(--bad) 11%, transparent), transparent 60%); }
+#page-hsa .expected-tile > b { font-size: 16px; white-space: nowrap; }
+.hsa-after { box-shadow: inset 5px 0 0 var(--accent); background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent 65%); }
+.hsa-after .big-number { font-size: 30px; font-weight: 800; }
+.hsa-add summary { color: var(--accent); font-size: 15px; font-weight: 500; list-style: none; }
+.hsa-add summary::-webkit-details-marker { display: none; }
+.hsa-kind { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 10px; }
+.hsa-kind-button { margin: 0; padding: 12px 8px; border-radius: 12px; background: var(--bar-track); color: var(--muted-text); font-size: 15px; }
+.hsa-kind-button.active[data-hsa-kind="in"] { background: color-mix(in srgb, var(--good) 24%, transparent); color: var(--good); }
+.hsa-kind-button.active[data-hsa-kind="out"] { background: color-mix(in srgb, var(--bad) 24%, transparent); color: var(--bad); }
+.hsa-add #hsa-item-add { width: 100%; margin: 0; padding: 13px; border-radius: 12px; }
+.hsa-message { margin-top: 8px; }
