@@ -280,11 +280,11 @@ async function chooseCategoryForCharge(transactionId) {
   if (!settings || !charge) return;
   const overrides = settings.transaction_categories || {};
   const current = categoryOf(charge);
-  const choices = spendingCategoryChoices(settings).map((category) => ({ title: categoryDisplayName(category) + (category === current ? "  \u2713" : ""), detail: "", value: category }));
+  const choices = spendingCategoryChoices(settings).map((category) => ({ title: categoryDisplayName(category), detail: "", value: category, current: category === current, color: CATEGORY_COLORS[category] || "#9ca3af" }));
   const otherPosition = choices.findIndex((choice) => choice.value === "OTHER");
   choices.splice(otherPosition, 1);
-  choices.push({ title: "New category\u2026", detail: "Type a name", value: "__new__" });
-  if (overrides[transactionId]) choices.push({ title: "Back to automatic", detail: "Use the keyword rules again", value: "__auto__" });
+  choices.push({ title: "New category\u2026", detail: "Type a name", value: "__new__", wide: true });
+  if (overrides[transactionId]) choices.push({ title: "Back to automatic", detail: "Use the keyword rules again", value: "__auto__", wide: true });
   const picked = await askChoice(`${merchantName(charge)} \u00b7 ${formatMoney(charge.amount)}`, choices, "category-picker");
   if (!picked) return;
   const openTiles = [...document.querySelectorAll("#page-spending details")].map((tile) => tile.open);

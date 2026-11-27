@@ -204,7 +204,7 @@ function askChoice(question, choices, extraClass = "") {
     const cover = document.createElement("div");
     cover.className = "date-cover " + extraClass;
     cover.innerHTML = `<div class="date-box"><div class="date-question"></div><div class="choice-list">${choices.map((choice, position) =>
-      `<button class="choice-button" data-choice="${position}"><b>${escapeHtml(choice.title)}</b><span class="small">${escapeHtml(choice.detail)}</span></button>`).join("")}</div></div>`;
+      `<button class="choice-button${choice.current ? " is-current" : ""}${choice.wide ? " is-wide" : ""}" data-choice="${position}" ${choice.color ? `style="--dot:${choice.color}"` : ""}>${choice.color ? '<i class="choice-dot"></i>' : ""}<b>${escapeHtml(choice.title)}</b><span class="small">${escapeHtml(choice.detail)}</span></button>`).join("")}</div></div>`;
     cover.querySelector(".date-question").textContent = question;
     cover.addEventListener("click", (event) => {
       const button = event.target.closest("[data-choice]");

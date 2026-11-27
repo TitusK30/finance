@@ -607,9 +607,23 @@ html, body { overflow-x: hidden; }
 /* Long-press a charge: no text selection or iOS callout, and the list gets its own scroll */
 #page-spending .charge-row[data-charge-id] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .date-box { max-height: 82vh; overflow-y: auto; }
-.category-picker .choice-button:first-child { background: var(--bar-track); }
-.category-picker .choice-button { padding: 12px 14px; }
+/* Category picker: a bottom sheet with a two-column grid of colored chips */
+.category-picker { align-items: flex-end; background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: sheet-fade 0.18s ease-out; }
+.category-picker .date-box { width: 100%; max-width: 520px; max-height: 78vh; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); border-radius: 26px 26px 0 0; background: #1c1c1e; box-shadow: 0 -12px 40px rgba(0,0,0,0.5); animation: sheet-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1); }
+.category-picker .date-box::before { content: ""; display: block; width: 40px; height: 5px; margin: 0 auto 14px; border-radius: 3px; background: rgba(255,255,255,0.22); }
+.category-picker .date-question { margin: 0 4px 14px; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.category-picker .choice-list { grid-template-columns: 1fr 1fr; gap: 8px; }
+.category-picker .choice-button { position: relative; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 12px; border-radius: 16px; background: var(--bar-track); border: 1px solid transparent; transition: transform 0.12s ease, background 0.12s ease; }
+.category-picker .choice-button:active { transform: scale(0.96); }
+.category-picker .choice-button b { font-size: 15px; font-weight: 600; line-height: 1.15; }
 .category-picker .choice-button .small:empty { display: none; }
+.category-picker .choice-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 10px color-mix(in srgb, var(--dot) 70%, transparent); }
+.category-picker .choice-button.is-current { background: color-mix(in srgb, var(--dot) 20%, transparent); border-color: color-mix(in srgb, var(--dot) 70%, transparent); }
+.category-picker .choice-button.is-current::after { content: "\2713"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--dot); }
+.category-picker .choice-button.is-wide { grid-column: 1 / -1; display: grid; gap: 2px; padding: 13px 16px; background: transparent; border: 1px dashed rgba(255,255,255,0.25); }
+.category-picker .choice-button.is-wide b { color: var(--accent); }
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
 /* Today with nothing scheduled: just the checking balance, big */
 .today-hero { padding: 22px 20px; text-align: left; background-image: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 62%); box-shadow: inset 5px 0 0 var(--accent); }
 .today-eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-text); }
