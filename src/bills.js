@@ -105,6 +105,16 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
     }
     byMonth[yearMonth] = { seen, unseen, upcoming };
   }
+  // A bill that started recently is not "missing" for months before its first charge. One never seen yet is only flagged this month.
+  const firstSeenDateOf = {};
+  for (const month of Object.values(byMonth)) for (const { bill, charge } of month.seen) {
+    if (!firstSeenDateOf[bill.name] || charge.date < firstSeenDateOf[bill.name]) firstSeenDateOf[bill.name] = charge.date;
+  }
+  for (const [yearMonth, month] of Object.entries(byMonth)) {
+    month.unseen = month.unseen.filter((bill) => firstSeenDateOf[bill.name]
+      ? dayNumber(bill.expected) + BILL_DATE_WINDOW_DAYS >= dayNumber(firstSeenDateOf[bill.name])
+      : yearMonth === todayText.slice(0, 7));
+  }
   for (const charge of charges) {
     if (!billCharges[charge.transaction_id] && userMarks.includes(billMarkKey(charge))) billCharges[charge.transaction_id] = "Marked by you";
   }
