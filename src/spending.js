@@ -303,15 +303,39 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-// A closed card statement counts as paid when checking shows a matching payment (same amount, on or after the statement closed).
-// Pending payments count too. A past-due statement with no matching payment stays owed.
+// Closed card statements that checking shows as paid. Pending payments count too.
+// 1) A checking payment with the same amount as a closed statement pays it in full.
+// 2) Other checking payments to that card company (its name plus "payment", "autopay", "credit card"...) lower the one closed
+//    statement they could belong to. If two cards from one company could fit, nothing is guessed and the statement stays owed.
+const CARD_PAYMENT_WORDS = /credit|crd|card|autopay|payment|pmt|epay/;
 function withoutStatementsPaidFromChecking(settings, store) {
   const checkingOutflows = Object.values(store.transactions || {}).filter((transaction) => transaction.amount > 0 && ((store.accounts || {})[transaction.account_id] || {}).type === "depository");
   const updated = structuredClone(settings);
-  for (const card of Object.values(updated.credit_cards || {})) {
-    card.balances_by_statement = (card.balances_by_statement || []).filter((statement) => statement.still_accumulating
-      || !checkingOutflows.some((payment) => Math.abs(payment.amount - statement.amount) < 0.015 && payment.date >= (statement.statement_closed_on || "")));
+  const used = new Set();
+  const closedOf = (card) => (card.balances_by_statement || []).filter((statement) => !statement.still_accumulating);
+  const issuerOf = (card) => String(card.display_name || "").toLowerCase().split(" ")[0];
+  const cards = Object.values(updated.credit_cards || {});
+  for (const card of cards) {
+    for (const statement of closedOf(card)) {
+      const payment = checkingOutflows.find((candidate) => !used.has(candidate.transaction_id) && Math.abs(candidate.amount - statement.amount) < 0.015 && candidate.date >= (statement.statement_closed_on || ""));
+      if (payment) { used.add(payment.transaction_id); statement.paid_in_full = true; }
+    }
   }
+  for (const card of cards) {
+    const issuer = issuerOf(card);
+    const owedStatements = closedOf(card).filter((statement) => !statement.paid_in_full);
+    const sameIssuerOwed = cards.flatMap((other) => issuerOf(other) === issuer ? closedOf(other).filter((statement) => !statement.paid_in_full) : []);
+    if (owedStatements.length !== 1 || sameIssuerOwed.length !== 1 || !issuer) continue;
+    const statement = owedStatements[0];
+    for (const payment of checkingOutflows) {
+      const text = (String(payment.merchant_name || "") + " " + String(payment.name || "")).toLowerCase();
+      if (used.has(payment.transaction_id) || !text.includes(issuer) || !CARD_PAYMENT_WORDS.test(text) || payment.date < (statement.statement_closed_on || "")) continue;
+      used.add(payment.transaction_id);
+      statement.amount = roundCents(statement.amount - payment.amount);
+    }
+    if (statement.amount < 0.005) statement.paid_in_full = true;
+  }
+  for (const card of cards) card.balances_by_statement = (card.balances_by_statement || []).filter((statement) => !statement.paid_in_full);
   return updated;
 }
 

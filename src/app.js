@@ -127,7 +127,7 @@ function showCards(settings) {
     const pendingAmount = pendingAmountOnCard(card);
     const openTotal = open.reduce((sum, statement) => sum + statement.amount, 0) - pendingAmount; // posted only; pending shows on its own line
     const pendingRow = pendingAmount > 0 ? `<div class="date-row"><span>Pending</span><b class="amber">+${formatMoney(pendingAmount)}</b></div>` : "";
-    const closedDueRow = closed.length ? dateRow("Due", closed[0].due_date, today, 7, 14) : `<div class="date-row"><span>Nothing due</span></div>`;
+    const closedDueRow = closed.length ? dateRow("Due", closed[0].due_date, today, 7, 14) + (closed[0].due_date < today ? `<div class="small">No payment seen in checking yet</div>` : "") : `<div class="date-row"><span>Nothing due</span></div>`;
     const openDueRow = open.length ? dateRow("Due", open[0].due_date, today, -1, -1) : "";
     return `<div class="tile card-tile"><div class="tile-row"><b>${card.display_name}</b><b class="big-number">${formatMoney(card.current_balance)}</b></div>
       <div class="statement-pair">
