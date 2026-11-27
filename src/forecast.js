@@ -124,6 +124,11 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   const days = [];
   let checkingBalance = settings.starting_balances.checking_balance;
 
+  // Today: a card statement due today that the bank still shows as owed has not left checking yet, so it comes out now.
+  const todayEvents = (cardPaymentsByDueDate[startDate] || []).map((cardPayment) => ({ label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" }));
+  for (const event of todayEvents) checkingBalance = roundToCents(checkingBalance + event.amount);
+  const today = { date: startDate, events: todayEvents, checking_balance: checkingBalance };
+
   for (let date = addDays(startDate, 1); date <= lastDate; date = addDays(date, 1)) {
     const events = [];
     const dayOfWeek = new Date(date + "T00:00:00Z").getUTCDay();
@@ -146,9 +151,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       if (purchase.date === date) events.push({ label: purchase.label, amount: -purchase.amount });
     }
 
-    // A statement due today that the bank still shows as owed has not left checking yet, so it comes out on the first forecast day.
-    const paymentsDue = [...(cardPaymentsByDueDate[date] || []), ...(date === firstForecastDate ? cardPaymentsByDueDate[startDate] || [] : [])];
-    for (const cardPayment of paymentsDue) {
+    for (const cardPayment of cardPaymentsByDueDate[date] || []) {
       const cardEvent = { label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" };
       if (cardPayment.isOpen && cardPayment.card) cardEvent.days_until_close = daysUntilStatementCloses(cardPayment.card, date, startDate);
       events.push(cardEvent);
@@ -158,11 +161,12 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
     days.push({ date, events, checking_balance: checkingBalance });
   }
 
-  const lowestDay = days.reduce((lowest, day) => (day.checking_balance < lowest.checking_balance ? day : lowest), days[0]);
+  const lowestDay = days.reduce((lowest, day) => (day.checking_balance < lowest.checking_balance ? day : lowest), today);
   const floor = settings.minimum_checking_floor;
   const firstDayBelowFloor = days.find((day) => day.checking_balance < floor) || null;
 
   return {
+    today,
     days,
     lowest_balance: lowestDay.checking_balance,
     lowest_balance_date: lowestDay.date,

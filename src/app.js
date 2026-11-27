@@ -67,8 +67,7 @@ function showTransferAdvice(settings, forecast) {
 // Line chart of the predicted checking balance, one point per day: a single line with a soft fill, a dashed floor and the lowest day marked.
 function showBalanceChart(settings, forecast) {
   // Day 1 is today, at the balance the bank shows now; the 39 days after it follow.
-  const startDay = { date: settings.starting_balances.as_of_date, checking_balance: settings.starting_balances.checking_balance };
-  const days = [startDay, ...forecast.days].slice(0, 40);
+  const days = [forecast.today, ...forecast.days].slice(0, 40);
   const balances = days.map((day) => day.checking_balance);
   const floor = settings.minimum_checking_floor;
   const low = Math.min(...balances, floor);
@@ -139,18 +138,21 @@ function showCards(settings) {
   document.getElementById("card-list").innerHTML = html.join("");
 }
 
+// One line of the timeline: an icon, the label (with a card's open or closed tag) and the amount.
+function timelineEventHtml(event) {
+  const isIncome = event.amount >= 0;
+  const estimateTag = event.is_estimate ? " (est.)" : "";
+  return `<div class="timeline-event"><span class="timeline-icon ${isIncome ? "timeline-in" : "timeline-out"}">${isIncome ? "&#8593;" : "&#8595;"}</span>
+    <span class="timeline-label">${event.label}${estimateTag}${event.card_state ? `<span class="pay-chip">${event.card_state}${event.days_until_close !== undefined ? ` \u00b7 ${event.days_until_close}d` : ""}</span>` : ""}</span><b class="${isIncome ? "positive" : "negative"}">${formatMoney(event.amount)}</b></div>`;
+}
+
 // A timeline: one row per day that has something happening, with the date on a rail, the events as lines and the day's ending balance.
 function showCalendar(forecast, settings) {
   const dayBlocks = forecast.days.slice(0, 40).filter((day) => day.events.length > 0).map((day) => {
     const dateParts = new Date(day.date + "T00:00:00Z");
     const weekday = dateParts.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
     const month = dateParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
-    const eventLines = day.events.map((event) => {
-      const isIncome = event.amount >= 0;
-      const estimateTag = event.is_estimate ? " (est.)" : "";
-      return `<div class="timeline-event"><span class="timeline-icon ${isIncome ? "timeline-in" : "timeline-out"}">${isIncome ? "&#8593;" : "&#8595;"}</span>
-        <span class="timeline-label">${event.label}${estimateTag}${event.card_state ? `<span class="pay-chip">${event.card_state}${event.days_until_close !== undefined ? ` \u00b7 ${event.days_until_close}d` : ""}</span>` : ""}</span><b class="${isIncome ? "positive" : "negative"}">${formatMoney(event.amount)}</b></div>`;
-    }).join("");
+    const eventLines = day.events.map(timelineEventHtml).join("");
     const belowFloor = day.checking_balance < settings.minimum_checking_floor;
     return `<div class="timeline-day"><div class="timeline-date"><span class="small">${weekday}</span><b>${dateParts.getUTCDate()}</b><span class="small">${month}</span></div>
       <div class="timeline-dot"></div>
@@ -164,7 +166,7 @@ function showCalendar(forecast, settings) {
     .map((entry) => `<div class="timeline-event"><span class="timeline-icon timeline-in">&#8593;</span><span class="timeline-label">Paycheck (already in your balance)</span><b class="positive">${formatMoney(entry.amount)}</b></div>`).join("");
   dayBlocks.unshift(`<div class="timeline-day"><div class="timeline-date"><span class="small">${todayParts.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}</span><b>${todayParts.getUTCDate()}</b><span class="small">${todayParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}</span></div>
       <div class="timeline-dot"></div>
-      <div class="tile timeline-card"><div class="timeline-event"><span class="timeline-label">Today</span></div>${alreadyInBalance}<div class="timeline-balance small">balance <b>${formatMoney(settings.starting_balances.checking_balance)}</b></div></div></div>`);
+      <div class="tile timeline-card"><div class="timeline-event"><span class="timeline-label">Today</span></div>${alreadyInBalance}${forecast.today.events.map(timelineEventHtml).join("")}<div class="timeline-balance small">balance <b>${formatMoney(forecast.today.checking_balance)}</b></div></div></div>`);
   document.getElementById("calendar-list").innerHTML = `<div class="timeline">${dayBlocks.join("")}</div>`;
 }
 
