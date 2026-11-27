@@ -280,6 +280,8 @@ function showEverything() {
   showStartHere(settings);
   const typedPay = expectedPaychecks(loadTransactionStore(), settings, todayText());
   setPaidEarlyDates([...paidEarlyPaydays(loadTransactionStore(), settings, todayText()), ...typedPay.replacedPaydays]);
+  const billsUnseenThisMonth = (matchBills(settings, loadTransactionStore(), loadBillMarks(), todayText()).byMonth[todayText().slice(0, 7)] || { unseen: [] }).unseen;
+  setUnpaidBillsDueToday(billsUnseenThisMonth.filter((bill) => bill.kind === "bill" && bill.expected === todayText()));
   setTypedPaychecks(typedPay.list.filter((entry) => !entry.in_balance)); // one the bank balance already holds must not be added again
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   showStatusLine(settings);

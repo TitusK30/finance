@@ -64,6 +64,9 @@ function daysUntilStatementCloses(card, dueDate, today) {
 // Paydays whose paycheck already arrived early (set from the bank's deposits), so the forecast does not add it twice.
 let paidEarlyDates = [];
 function setPaidEarlyDates(dates) { paidEarlyDates = dates || []; }
+// Bills paid from checking that are due today and not yet seen leaving the bank ([{name, amount, varies}]); they come out today.
+let unpaidBillsDueToday = [];
+function setUnpaidBillsDueToday(bills) { unpaidBillsDueToday = bills || []; }
 // Paychecks typed in by hand ([{date, amount}]) that are added on their own date.
 let typedPaychecks = [];
 function setTypedPaychecks(paychecks) { typedPaychecks = paychecks || []; }
@@ -125,7 +128,8 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   let checkingBalance = settings.starting_balances.checking_balance;
 
   // Today: a card statement due today that the bank still shows as owed has not left checking yet, so it comes out now.
-  const todayEvents = (cardPaymentsByDueDate[startDate] || []).map((cardPayment) => ({ label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" }));
+  const todayBills = unpaidBillsDueToday.map((bill) => ({ label: bill.name, amount: -bill.amount, is_estimate: Boolean(bill.varies) }));
+  const todayEvents = [...todayBills, ...(cardPaymentsByDueDate[startDate] || []).map((cardPayment) => ({ label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" }))];
   for (const event of todayEvents) checkingBalance = roundToCents(checkingBalance + event.amount);
   const today = { date: startDate, events: todayEvents, checking_balance: checkingBalance };
 
@@ -190,4 +194,4 @@ function balanceOn(forecast, dateText) {
 }
 
 // Lets the same file run in a browser (plain script) and in the tests.
-if (typeof module !== "undefined") module.exports = { setTypedPaychecks, setPaidEarlyDates, buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };
+if (typeof module !== "undefined") module.exports = { setUnpaidBillsDueToday, setTypedPaychecks, setPaidEarlyDates, buildForecast, cardRoom, balanceOn, dueDateForCharge, isPaydayOn, paychecksPerYear };
