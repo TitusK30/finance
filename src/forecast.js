@@ -146,7 +146,9 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       if (purchase.date === date) events.push({ label: purchase.label, amount: -purchase.amount });
     }
 
-    for (const cardPayment of cardPaymentsByDueDate[date] || []) {
+    // A statement due today that the bank still shows as owed has not left checking yet, so it comes out on the first forecast day.
+    const paymentsDue = [...(cardPaymentsByDueDate[date] || []), ...(date === firstForecastDate ? cardPaymentsByDueDate[startDate] || [] : [])];
+    for (const cardPayment of paymentsDue) {
       const cardEvent = { label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" };
       if (cardPayment.isOpen && cardPayment.card) cardEvent.days_until_close = daysUntilStatementCloses(cardPayment.card, date, startDate);
       events.push(cardEvent);
