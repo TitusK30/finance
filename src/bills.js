@@ -49,11 +49,8 @@ function onRightAccount(bill, charge, store, settings) {
   const account = store.accounts[charge.account_id];
   if (!account) return false;
   if (bill.kind === "bill") return account.type === "depository";
-  if (account.type !== "credit") return false;
-  // If the saved link for this card matches no card the bank reports (missing or stale), any credit card may fit; text and date still have to match.
-  const linkedMask = (settings.card_masks || {})[bill.cardKey];
-  const linkIsKnown = Object.values(store.accounts).some((known) => known.type === "credit" && known.mask === linkedMask);
-  return linkIsKnown ? account.mask === linkedMask : true;
+  // Any credit card counts: the saved card link can drift, and the charge text and date still have to match.
+  return account.type === "credit";
 }
 
 // Words that identify the bill in the charge text: "charge_text_contains" from the settings, otherwise the words in the bill's name.
