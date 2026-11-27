@@ -110,7 +110,7 @@ function showBalanceChart(settings, forecast) {
 function dateRow(label, dateText, today, redWithinDays, amberWithinDays) {
   const daysLeft = daysBetween(today, dateText);
   const colorClass = daysLeft <= redWithinDays ? "negative" : daysLeft <= amberWithinDays ? "amber" : "";
-  return `<div class="date-row"><span>${label}</span><b class="${colorClass}">${shortMonthDay(dateText)} \u00b7 ${daysLeft <= 0 ? "today" : daysLeft + "d"}</b></div>`;
+  return `<div class="date-row"><span>${label}</span><b class="${colorClass}">${shortMonthDay(dateText)} \u00b7 ${daysLeft < 0 ? "passed" : daysLeft === 0 ? "today" : daysLeft + "d"}</b></div>`;
 }
 
 function showCards(settings) {
@@ -121,7 +121,8 @@ function showCards(settings) {
   const html = cardsByCloseDate.map((card) => {
     // The statement stays open until its close day. Starting from yesterday lets "closes today" count as 0 days.
     const closeDate = nextStatementCloseDate(card, addDaysToDateText(today, -1));
-    const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating);
+    // A closed statement whose due date has passed is treated as paid (the forecast already ignores it).
+    const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating && statement.due_date >= today);
     const open = card.balances_by_statement.filter((statement) => statement.still_accumulating);
     const closedTotal = closed.reduce((sum, statement) => sum + statement.amount, 0);
     const pendingAmount = pendingAmountOnCard(card);
