@@ -242,8 +242,12 @@ function hsaExpectedHtml(hsa) {
 function showHsaPage(settings) {
   const hsa = settings.hsa;
   const monthsLeft = hsaMonthsUntilBillPaidOff(hsa);
+  // The projection counts the money listed below unless the toggle on the tile is set to "Regular only".
+  const hasListed = (hsa.expected_items || []).length > 0;
+  const includeListed = hasListed && hsa.projection_includes_listed !== false;
   const projectionCells = [1, 3, 6, 12].map((months) =>
-    `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months, todayText()))}</b></div>`).join("");
+    `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months, includeListed ? todayText() : undefined))}</b></div>`).join("");
+  const projectionToggle = hasListed ? `<div class="hsa-kind hsa-projection-toggle"><button class="hsa-kind-button${includeListed ? "" : " active"}" data-hsa-projection="plain">Regular only</button><button class="hsa-kind-button${includeListed ? " active" : ""}" data-hsa-projection="listed">With my listed money</button></div>` : "";
   const payoffText = monthsLeft == null ? "Set the remaining bill amount to see the payoff date." : `About ${monthsLeft} more monthly payment${monthsLeft === 1 ? "" : "s"} to pay it off.`;
   document.getElementById("page-hsa").innerHTML = `<h2>HSA${hsa.provider ? ` (${escapeHtml(hsa.provider)})` : ""}</h2>
     <div class="tile hsa-hero"><div class="small">&#129657; Balance</div><div class="huge-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div></div>
@@ -254,13 +258,21 @@ function showHsaPage(settings) {
     </div>
     <div class="tile hsa-owed"><div class="small">Medical bill still owed</div><div class="big-number">${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</div>
       <div class="small">${payoffText}</div></div>
-    <div class="tile"><b>Projected balance</b><div class="projection-grid">${projectionCells}</div>
-      <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA${(hsa.expected_items || []).length ? ", plus the money you listed below" : ""}.</div></div>
+    <div class="tile"><b>Projected balance</b>${projectionToggle}<div class="projection-grid">${projectionCells}</div>
+      <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA${includeListed ? ", plus the money you listed below" : ""}.</div></div>
     ${hsaExpectedHtml(hsa)}`;
 }
 
 // Add money coming in or going out on the HSA page.
 document.addEventListener("click", (event) => {
+  const projectionButton = event.target.closest("[data-hsa-projection]");
+  if (projectionButton) {
+    const settings = loadSettings();
+    settings.hsa.projection_includes_listed = projectionButton.dataset.hsaProjection === "listed";
+    saveSettings(settings);
+    showHsaPage(settings);
+    return;
+  }
   const kindButton = event.target.closest("[data-hsa-kind]");
   if (kindButton) {
     for (const button of kindButton.parentElement.children) button.classList.toggle("active", button === kindButton);

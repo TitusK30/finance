@@ -589,3 +589,5 @@ html, body { overflow-x: hidden; }
 .hsa-kind-button.active[data-hsa-kind="out"] { background: color-mix(in srgb, var(--bad) 24%, transparent); color: var(--bad); }
 .hsa-add #hsa-item-add { width: 100%; margin: 0; padding: 13px; border-radius: 12px; }
 .hsa-message { margin-top: 8px; }
+.hsa-projection-toggle { margin: 10px 0 12px; }
+.hsa-projection-toggle .hsa-kind-button.active { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
