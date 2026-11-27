@@ -86,8 +86,39 @@ function payerColor(settings, paidFrom) {
   return REWARD_COLORS[cardPosition % REWARD_COLORS.length];
 }
 
+// ---- Bills filter: which card or account pays, and when in the month. Saved on this phone only.
+const BILLS_FILTER_KEY = "finance_os_bills_filter";
+const BILLS_RANGES = [["all", "Whole month"], ["first", "Days 1\u201315"], ["second", "Days 16\u201331"], ["next7", "Next 7 days"], ["next14", "Next 14 days"], ["next30", "Next 30 days"]];
+
+function loadBillsFilter() {
+  try { return { payers: null, range: "all", ...JSON.parse(localStorage.getItem(BILLS_FILTER_KEY) || "{}") }; } catch (error) { return { payers: null, range: "all" }; }
+}
+
+function billsFilterIsOn(filter) {
+  return filter.range !== "all" || Boolean(filter.payers && filter.payers.length);
+}
+
+function itemPassesBillsFilter(item, filter) {
+  if (filter.payers && filter.payers.length && !filter.payers.includes(item.paidFrom)) return false;
+  const days = item.daysOfMonth || [item.dayOfMonth];
+  if (filter.range === "first") return days.some((day) => day <= 15);
+  if (filter.range === "second") return days.some((day) => day >= 16);
+  const nextDays = { next7: 7, next14: 14, next30: 30 }[filter.range];
+  return nextDays ? days.some((day) => daysUntilNextDayOfMonth(day, todayText()) <= nextDays) : true;
+}
+
+function filteredItemsForTab(settings, tabName) {
+  const filter = loadBillsFilter();
+  return monthlyItemsForTab(settings, tabName).filter((item) => itemPassesBillsFilter(item, filter));
+}
+
+function billsFilterSummary(settings, filter) {
+  const payers = filter.payers && filter.payers.length ? filter.payers.map((key) => payerName(settings, key)).join(", ") : "All cards and accounts";
+  return `${payers} \u00b7 ${BILLS_RANGES.find(([key]) => key === filter.range)[1]}`;
+}
+
 function showMonthlyItemsPage(settings, tabName, pageTitle) {
-  const items = monthlyItemsForTab(settings, tabName);
+  const items = filteredItemsForTab(settings, tabName);
   const { monthlyTotal, totalsByPayer } = totalsForItems(items);
   const rows = items
     .map((item) => {
@@ -102,7 +133,7 @@ function showMonthlyItemsPage(settings, tabName, pageTitle) {
   const payerTotals = payerEntries.map(([paidFrom, total]) =>
     `<div class="tile-row small"><span><span class="dot" style="background:${payerColor(settings, paidFrom)}"></span>${payerName(settings, paidFrom)}</span><span>${formatMoney(total)}</span></div>`).join("");
   document.getElementById("page-" + tabName).innerHTML = `<h2>${pageTitle}</h2>
-    <div class="tile bills-total-tile"><div class="small">Total per month</div><div class="huge-number">${formatMoney(monthlyTotal)}</div>${payerBar}${payerTotals}</div>${rows}`;
+    <div class="tile bills-total-tile"><div class="small">Total per month</div><div class="huge-number">${formatMoney(monthlyTotal)}</div>${payerBar}${payerTotals}</div>${rows || (billsFilterIsOn(loadBillsFilter()) ? `<div class="tile"><div class="small">Nothing here matches your filter.</div></div>` : "")}`;
 }
 
 function ordinalEnding(dayNumber) {
@@ -391,12 +422,59 @@ function showCarPage(settings) {
 }
 
 function showBillsTotal(settings) {
-  const monthlyTotal = totalsForItems(monthlyItemsForTab(settings, "subscriptions")).monthlyTotal + totalsForItems(monthlyItemsForTab(settings, "expenses")).monthlyTotal;
+  const filter = loadBillsFilter();
+  const monthlyTotal = totalsForItems(filteredItemsForTab(settings, "subscriptions")).monthlyTotal + totalsForItems(filteredItemsForTab(settings, "expenses")).monthlyTotal;
   const nothingAddedYet = settings.monthly_bills_paid_from_checking.length + settings.subscriptions_charged_to_cards.length === 0;
+  const filterOn = billsFilterIsOn(filter);
+  const filterRow = nothingAddedYet ? "" : `<div class="bills-filter-row"><span class="small">${filterOn ? escapeHtml(billsFilterSummary(settings, filter)) : "Showing everything"}</span>
+    <button id="bills-filter-button" class="filter-chip${filterOn ? " is-on" : ""}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter</button></div>`;
   document.getElementById("bills-total").innerHTML = nothingAddedYet
     ? `<div class="tile"><div class="small">No bills or subscriptions yet. Add them in Settings → Set up in the app.</div></div>`
-    : `<div class="tile bills-total-tile"><div class="small">All bills and subscriptions</div><div class="huge-number">${formatMoney(monthlyTotal)} / month</div></div>`;
+    : `${filterRow}<div class="tile bills-total-tile"><div class="small">${filterOn ? "Matching your filter" : "All bills and subscriptions"}</div><div class="huge-number">${formatMoney(monthlyTotal)} / month</div></div>`;
 }
+
+// The filter sheet: tap chips to pick cards or accounts and a time range, then Show.
+function openBillsFilter(settings) {
+  const saved = loadBillsFilter();
+  const draft = { payers: new Set(saved.payers || []), range: saved.range };
+  const payerKeys = ["checking", ...Object.keys(settings.credit_cards)];
+  const cover = document.createElement("div");
+  cover.className = "date-cover category-picker filter-sheet";
+  const draw = () => {
+    cover.innerHTML = `<div class="date-box"><div class="date-question">Filter bills</div>
+      <div class="filter-label">Paid from <span class="small">(none picked = all)</span></div>
+      <div class="choice-list">${payerKeys.map((key) => `<button class="choice-button${draft.payers.has(key) ? " is-current" : ""}" data-payer="${key}" style="--dot:${payerColor(settings, key)}"><i class="choice-dot"></i><b>${escapeHtml(payerName(settings, key))}</b></button>`).join("")}</div>
+      <div class="filter-label">When</div>
+      <div class="choice-list">${BILLS_RANGES.map(([key, label]) => `<button class="choice-button${draft.range === key ? " is-current" : ""}" data-range="${key}" style="--dot:var(--accent)"><b>${label}</b></button>`).join("")}</div>
+      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-filter-apply><b>Show</b></button><button class="choice-button is-wide" data-filter-reset><b>Clear filters</b></button></div></div>`;
+  };
+  draw();
+  cover.addEventListener("click", (event) => {
+    const payerButton = event.target.closest("[data-payer]");
+    const rangeButton = event.target.closest("[data-range]");
+    if (payerButton) { const key = payerButton.dataset.payer; draft.payers.has(key) ? draft.payers.delete(key) : draft.payers.add(key); draw(); return; }
+    if (rangeButton) { draft.range = rangeButton.dataset.range; draw(); return; }
+    const reset = event.target.closest("[data-filter-reset]");
+    const apply = event.target.closest("[data-filter-apply]");
+    if (!reset && !apply && event.target !== cover) return;
+    if (reset) { draft.payers.clear(); draft.range = "all"; }
+    if (reset || apply) {
+      const allPicked = draft.payers.size === payerKeys.length;
+      localStorage.setItem(BILLS_FILTER_KEY, JSON.stringify({ payers: draft.payers.size && !allPicked ? [...draft.payers] : null, range: draft.range }));
+      showBillsTotal(settings);
+      showMonthlyItemsPage(settings, "subscriptions", "Subscriptions");
+      showMonthlyItemsPage(settings, "expenses", "Expenses");
+    }
+    cover.remove();
+  });
+  document.body.appendChild(cover);
+}
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("#bills-filter-button")) return;
+  const settings = loadSettings();
+  if (settings) openBillsFilter(settings);
+});
 
 function showExtraPages(settings) {
   showBillsTotal(settings);

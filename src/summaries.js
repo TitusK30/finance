@@ -26,6 +26,7 @@ function monthlyItemsForTab(settings, tabName) {
     dayOfMonth: subscription.day_of_month || null,
     refillsPerMonth: subscription.assumed_days_of_month ? subscription.assumed_days_of_month.length : null,
     firstAssumedDay: subscription.assumed_days_of_month ? subscription.assumed_days_of_month[0] : null,
+    daysOfMonth: subscription.assumed_days_of_month || [subscription.day_of_month],
     isEstimate: Boolean(subscription.assumed_days_of_month),
   }));
   const itemsFromChecking = settings.monthly_bills_paid_from_checking.map((bill) => ({
@@ -34,6 +35,7 @@ function monthlyItemsForTab(settings, tabName) {
     monthlyAmount: bill.amount,
     amountEach: bill.amount,
     dayOfMonth: bill.day_of_month,
+    daysOfMonth: [bill.day_of_month],
     refillsPerMonth: null,
     isEstimate: Boolean(bill.is_estimate),
   }));
@@ -42,6 +44,19 @@ function monthlyItemsForTab(settings, tabName) {
   return [...itemsOnCards, ...itemsFromChecking]
     .filter((item) => (EXPENSE_ITEM_NAMES.includes(item.name) ? "expenses" : "subscriptions") === tabName)
     .sort((first, second) => dayToSortBy(first) - dayToSortBy(second) || first.name.localeCompare(second.name));
+}
+
+// Days from today until the next time a day-of-month comes around (0 = today). A day past the month's end counts as its last day.
+function daysUntilNextDayOfMonth(dayOfMonth, todayDateText) {
+  const [year, month, day] = todayDateText.split("-").map(Number);
+  const lastDayOf = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const thisMonthDay = Math.min(dayOfMonth, lastDayOf(year, month));
+  if (thisMonthDay >= day) return thisMonthDay - day;
+  const nextMonthStart = new Date(Date.UTC(year, month, 1));
+  const nextYear = nextMonthStart.getUTCFullYear();
+  const nextMonth = nextMonthStart.getUTCMonth() + 1;
+  const nextDate = Date.UTC(nextYear, nextMonth - 1, Math.min(dayOfMonth, lastDayOf(nextYear, nextMonth)));
+  return Math.round((nextDate - Date.UTC(year, month - 1, day)) / 86400000);
 }
 
 function totalsForItems(items) {
@@ -226,5 +241,5 @@ function totalAnnualFees(settings) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, hsaExpectedBetween, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
+  module.exports = { daysUntilNextDayOfMonth, monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, hsaExpectedBetween, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
 }

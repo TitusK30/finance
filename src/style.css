@@ -628,3 +628,17 @@ html, body { overflow-x: hidden; }
 .today-hero { padding: 22px 20px; text-align: left; background-image: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 62%); box-shadow: inset 5px 0 0 var(--accent); }
 .today-eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-text); }
 .today-number { margin: 4px 0 6px; font-size: 46px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+
+/* Bills filter */
+.bills-filter-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+.bills-filter-row .small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 600; background: var(--tile-background); color: var(--main-text); border: 1px solid var(--bar-track); }
+.filter-chip.is-on { background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: var(--accent); color: var(--accent); }
+.filter-sheet .filter-label { margin: 14px 4px 8px; font-size: 13px; font-weight: 600; color: var(--muted-text); text-transform: uppercase; letter-spacing: 0.06em; }
+.filter-sheet .filter-label .small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.filter-sheet .choice-list { margin-bottom: 4px; }
+.filter-sheet .filter-actions { margin-top: 16px; }
+.filter-sheet .choice-button.is-apply { background: var(--accent); border: 0; justify-content: center; }
+.filter-sheet .choice-button.is-apply b { color: #fff; }
+.filter-sheet .choice-button.is-wide:not(.is-apply) { justify-content: center; }
+.filter-sheet .choice-button.is-wide:not(.is-apply) b { color: var(--muted-text); }
