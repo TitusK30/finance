@@ -68,16 +68,17 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
 
   // Card payments coming out of checking, keyed by due date.
   const cardPaymentsByDueDate = {};
-  function scheduleCardPayment(dueDate, amount, label) {
+  // isOpen: the amount comes from a statement still accumulating (it can grow); otherwise the statement is closed and final.
+  function scheduleCardPayment(dueDate, amount, label, isOpen = true) {
     cardPaymentsByDueDate[dueDate] = cardPaymentsByDueDate[dueDate] || [];
     const existingPayment = cardPaymentsByDueDate[dueDate].find((payment) => payment.label === label);
-    if (existingPayment) existingPayment.amount = roundToCents(existingPayment.amount + amount);
-    else cardPaymentsByDueDate[dueDate].push({ label, amount });
+    if (existingPayment) { existingPayment.amount = roundToCents(existingPayment.amount + amount); existingPayment.isOpen = existingPayment.isOpen || isOpen; }
+    else cardPaymentsByDueDate[dueDate].push({ label, amount, isOpen });
   }
 
   for (const card of Object.values(settings.credit_cards)) {
     for (const statement of card.balances_by_statement) {
-      scheduleCardPayment(statement.due_date, statement.amount, card.display_name + " payment");
+      scheduleCardPayment(statement.due_date, statement.amount, card.display_name + " payment", Boolean(statement.still_accumulating));
     }
   }
 
@@ -138,7 +139,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
     }
 
     for (const cardPayment of cardPaymentsByDueDate[date] || []) {
-      events.push({ label: cardPayment.label, amount: -cardPayment.amount });
+      events.push({ label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" });
     }
 
     for (const event of events) checkingBalance = roundToCents(checkingBalance + event.amount);
