@@ -84,6 +84,12 @@ function paydaysAhead(settings, store, yearMonth) {
 }
 
 // Home: this month at a glance. Earned and expected pay against everything spent plus bills still to pay.
+// Bills and subscriptions due and not charged yet, plus the ones still to come later this month, soonest first.
+function billsStillToPay(billMatches, yearMonth) {
+  const month = billMatches.byMonth[yearMonth] || {};
+  return [...(month.unseen || []), ...(month.upcoming || [])].sort((first, second) => first.expected.localeCompare(second.expected));
+}
+
 function showMonthOutlook(settings) {
   const box = document.getElementById("month-outlook");
   const store = loadTransactionStore();
@@ -94,7 +100,7 @@ function showMonthOutlook(settings) {
   const transfers = transfersInMonth(store, yearMonth, settings, (charge) => Boolean(billMatches.billCharges[charge.transaction_id]));
   const everythingElse = monthlyBreakdown(nonBillCharges(settings, store, billMatches), yearMonth).total + transfers.totalOut - transfers.totalIn;
   const billsCharged = Object.values(store.transactions).filter((charge) => billMatches.billCharges[charge.transaction_id] && charge.date.startsWith(yearMonth) && charge.amount > 0).reduce((sum, charge) => sum + charge.amount, 0);
-  const billsUnpaid = ((billMatches.byMonth[yearMonth] || { unseen: [] }).unseen).reduce((sum, bill) => sum + bill.amount, 0);
+  const billsUnpaid = billsStillToPay(billMatches, yearMonth).reduce((sum, bill) => sum + bill.amount, 0);
   const earnedSoFar = earnedInMonth(store, yearMonth, settings).total;
   const ahead = paydaysAhead(settings, store, yearMonth);
   const money = (amount) => formatMoney(Math.round(amount * 100) / 100);
@@ -151,7 +157,7 @@ function showSpendingPage(settings) {
     // Bills and subscriptions in this month (leftover from the totals above) and the ones not seen yet.
   const billRows = Object.values(store.transactions).filter((charge) => isBill(charge) && charge.date.startsWith(spendingMonthShown) && charge.amount > 0).sort((first, second) => first.date.localeCompare(second.date));
   const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
-  const notSeen = (billMatches.byMonth[spendingMonthShown] || { unseen: [] }).unseen;
+  const notSeen = billsStillToPay(billMatches, spendingMonthShown);
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
@@ -162,7 +168,7 @@ function showSpendingPage(settings) {
       const button = markedByHand ? `<button class="mark-button" data-unmark-bill="${charge.transaction_id}">not a bill</button>` : "";
       return chargeRowHtml(settings, store, { ...charge, merchant_name: billMatches.billCharges[charge.transaction_id] + " · " + merchantName(charge) }, button);
     }).join("")}
-    ${notSeen.length ? `<div class="small not-seen"><b>Not seen yet this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
+    ${notSeen.length ? `<div class="small not-seen"><b>Still to pay this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge) && charge.date.startsWith(spendingMonthShown));
   const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>

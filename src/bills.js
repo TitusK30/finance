@@ -90,6 +90,7 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
   for (const yearMonth of monthsToCheck) {
     const seen = [];
     const unseen = [];
+    const upcoming = []; // not due yet this month: the rest of the month's bills still to come
     // Refill-style bills (the toll tag) are not claimed here: their charges show up in their own Spending category.
     for (const bill of bills.filter((bill) => !bill.anyDay)) {
       for (const day of bill.days) {
@@ -99,9 +100,10 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
         const best = bill.anyDay ? candidates : candidates.sort((first, second) => Math.abs(dayNumber(first.date) - dayNumber(expected)) - Math.abs(dayNumber(second.date) - dayNumber(expected)) || Math.abs(first.amount - bill.amount) - Math.abs(second.amount - bill.amount)).slice(0, 1);
         for (const charge of best) { billCharges[charge.transaction_id] = bill.name; seen.push({ bill, charge }); }
         if (best.length === 0 && !bill.anyDay && expected <= todayText && expected >= firstDate) unseen.push({ ...bill, expected });
+        else if (best.length === 0 && !bill.anyDay && expected > todayText && yearMonth === todayText.slice(0, 7)) upcoming.push({ ...bill, expected });
       }
     }
-    byMonth[yearMonth] = { seen, unseen };
+    byMonth[yearMonth] = { seen, unseen, upcoming };
   }
   for (const charge of charges) {
     if (!billCharges[charge.transaction_id] && userMarks.includes(billMarkKey(charge))) billCharges[charge.transaction_id] = "Marked by you";
