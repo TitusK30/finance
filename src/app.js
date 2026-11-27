@@ -110,7 +110,7 @@ function showBalanceChart(settings, forecast) {
 function dateRow(label, dateText, today, redWithinDays, amberWithinDays) {
   const daysLeft = daysBetween(today, dateText);
   const colorClass = daysLeft <= redWithinDays ? "negative" : daysLeft <= amberWithinDays ? "amber" : "";
-  return `<div class="date-row"><span>${label}</span><b class="${colorClass}">${shortMonthDay(dateText)} \u00b7 ${daysLeft <= 0 ? "today" : daysLeft + "d"}</b></div>`;
+  return `<div class="date-row"><span>${label}</span><b class="${colorClass}">${shortMonthDay(dateText)}${daysLeft < 0 ? "" : " \u00b7 " + (daysLeft === 0 ? "today" : daysLeft + "d")}</b></div>`;
 }
 
 function showCards(settings) {
