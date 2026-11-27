@@ -52,6 +52,14 @@ function dueDateForCharge(card, chargeDate) {
   return toDateText(dueMonth);
 }
 
+// How many days from today until the statement due on dueDate closes (0 when it closes today).
+function daysUntilStatementCloses(card, dueDate, today) {
+  const monthsBack = card.payment_due_in_following_month ? 1 : 0;
+  const dueMonthStart = new Date(dueDate.slice(0, 8) + "01T00:00:00Z");
+  const closeDate = toDateText(new Date(Date.UTC(dueMonthStart.getUTCFullYear(), dueMonthStart.getUTCMonth() - monthsBack, card.statement_close_day)));
+  return Math.max(0, Math.round((Date.parse(closeDate + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86400000));
+}
+
 // whatIfPurchases: [{ label, amount, date, paid_with: "checking" or a card key }]
 // Paydays whose paycheck already arrived early (set from the bank's deposits), so the forecast does not add it twice.
 let paidEarlyDates = [];
@@ -69,16 +77,16 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
   // Card payments coming out of checking, keyed by due date.
   const cardPaymentsByDueDate = {};
   // isOpen: the amount comes from a statement still accumulating (it can grow); otherwise the statement is closed and final.
-  function scheduleCardPayment(dueDate, amount, label, isOpen = true) {
+  function scheduleCardPayment(dueDate, amount, label, isOpen = true, card = null) {
     cardPaymentsByDueDate[dueDate] = cardPaymentsByDueDate[dueDate] || [];
     const existingPayment = cardPaymentsByDueDate[dueDate].find((payment) => payment.label === label);
     if (existingPayment) { existingPayment.amount = roundToCents(existingPayment.amount + amount); existingPayment.isOpen = existingPayment.isOpen || isOpen; }
-    else cardPaymentsByDueDate[dueDate].push({ label, amount, isOpen });
+    else cardPaymentsByDueDate[dueDate].push({ label, amount, isOpen, card });
   }
 
   for (const card of Object.values(settings.credit_cards)) {
     for (const statement of card.balances_by_statement) {
-      scheduleCardPayment(statement.due_date, statement.amount, card.display_name + " payment", Boolean(statement.still_accumulating));
+      scheduleCardPayment(statement.due_date, statement.amount, card.display_name + " payment", Boolean(statement.still_accumulating), card);
     }
   }
 
@@ -90,13 +98,13 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       const isChargedToday = chargeDays.some((day) => day && dayOfMonthOn(date, day));
       if (!isChargedToday) continue;
       const card = settings.credit_cards[subscription.card];
-      scheduleCardPayment(dueDateForCharge(card, date), subscription.amount, card.display_name + " payment");
+      scheduleCardPayment(dueDateForCharge(card, date), subscription.amount, card.display_name + " payment", true, card);
     }
     // Annual fees post once a year on their month and day.
     for (const fee of settings.annual_card_fees || []) {
       if (Number(date.slice(5, 7)) !== fee.month || !dayOfMonthOn(date, fee.day)) continue;
       const card = settings.credit_cards[fee.card];
-      scheduleCardPayment(dueDateForCharge(card, date), fee.amount, card.display_name + " payment");
+      scheduleCardPayment(dueDateForCharge(card, date), fee.amount, card.display_name + " payment", true, card);
     }
   }
 
@@ -109,7 +117,7 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
       whatIfCheckingPurchases.push(purchase);
     } else {
       const card = settings.credit_cards[purchase.paid_with];
-      scheduleCardPayment(dueDateForCharge(card, purchase.date), purchase.amount, card.display_name + " payment");
+      scheduleCardPayment(dueDateForCharge(card, purchase.date), purchase.amount, card.display_name + " payment", true, card);
     }
   }
 
@@ -139,7 +147,9 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
     }
 
     for (const cardPayment of cardPaymentsByDueDate[date] || []) {
-      events.push({ label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" });
+      const cardEvent = { label: cardPayment.label, amount: -cardPayment.amount, card_state: cardPayment.isOpen ? "open" : "closed" };
+      if (cardPayment.isOpen && cardPayment.card) cardEvent.days_until_close = daysUntilStatementCloses(cardPayment.card, date, startDate);
+      events.push(cardEvent);
     }
 
     for (const event of events) checkingBalance = roundToCents(checkingBalance + event.amount);

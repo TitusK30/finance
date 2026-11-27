@@ -149,7 +149,7 @@ function showCalendar(forecast, settings) {
       const isIncome = event.amount >= 0;
       const estimateTag = event.is_estimate ? " (est.)" : "";
       return `<div class="timeline-event"><span class="timeline-icon ${isIncome ? "timeline-in" : "timeline-out"}">${isIncome ? "&#8593;" : "&#8595;"}</span>
-        <span class="timeline-label">${event.label}${estimateTag}${event.card_state ? `<span class="pay-chip">${event.card_state}</span>` : ""}</span><b class="${isIncome ? "positive" : "negative"}">${formatMoney(event.amount)}</b></div>`;
+        <span class="timeline-label">${event.label}${estimateTag}${event.card_state ? `<span class="pay-chip">${event.card_state}${event.days_until_close !== undefined ? ` \u00b7 ${event.days_until_close}d` : ""}</span>` : ""}</span><b class="${isIncome ? "positive" : "negative"}">${formatMoney(event.amount)}</b></div>`;
     }).join("");
     const belowFloor = day.checking_balance < settings.minimum_checking_floor;
     return `<div class="timeline-day"><div class="timeline-date"><span class="small">${weekday}</span><b>${dateParts.getUTCDate()}</b><span class="small">${month}</span></div>
