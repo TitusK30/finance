@@ -432,10 +432,6 @@ html, body { overflow-x: hidden; }
 .dot-loan { background: var(--accent); } .dot-interest { background: var(--warning); }
 #page-car .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
 #page-hsa .hsa-hero .huge-number { font-size: 40px; font-weight: 800; }
-#page-hsa .hsa-stat { padding: 14px 14px 14px 18px; }
-#page-hsa .hsa-in { box-shadow: inset 5px 0 0 var(--good); background-image: linear-gradient(135deg, color-mix(in srgb, var(--good) 11%, transparent), transparent 60%); }
-#page-hsa .hsa-out { box-shadow: inset 5px 0 0 var(--bad); background-image: linear-gradient(135deg, color-mix(in srgb, var(--bad) 11%, transparent), transparent 60%); }
-#page-hsa .hsa-owed { box-shadow: inset 5px 0 0 var(--warning); background-image: linear-gradient(135deg, color-mix(in srgb, var(--warning) 11%, transparent), transparent 60%); }
 #page-hsa .big-number { font-size: 24px; font-weight: 700; }
 .projection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
 .projection-grid > div { background: var(--bar-track); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
@@ -573,7 +569,6 @@ html, body { overflow-x: hidden; }
 .add-pay button { width: 100%; margin: 0; padding: 12px; border-radius: 12px; }
 
 /* HSA: money coming and going */
-.hsa-heading { margin: 22px 0 10px; font-size: 18px; }
 #page-hsa .expected-tile .remove-link { display: none; }
 #page-hsa .expected-tile { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 16px 12px 20px; }
 #page-hsa .expected-in { box-shadow: inset 5px 0 0 var(--good); background-image: linear-gradient(135deg, color-mix(in srgb, var(--good) 11%, transparent), transparent 60%); }
@@ -589,5 +584,22 @@ html, body { overflow-x: hidden; }
 .hsa-kind-button.active[data-hsa-kind="out"] { background: color-mix(in srgb, var(--bad) 24%, transparent); color: var(--bad); }
 .hsa-add #hsa-item-add { width: 100%; margin: 0; padding: 13px; border-radius: 12px; }
 .hsa-message { margin-top: 8px; }
-.hsa-projection-toggle { margin: 10px 0 12px; }
-.hsa-projection-toggle .hsa-kind-button.active { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
+
+/* HSA: cleaner layout */
+#page-hsa .hsa-hero { padding: 20px 18px 16px; }
+.hsa-eyebrow { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-text); }
+#page-hsa .hsa-hero .huge-number { margin: 4px 0 14px; }
+.hsa-cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--bar-track); padding-top: 14px; }
+.hsa-cell { display: grid; gap: 3px; align-content: start; padding: 0 10px; border-left: 1px solid var(--bar-track); }
+.hsa-cell:first-child { padding-left: 0; border-left: 0; }
+.hsa-cell:last-child { padding-right: 0; }
+.hsa-cell-label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted-text); }
+.hsa-cell b { font-size: 20px; font-weight: 700; }
+.hsa-cell-in b { color: var(--good); } .hsa-cell-out b { color: var(--bad); } .hsa-cell-owed b { color: var(--warning); }
+.hsa-heading { margin: 22px 2px 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-text); }
+.hsa-projection .hsa-kind { margin: 0 0 12px; padding: 4px; gap: 4px; background: var(--bar-track); border-radius: 14px; }
+.hsa-projection .hsa-kind-button { background: transparent; padding: 10px 6px; font-size: 14px; }
+.hsa-projection .hsa-kind-button.active { background: var(--page-background); color: var(--main-text); }
+.hsa-projection .projection-grid { margin: 0 0 10px; }
+.hsa-projection .projection-grid > div { background: transparent; border: 1px solid var(--bar-track); }
+.hsa-projection .projection-grid b { font-size: 19px; }

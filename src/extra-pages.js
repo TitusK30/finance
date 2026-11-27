@@ -247,18 +247,17 @@ function showHsaPage(settings) {
   const includeListed = hasListed && hsa.projection_includes_listed !== false;
   const projectionCells = [1, 3, 6, 12].map((months) =>
     `<div><span class="small">In ${months} month${months > 1 ? "s" : ""}</span><b>${formatMoney(hsaBalanceAfterMonths(hsa, months, includeListed ? todayText() : undefined))}</b></div>`).join("");
-  const projectionToggle = hasListed ? `<div class="hsa-kind hsa-projection-toggle"><button class="hsa-kind-button${includeListed ? "" : " active"}" data-hsa-projection="plain">Regular only</button><button class="hsa-kind-button${includeListed ? " active" : ""}" data-hsa-projection="listed">With my listed money</button></div>` : "";
-  const payoffText = monthsLeft == null ? "Set the remaining bill amount to see the payoff date." : `About ${monthsLeft} more monthly payment${monthsLeft === 1 ? "" : "s"} to pay it off.`;
+  const projectionToggle = hasListed ? `<div class="hsa-kind"><button class="hsa-kind-button${includeListed ? "" : " active"}" data-hsa-projection="plain">Regular only</button><button class="hsa-kind-button${includeListed ? " active" : ""}" data-hsa-projection="listed">With my listed money</button></div>` : "";
+  const payoffShort = monthsLeft == null ? "set amounts for payoff" : `${monthsLeft} payment${monthsLeft === 1 ? "" : "s"} left`;
   document.getElementById("page-hsa").innerHTML = `<h2>HSA${hsa.provider ? ` (${escapeHtml(hsa.provider)})` : ""}</h2>
-    <div class="tile hsa-hero"><div class="small">&#129657; Balance</div><div class="huge-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div></div>
-    <div class="horizon-grid">
-      <div class="tile hsa-stat hsa-in"><div class="small">Put in each week</div><div class="big-number">${editableNumber("hsa.weekly_contribution", "Weekly HSA contribution", hsa.weekly_contribution, true)}</div>
-        <div class="small">about ${formatMoney(hsaMonthlyContribution(hsa))} / month</div></div>
-      <div class="tile hsa-stat hsa-out"><div class="small">Medical bill payment, monthly</div><div class="big-number">${editableNumber("hsa.monthly_bill_payment", "Monthly medical bill payment", hsa.monthly_bill_payment, true)}</div></div>
-    </div>
-    <div class="tile hsa-owed"><div class="small">Medical bill still owed</div><div class="big-number">${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</div>
-      <div class="small">${payoffText}</div></div>
-    <div class="tile"><b>Projected balance</b>${projectionToggle}<div class="projection-grid">${projectionCells}</div>
+    <div class="tile hsa-hero"><div class="hsa-eyebrow">&#129657; Balance</div><div class="huge-number">${editableNumber("hsa.balance", "HSA balance", hsa.balance, true)}</div>
+      <div class="hsa-cells">
+        <div class="hsa-cell hsa-cell-in"><span class="hsa-cell-label">In each week</span><b>${editableNumber("hsa.weekly_contribution", "Weekly HSA contribution", hsa.weekly_contribution, true)}</b><span class="small">about ${formatMoney(hsaMonthlyContribution(hsa))} / month</span></div>
+        <div class="hsa-cell hsa-cell-out"><span class="hsa-cell-label">Bill payment / month</span><b>${editableNumber("hsa.monthly_bill_payment", "Monthly medical bill payment", hsa.monthly_bill_payment, true)}</b></div>
+        <div class="hsa-cell hsa-cell-owed"><span class="hsa-cell-label">Bill still owed</span><b>${editableNumber("hsa.medical_bill_remaining", "Medical bill still owed", hsa.medical_bill_remaining, true)}</b><span class="small">${payoffShort}</span></div>
+      </div></div>
+    <h3 class="hsa-heading">Projected balance</h3>
+    <div class="tile hsa-projection">${projectionToggle}<div class="projection-grid">${projectionCells}</div>
       <div class="small">Assumes the weekly deposits keep coming and the bill is paid from the HSA${includeListed ? ", plus the money you listed below" : ""}.</div></div>
     ${hsaExpectedHtml(hsa)}`;
 }
