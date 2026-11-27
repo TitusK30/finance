@@ -303,4 +303,16 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { setTransactionCategories, categoryDisplayName, spendingCategoryChoices, expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+// A closed card statement counts as paid when checking shows a matching payment (same amount, on or after the statement closed).
+// Pending payments count too. A past-due statement with no matching payment stays owed.
+function withoutStatementsPaidFromChecking(settings, store) {
+  const checkingOutflows = Object.values(store.transactions || {}).filter((transaction) => transaction.amount > 0 && ((store.accounts || {})[transaction.account_id] || {}).type === "depository");
+  const updated = structuredClone(settings);
+  for (const card of Object.values(updated.credit_cards || {})) {
+    card.balances_by_statement = (card.balances_by_statement || []).filter((statement) => statement.still_accumulating
+      || !checkingOutflows.some((payment) => Math.abs(payment.amount - statement.amount) < 0.015 && payment.date >= (statement.statement_closed_on || "")));
+  }
+  return updated;
+}
+
+if (typeof module !== "undefined") module.exports = { withoutStatementsPaidFromChecking, setTransactionCategories, categoryDisplayName, spendingCategoryChoices, expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

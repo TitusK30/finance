@@ -89,7 +89,8 @@ function buildForecast(settings, horizonDays, whatIfPurchases = []) {
 
   for (const card of Object.values(settings.credit_cards)) {
     for (const statement of card.balances_by_statement) {
-      scheduleCardPayment(statement.due_date, statement.amount, card.display_name + " payment", Boolean(statement.still_accumulating), card);
+      // Past due and still owed: it comes out today.
+      scheduleCardPayment(statement.due_date < startDate ? startDate : statement.due_date, statement.amount, card.display_name + " payment", Boolean(statement.still_accumulating), card);
     }
   }
 
