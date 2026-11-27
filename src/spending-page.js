@@ -158,17 +158,19 @@ function showSpendingPage(settings) {
   const billRows = Object.values(store.transactions).filter((charge) => isBill(charge) && charge.date.startsWith(spendingMonthShown) && charge.amount > 0).sort((first, second) => first.date.localeCompare(second.date));
   const billsTotal = billRows.reduce((sum, charge) => sum + charge.amount, 0);
   const notSeen = billsStillToPay(billMatches, spendingMonthShown);
+  const neverCharged = (billMatches.byMonth[spendingMonthShown] || {}).neverCharged || [];
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
-  const billsTile = billRows.length || notSeen.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
+  const billsTile = billRows.length || notSeen.length || neverCharged.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
     ${billRows.map((charge) => {
       const markedByHand = billMatches.billCharges[charge.transaction_id] === "Marked by you";
       const button = markedByHand ? `<button class="mark-button" data-unmark-bill="${charge.transaction_id}">not a bill</button>` : "";
       return chargeRowHtml(settings, store, { ...charge, merchant_name: billMatches.billCharges[charge.transaction_id] + " · " + merchantName(charge) }, button);
     }).join("")}
-    ${notSeen.length ? `<div class="small not-seen"><b>Still to pay this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
+    ${notSeen.length ? `<div class="small not-seen"><b>Still to pay this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${bill.overdue ? "\u26a0\ufe0f " : ""}${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}
+    ${neverCharged.length ? `<div class="small not-seen"><b>\u26a0\ufe0f Never charged (not counted)</b>${neverCharged.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge) && charge.date.startsWith(spendingMonthShown));
   const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>

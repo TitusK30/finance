@@ -115,6 +115,14 @@ function matchBills(settings, store, userMarks = [], todayText = "9999-12-31") {
       ? dayNumber(bill.expected) + BILL_DATE_WINDOW_DAYS >= dayNumber(firstSeenDateOf[bill.name])
       : yearMonth === todayText.slice(0, 7));
   }
+  // Flag bills well past their window (overdue). When a month is over, the ones the bank never showed move to neverCharged
+  // and stop counting. Ones still inside their 5-day window are held back, since a charge may yet land just after month end.
+  const thisMonth = todayText.slice(0, 7);
+  for (const [yearMonth, month] of Object.entries(byMonth)) {
+    for (const bill of month.unseen) bill.overdue = dayNumber(bill.expected) + BILL_DATE_WINDOW_DAYS < dayNumber(todayText);
+    month.neverCharged = yearMonth < thisMonth ? month.unseen.filter((bill) => bill.overdue) : [];
+    if (yearMonth < thisMonth) month.unseen = [];
+  }
   for (const charge of charges) {
     if (!billCharges[charge.transaction_id] && userMarks.includes(billMarkKey(charge))) billCharges[charge.transaction_id] = "Marked by you";
   }
