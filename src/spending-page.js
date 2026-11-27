@@ -50,7 +50,7 @@ function cardNameForAccount(settings, store, accountId) {
 function chargeRowHtml(settings, store, charge, markButton = "") {
   const pendingTag = charge.pending ? ` <span class="pending-tag">pending</span>` : "";
   const cardName = cardNameForAccount(settings, store, charge.account_id);
-  return `<div class="tile-row small charge-row"><span>${shortMonthDay(charge.date)} · ${escapeHtml(merchantName(charge))}${pendingTag}<br><span class="charge-card">${escapeHtml(cardName)}</span></span><span>${formatMoney(charge.amount)}<br>${markButton}</span></div>`;
+  return `<div class="tile-row small charge-row" data-charge-id="${charge.transaction_id}"><span>${shortMonthDay(charge.date)} · ${escapeHtml(merchantName(charge))}${pendingTag}<br><span class="charge-card">${escapeHtml(cardName)}</span></span><span>${formatMoney(charge.amount)}<br>${markButton}</span></div>`;
 }
 
 function monthLabel(yearMonth) {
@@ -272,3 +272,33 @@ document.addEventListener("click", (event) => {
   showEverything();
   showSpendingPage(settings);
 });
+
+// Pick a category for one charge. "Other..." asks for a new category name; "Back to automatic" clears your choice.
+async function chooseCategoryForCharge(transactionId) {
+  const settings = loadSettings();
+  const charge = loadTransactionStore().transactions[transactionId];
+  if (!settings || !charge) return;
+  const overrides = settings.transaction_categories || {};
+  const current = categoryOf(charge);
+  const choices = spendingCategoryChoices(settings).map((category) => ({ title: categoryDisplayName(category) + (category === current ? "  \u2713" : ""), detail: "", value: category }));
+  const otherPosition = choices.findIndex((choice) => choice.value === "OTHER");
+  choices.splice(otherPosition, 1);
+  choices.push({ title: "New category\u2026", detail: "Type a name", value: "__new__" });
+  if (overrides[transactionId]) choices.push({ title: "Back to automatic", detail: "Use the keyword rules again", value: "__auto__" });
+  const picked = await askChoice(`${merchantName(charge)} \u00b7 ${formatMoney(charge.amount)}`, choices, "category-picker");
+  if (!picked) return;
+  const openTiles = [...document.querySelectorAll("#page-spending details")].map((tile) => tile.open);
+  let category = picked;
+  if (picked === "__new__") {
+    category = (prompt("Name for the new category") || "").trim();
+    if (!category) return;
+  }
+  settings.transaction_categories = { ...overrides };
+  if (category === "__auto__") delete settings.transaction_categories[transactionId];
+  else settings.transaction_categories[transactionId] = category === "Other" ? "OTHER" : category;
+  saveSettings(settings);
+  setTransactionCategories(settings.transaction_categories);
+  showSpendingPage(settings);
+  [...document.querySelectorAll("#page-spending details")].forEach((tile, position) => { tile.open = Boolean(openTiles[position]); });
+  showToast(category === "__auto__" ? "Back to automatic." : `Moved to ${categoryDisplayName(settings.transaction_categories[transactionId])}.`);
+}

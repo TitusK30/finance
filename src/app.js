@@ -164,9 +164,11 @@ function showCalendar(forecast, settings) {
     .map((deposit) => `<div class="timeline-event"><span class="timeline-icon timeline-in">&#8593;</span><span class="timeline-label">Paycheck${deposit.pending ? " (pending)" : ""} \u00b7 already in your balance</span><b class="positive">${formatMoney(-deposit.amount)}</b></div>`).join("");
   const alreadyInBalance = depositsToday + expectedPaychecks(loadTransactionStore(), settings, todayText()).list.filter((entry) => entry.in_balance)
     .map((entry) => `<div class="timeline-event"><span class="timeline-icon timeline-in">&#8593;</span><span class="timeline-label">Paycheck (already in your balance)</span><b class="positive">${formatMoney(entry.amount)}</b></div>`).join("");
+  const todayIsQuiet = !alreadyInBalance && forecast.today.events.length === 0;
   dayBlocks.unshift(`<div class="timeline-day"><div class="timeline-date"><span class="small">${todayParts.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" })}</span><b>${todayParts.getUTCDate()}</b><span class="small">${todayParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" })}</span></div>
       <div class="timeline-dot"></div>
-      <div class="tile timeline-card"><div class="timeline-event"><span class="timeline-label">Today</span></div>${alreadyInBalance}${forecast.today.events.map(timelineEventHtml).join("")}<div class="timeline-balance small">balance <b>${formatMoney(forecast.today.checking_balance)}</b></div></div></div>`);
+      ${todayIsQuiet ? `<div class="tile today-hero"><div class="today-eyebrow">Today \u00b7 Checking</div><div class="today-number">${formatMoney(forecast.today.checking_balance)}</div><div class="small">Nothing scheduled today</div></div>`
+        : `<div class="tile timeline-card"><div class="timeline-event"><span class="timeline-label">Today</span></div>${alreadyInBalance}${forecast.today.events.map(timelineEventHtml).join("")}<div class="timeline-balance small">balance <b>${formatMoney(forecast.today.checking_balance)}</b></div></div>`}</div>`);
   document.getElementById("calendar-list").innerHTML = `<div class="timeline">${dayBlocks.join("")}</div>`;
 }
 
@@ -274,6 +276,7 @@ document.addEventListener("click", (event) => {
 function showEverything() {
   const settings = loadSettings();
   setMerchantRules(settings && settings.merchant_rules);
+  setTransactionCategories(settings && settings.transaction_categories);
   document.getElementById("setup").hidden = Boolean(settings);
   document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);
   if (!settings) { document.getElementById("start-here").hidden = true; return; }
@@ -302,7 +305,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "optional_monthly_variable_spending_allowance"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "transaction_categories", "optional_monthly_variable_spending_allowance"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);

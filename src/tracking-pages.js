@@ -199,10 +199,10 @@ function askForDate(question, currentDate) {
 }
 
 // A pop-up with a question and buttons whose labels say what they do. Resolves with the chosen value (or undefined if dismissed).
-function askChoice(question, choices) {
+function askChoice(question, choices, extraClass = "") {
   return new Promise((resolve) => {
     const cover = document.createElement("div");
-    cover.className = "date-cover";
+    cover.className = "date-cover " + extraClass;
     cover.innerHTML = `<div class="date-box"><div class="date-question"></div><div class="choice-list">${choices.map((choice, position) =>
       `<button class="choice-button" data-choice="${position}"><b>${escapeHtml(choice.title)}</b><span class="small">${escapeHtml(choice.detail)}</span></button>`).join("")}</div></div>`;
     cover.querySelector(".date-question").textContent = question;

@@ -72,7 +72,27 @@ function setMerchantRules(rules) {
   customMerchantRules = (rules || []).filter((rule) => rule && rule.text && rule.category).map((rule) => ({ text: String(rule.text).toLowerCase().replace(/[^a-z0-9 ]/g, "").trim(), category: rule.category }));
 }
 
+// Charges you moved by hand (long-press a charge): { transaction_id: category }. This beats every keyword rule.
+let transactionCategoryOverrides = {};
+function setTransactionCategories(overrides) {
+  transactionCategoryOverrides = overrides || {};
+}
+
+// The name shown for a category: built-in ones have a nice name, a category you typed shows as you typed it.
+function categoryDisplayName(category) {
+  return CATEGORY_NAMES[category] || category;
+}
+
+// Every category a charge can be moved to: the built-in ones (Other last) plus any you typed before.
+function spendingCategoryChoices(settings) {
+  const typedBefore = new Set([...Object.values((settings && settings.transaction_categories) || {}), ...((settings && settings.merchant_rules) || []).map((rule) => rule.category)]);
+  const typedNames = [...typedBefore].filter((category) => category && !CATEGORY_NAMES[category]).sort();
+  const builtIn = Object.keys(CATEGORY_NAMES).filter((category) => category !== "OTHER");
+  return [...builtIn, ...typedNames, "OTHER"];
+}
+
 function categoryOf(transaction) {
+  if (transaction.transaction_id && transactionCategoryOverrides[transaction.transaction_id]) return transactionCategoryOverrides[transaction.transaction_id];
   const text = plainMerchantText(transaction);
   const customRule = customMerchantRules.find((rule) => rule.text && text.includes(rule.text));
   if (customRule) return customRule.category;
@@ -218,7 +238,7 @@ function monthlyBreakdown(charges, yearMonth) {
   const byCategory = {};
   for (const charge of inMonth) {
     const category = categoryOf(charge);
-    byCategory[category] = byCategory[category] || { category, name: CATEGORY_NAMES[category], total: 0, charges: [] };
+    byCategory[category] = byCategory[category] || { category, name: categoryDisplayName(category), total: 0, charges: [] };
     byCategory[category].total = roundCents(byCategory[category].total + charge.amount);
     byCategory[category].charges.push(charge);
   }
@@ -250,7 +270,7 @@ function monthComparison(charges, yearMonth, upToDay = 31) {
   const categories = [...names].map((category) => {
     const total = currentByCategory[category] || 0;
     const before = previousByCategory[category] || 0;
-    return { category, name: CATEGORY_NAMES[category], total, previousTotal: before, difference: roundCents(total - before) };
+    return { category, name: categoryDisplayName(category), total, previousTotal: before, difference: roundCents(total - before) };
   }).sort((first, second) => Math.abs(second.difference) - Math.abs(first.difference));
   return { previousMonth, total: current.total, previousTotal: previous.total, difference: roundCents(current.total - previous.total), hasPrevious: previous.total > 0, categories };
 }
@@ -283,4 +303,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { setTransactionCategories, categoryDisplayName, spendingCategoryChoices, expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

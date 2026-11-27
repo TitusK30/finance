@@ -76,3 +76,30 @@ document.addEventListener("click", (event) => {
   row.style.transform = "";
   control.click();
 }, true);
+
+// Long-press a charge on the Spending page to move it to another category (no animation: the list simply opens).
+const LONG_PRESS_MS = 550;
+let longPressTimer = null;
+let longPressStart = null;
+let longPressFired = false;
+
+document.addEventListener("touchstart", (event) => {
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id]");
+  longPressFired = false;
+  clearTimeout(longPressTimer);
+  if (!row) return;
+  longPressStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  longPressTimer = setTimeout(() => { longPressFired = true; chooseCategoryForCharge(row.dataset.chargeId); }, LONG_PRESS_MS);
+}, { passive: true });
+
+document.addEventListener("touchmove", (event) => {
+  if (!longPressTimer) return;
+  const moved = Math.abs(event.touches[0].clientX - longPressStart.x) + Math.abs(event.touches[0].clientY - longPressStart.y);
+  if (moved > 10) { clearTimeout(longPressTimer); longPressTimer = null; }
+}, { passive: true });
+
+document.addEventListener("touchend", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
+document.addEventListener("touchcancel", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
+document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row")) event.preventDefault(); });
+// The tap that ends a long-press must not also open or toggle anything.
+document.addEventListener("click", (event) => { if (longPressFired) { longPressFired = false; event.preventDefault(); event.stopPropagation(); } }, true);
