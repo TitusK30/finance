@@ -120,7 +120,8 @@ function showCards(settings) {
   // nothing more can be added to it, so the open cycle's close date moves to the following month.
   const closeDateOf = (card) => {
     const closeDate = nextStatementCloseDate(card, addDaysToDateText(today, -1));
-    const bankAlreadyIssued = card.balances_by_statement.some((statement) => !statement.still_accumulating && statement.statement_closed_on >= closeDate);
+    // Issued = the bank's closed statement closed on/after this date, or is due on the date that close date's statement is due.
+    const bankAlreadyIssued = card.balances_by_statement.some((statement) => !statement.still_accumulating && (statement.statement_closed_on >= closeDate || statement.due_date === dueDateForCharge(card, closeDate)));
     return bankAlreadyIssued ? nextStatementCloseDate(card, addDaysToDateText(closeDate, 1)) : closeDate;
   };
   const cardsByCloseDate = Object.values(settings.credit_cards).sort((first, second) => closeDateOf(second).localeCompare(closeDateOf(first)));
