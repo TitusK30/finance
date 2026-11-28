@@ -105,7 +105,7 @@ document.addEventListener("change", (event) => {
 
 function paycheckSectionHtml(settings) {
   const overrides = Object.entries(settings.paycheck.one_time_amount_overrides || {}).sort(([a], [b]) => (a < b ? -1 : 1));
-  const rows = overrides.map(([date, amount]) => `<div class="tile-row small charge-row"><span>${formatDate(date)}</span>
+  const rows = overrides.map(([date, amount]) => `<div class="tile-row small charge-row" data-setup-hold="override:${date}"><span>${formatDate(date)}</span>
       <span>${formatMoney(amount)}<br><button class="mark-button" data-setup-remove-override="${date}">remove</button></span></div>`).join("");
   return `${setupField("setup-takehome", "Take-home pay per paycheck ($)", "number", settings.paycheck.usual_take_home_amount)}
     ${payScheduleFieldsHtml(settings.paycheck, "setup")}
@@ -116,7 +116,7 @@ function paycheckSectionHtml(settings) {
 }
 
 function spendingTabSectionHtml(settings) {
-  const ruleRows = (settings.merchant_rules || []).map((rule, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(rule.text)}<br><span class="charge-card">${escapeHtml(CATEGORY_NAMES[rule.category] || rule.category)}</span></span>
+  const ruleRows = (settings.merchant_rules || []).map((rule, position) => `<div class="tile-row small charge-row" data-setup-hold="rule:${position}"><span>${escapeHtml(rule.text)}<br><span class="charge-card">${escapeHtml(CATEGORY_NAMES[rule.category] || rule.category)}</span></span>
       <span><button class="mark-button" data-setup-remove-rule="${position}">remove</button></span></div>`).join("");
   const ruleForm = `${setupField("setup-rule-text", "Charge contains (a store or word)")}
     ${setupSelect("setup-rule-category", "Count it as", Object.entries(CATEGORY_NAMES).map(([key, name]) => [key, name]), "GROCERIES")}
@@ -131,9 +131,9 @@ function spendingTabSectionHtml(settings) {
 
 function moreCardsSectionHtml(settings) {
   const cardEntries = Object.entries(settings.credit_cards);
-  const otherRows = settings.other_cards.map((otherCard, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(otherCard.name)}<br><span class="charge-card">${otherCard.expires ? "expires " + otherCard.expires : "no expiry"}</span></span>
+  const otherRows = settings.other_cards.map((otherCard, position) => `<div class="tile-row small charge-row" data-setup-hold="othercard:${position}"><span>${escapeHtml(otherCard.name)}<br><span class="charge-card">${otherCard.expires ? "expires " + otherCard.expires : "no expiry"}</span></span>
       <span><button class="mark-button" data-setup-remove-othercard="${position}">remove</button></span></div>`).join("");
-  const benefitRows = settings.card_benefits.map((benefit, position) => `<div class="tile-row small charge-row"><span>${escapeHtml(benefit.name)}<br><span class="charge-card">${escapeHtml((settings.credit_cards[benefit.card] || {}).display_name || "")}</span></span>
+  const benefitRows = settings.card_benefits.map((benefit, position) => `<div class="tile-row small charge-row" data-setup-hold="benefit:${position}"><span>${escapeHtml(benefit.name)}<br><span class="charge-card">${escapeHtml((settings.credit_cards[benefit.card] || {}).display_name || "")}</span></span>
       <span>${formatMoney(benefit.used || 0)} of ${formatMoney(benefit.total)}<br><button class="mark-button" data-setup-remove-benefit="${position}">remove</button></span></div>`).join("");
   const benefitForm = cardEntries.length
     ? `${setupSelect("setup-benefit-card", "Card", cardEntries.map(([cardKey, card]) => [cardKey, card.display_name]), cardEntries[0][0])}
@@ -216,7 +216,7 @@ function cardFormFieldsHtml(settings) {
 
 function cardsSectionHtml(settings) {
   const editing = cardBeingEdited ? settings.credit_cards[cardBeingEdited] : null;
-  const rows = Object.entries(settings.credit_cards).map(([cardKey, card]) => `<div class="tile-row small charge-row">
+  const rows = Object.entries(settings.credit_cards).map(([cardKey, card]) => `<div class="tile-row small charge-row" data-setup-hold="card:${cardKey}">
       <span>${escapeHtml(card.display_name)}<br><span class="charge-card">${formatMoney(card.credit_limit)} limit · closes day ${card.statement_close_day} · due day ${card.payment_due_day}</span></span>
       <span><button class="mark-button" data-setup-edit-card="${cardKey}">edit</button><br><button class="mark-button" data-setup-remove-card="${cardKey}">remove</button></span></div>`).join("");
   return `${rows || '<div class="small">No cards yet.</div>'}
@@ -225,7 +225,7 @@ function cardsSectionHtml(settings) {
 }
 
 function billsSectionHtml(settings) {
-  const rows = settings.monthly_bills_paid_from_checking.map((bill, position) => `<div class="tile-row small charge-row">
+  const rows = settings.monthly_bills_paid_from_checking.map((bill, position) => `<div class="tile-row small charge-row" data-setup-hold="bill:${position}">
       <span>${escapeHtml(bill.name)}<br><span class="charge-card">day ${bill.day_of_month}${bill.amount_changes_every_month ? " · amount changes" : ""}</span></span>
       <span>${formatMoney(bill.amount)}<br><button class="mark-button" data-setup-remove-bill="${position}">remove</button></span></div>`).join("");
   return `${rows || '<div class="small">None yet.</div>'}
@@ -250,7 +250,7 @@ function subFormFieldsHtml(settings) {
 }
 
 function subscriptionsSectionHtml(settings) {
-  const rows = settings.subscriptions_charged_to_cards.map((subscription, position) => `<div class="tile-row small charge-row">
+  const rows = settings.subscriptions_charged_to_cards.map((subscription, position) => `<div class="tile-row small charge-row" data-setup-hold="sub:${position}">
       <span>${escapeHtml(subscription.name)}<br><span class="charge-card">${escapeHtml((settings.credit_cards[subscription.card] || {}).display_name || "")} · day ${subscription.day_of_month || (subscription.assumed_days_of_month || []).join("/")}</span></span>
       <span>${formatMoney(subscription.amount)}<br><button class="mark-button" data-setup-remove-subscription="${position}">remove</button></span></div>`).join("");
   const form = Object.keys(settings.credit_cards).length ? `${subFormFieldsHtml(settings)}<button id="setup-add-subscription">Add subscription</button>` : '<div class="small">Add a card first.</div>';
@@ -675,3 +675,89 @@ document.addEventListener("click", (event) => {
 
   if (target.id === "setup-open-loans") return showPage("car");
 });
+
+// Hold a Set up row to edit it in a sheet, like holding a bill on the Bills tab.
+// holdKey is "kind:key", for example "bill:2" or "override:2026-12-25".
+function editSetupItem(holdKey) {
+  const kind = holdKey.slice(0, holdKey.indexOf(":"));
+  const key = holdKey.slice(holdKey.indexOf(":") + 1);
+  if (kind === "bill" || kind === "sub") return editBillItem(kind, Number(key));
+  const settings = loadSettings();
+  if (!settings) return;
+  readPlainBoxes(settings, true); // keep anything typed in the plain boxes, the page re-draws after saving
+  if (kind === "card") { cardBeingEdited = key; openSetupSections.add("cards"); return showSetupPage(settings); }
+  const cardOptions = Object.entries(settings.credit_cards).map(([cardKey, card]) => [cardKey, card.display_name]);
+  const overrides = settings.paycheck.one_time_amount_overrides || {};
+  const editors = {
+    override: () => ({
+      title: "Edit one-time paycheck",
+      fields: [{ id: "date", label: "Payday", type: "date", value: key }, { id: "amount", label: "Amount that day ($)", isMoney: true, value: overrides[key] }],
+      save: (values) => {
+        if (!values.date || !(values.amount > 0)) return "Pick a payday and an amount more than 0.";
+        delete overrides[key];
+        settings.paycheck.one_time_amount_overrides = { ...overrides, [values.date]: values.amount };
+      },
+    }),
+    rule: (rule = settings.merchant_rules[Number(key)]) => ({
+      title: "Edit category rule",
+      fields: [{ id: "text", label: "Charge contains (a store or word)", value: rule.text }, { id: "category", label: "Count it as", options: [...Object.entries(CATEGORY_NAMES), ...(CATEGORY_NAMES[rule.category] ? [] : [[rule.category, rule.category]])], value: rule.category }],
+      save: (values) => {
+        if (!values.text) return "Type a store name or word to look for.";
+        settings.merchant_rules[Number(key)] = { ...rule, text: values.text, category: values.category };
+      },
+    }),
+    othercard: (otherCard = settings.other_cards[Number(key)]) => ({
+      title: "Edit card",
+      fields: [{ id: "name", label: "Card name", value: otherCard.name }, { id: "expires", label: "Expires (month, optional)", type: "month", value: otherCard.expires || "" }],
+      save: (values) => {
+        if (!values.name) return "Give the card a name.";
+        const updated = { ...otherCard, name: values.name, expires: values.expires };
+        if (!values.expires) delete updated.expires;
+        settings.other_cards[Number(key)] = updated;
+      },
+    }),
+    benefit: (benefit = settings.card_benefits[Number(key)]) => ({
+      title: "Edit benefit",
+      fields: [{ id: "name", label: "Benefit", value: benefit.name }, { id: "card", label: "Card", options: cardOptions, value: benefit.card },
+        { id: "total", label: "Total credit ($)", isMoney: true, value: benefit.total }, { id: "used", label: "Already used ($)", isMoney: true, value: benefit.used || 0 }],
+      save: (values) => {
+        if (!values.name || !(values.total > 0)) return "Give the benefit a name and a total amount.";
+        settings.card_benefits[Number(key)] = { ...benefit, name: values.name, card: values.card, total: values.total, used: values.used || 0 };
+      },
+    }),
+  };
+  if (!editors[kind]) return;
+  const editor = editors[kind]();
+  openSetupItemSheet(editor, () => saveAndRefresh(settings));
+}
+
+// A bottom sheet with one box per field, Save and Cancel. editor.save returns an error message, or nothing when it worked.
+function openSetupItemSheet(editor, afterSave) {
+  const cover = document.createElement("div");
+  cover.className = "date-cover category-picker filter-sheet bill-editor";
+  const typedValues = Object.fromEntries(editor.fields.map((field) => [field.id, field.value ?? ""]));
+  let errorText = "";
+  const fieldHtml = (field) => `<div class="filter-label">${field.label}</div>` + (field.options
+    ? `<select id="setup-sheet-${field.id}">${field.options.map(([value, name]) => `<option value="${escapeHtml(value)}"${String(typedValues[field.id]) === String(value) ? " selected" : ""}>${escapeHtml(name)}</option>`).join("")}</select>`
+    : `<input id="setup-sheet-${field.id}" type="${field.type || "text"}"${field.isMoney ? ' inputmode="decimal"' : ""} value="${escapeHtml(String(typedValues[field.id]))}" autocomplete="off">`);
+  const draw = () => {
+    cover.innerHTML = `<div class="date-box"><div class="date-question">${escapeHtml(editor.title)}</div>
+      ${editor.fields.map(fieldHtml).join("")}
+      ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
+      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-setup-sheet-save><b>Save</b></button><button class="choice-button is-wide" data-setup-sheet-cancel><b>Cancel</b></button></div></div>`;
+  };
+  draw();
+  cover.addEventListener("click", (event) => {
+    if (event.target.closest("[data-setup-sheet-save]")) {
+      for (const field of editor.fields) typedValues[field.id] = cover.querySelector("#setup-sheet-" + field.id).value.trim();
+      const values = Object.fromEntries(editor.fields.map((field) => [field.id, field.isMoney ? parseFloat(typedValues[field.id].replace(/[$,]/g, "")) : typedValues[field.id]]));
+      errorText = editor.save(values) || "";
+      if (errorText) { draw(); return; }
+      cover.remove();
+      afterSave();
+      return;
+    }
+    if (event.target.closest("[data-setup-sheet-cancel]") || event.target === cover) cover.remove();
+  });
+  document.body.appendChild(cover);
+}

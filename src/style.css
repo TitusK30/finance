@@ -607,7 +607,7 @@ html, body { overflow-x: hidden; }
 .hsa-projection .projection-grid b { font-size: 19px; }
 
 /* Long-press a charge: no text selection or iOS callout, and the list gets its own scroll */
-#page-spending .charge-row[data-charge-id], #page-bills .bill-tile { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+#page-spending .charge-row[data-charge-id], #page-bills .bill-tile, #page-setup [data-setup-hold] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .date-box { max-height: 82vh; overflow-y: auto; }
 /* Category picker: a bottom sheet with a two-column grid of colored chips */
 .category-picker { align-items: flex-end; background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: sheet-fade 0.18s ease-out; }
@@ -646,7 +646,7 @@ html, body { overflow-x: hidden; }
 .filter-sheet .choice-button.is-wide:not(.is-apply) b { color: var(--muted-text); }
 
 /* Bill editor sheet */
-.bill-editor input { margin: 0 0 4px; padding: 13px 14px; border-radius: 14px; background: var(--bar-track); border-color: transparent; font-size: 17px; }
+.bill-editor input, .bill-editor select { margin: 0 0 4px; padding: 13px 14px; border-radius: 14px; background: var(--bar-track); border-color: transparent; font-size: 17px; }
 .bill-editor input:focus { outline: none; border-color: var(--accent); }
 .bill-editor .editor-error { margin: 10px 4px 0; color: var(--bad); font-size: 14px; }
 /* Spending: search bar, vs last month, pace line, budgets */

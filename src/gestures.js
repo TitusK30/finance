@@ -79,21 +79,22 @@ document.addEventListener("click", (event) => {
   control.click();
 }, true);
 
-// Long-press a charge on the Spending page to move it to another category (no animation: the list simply opens).
+// Long-press a charge on the Spending page to move it to another category, a Bills item or a Set up row to edit it (no animation: the list simply opens).
 const LONG_PRESS_MS = 550;
 let longPressTimer = null;
 let longPressStart = null;
 let longPressFired = false;
 
 document.addEventListener("touchstart", (event) => {
-  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source]");
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold]");
   longPressFired = false;
   clearTimeout(longPressTimer);
   if (!row) return;
   longPressStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
   longPressTimer = setTimeout(() => {
     longPressFired = true;
-    if (row.dataset.billSource) editBillItem(row.dataset.billSource, Number(row.dataset.billIndex));
+    if (row.dataset.setupHold) editSetupItem(row.dataset.setupHold);
+    else if (row.dataset.billSource) editBillItem(row.dataset.billSource, Number(row.dataset.billIndex));
     else chooseCategoryForCharge(row.dataset.chargeId);
   }, LONG_PRESS_MS);
 }, { passive: true });
@@ -106,7 +107,7 @@ document.addEventListener("touchmove", (event) => {
 
 document.addEventListener("touchend", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
 document.addEventListener("touchcancel", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
-document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile")) event.preventDefault(); });
+document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile, #page-setup [data-setup-hold]")) event.preventDefault(); });
 // The tap that ends a long-press must not also open or toggle anything.
 document.addEventListener("click", (event) => { if (longPressFired) { longPressFired = false; event.preventDefault(); event.stopPropagation(); } }, true);
 

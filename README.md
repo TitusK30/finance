@@ -134,6 +134,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
 - **Typed in by you:** savings (unless linked), rewards, benefits, loans, goals, credit scores, PTO, tasks.
 - Swipe left on a task, goal or Set up row to reveal **Delete**.
+- Hold a Set up row (card, bill, subscription, one-time paycheck, category rule, other card, benefit) to edit it, the same way you hold a Bills item.
 
 ---
 
@@ -262,7 +263,7 @@ src/loan.js              loan math (car, mortgage, any other)
 src/tracking*.js         goals, to-dos, credit score
 src/extra-pages.js       bills, rewards, HSA, PTO pages
 src/loans-page.js        Loans tab: one chip per loan, All overview, add and edit
-src/gestures.js          swipe to delete, menu swipe
+src/gestures.js          swipe to delete, hold to edit, menu swipe
 relay/worker.mjs         Cloudflare Worker
 finance_settings.example.json   fake data showing the file format
 ```
