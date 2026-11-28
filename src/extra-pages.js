@@ -126,7 +126,8 @@ function showMonthlyItemsPage(settings, tabName, pageTitle) {
       const whenText = item.refillsPerMonth ? `about ${item.refillsPerMonth}x a month, ${formatMoney(item.amountEach)} each` : `${verb} on the ${item.dayOfMonth}${ordinalEnding(item.dayOfMonth)}`;
       const amountText = `${formatMoney(item.monthlyAmount)} / month${item.isEstimate ? " (est.)" : ""}`;
       return `<div class="tile bill-tile" data-bill-source="${item.source}" data-bill-index="${item.index}" style="--tile-accent:${payerColor(settings, item.paidFrom)}"><div class="tile-row"><b>${escapeHtml(item.name)}</b><b>${amountText}</b></div>
-        <div class="tile-row small"><span>${payerName(settings, item.paidFrom)}</span><span>${whenText}</span></div></div>`;
+        <div class="tile-row small"><span>${payerName(settings, item.paidFrom)}</span><span>${whenText}</span></div>
+        <button class="remove-link" data-remove-bill-item="${item.source}:${item.index}">remove</button></div>`;
     }).join("");
   const payerEntries = Object.entries(totalsByPayer).sort();
   const payerBar = `<div class="payer-bar">${payerEntries.map(([paidFrom, total]) => `<div class="seg" style="width:${monthlyTotal > 0 ? (total / monthlyTotal) * 100 : 0}%;background:${payerColor(settings, paidFrom)}"></div>`).join("")}</div>`;
@@ -146,21 +147,25 @@ const REWARD_COLORS = ["#5aa2ff", "#4ade80", "#a78bfa", "#fb923c", "#f472b6", "#
 function showRewardsPage(settings) {
   const cardKeys = Object.keys(settings.credit_cards);
   const colorOf = (cardKey) => REWARD_COLORS[Math.max(0, cardKeys.indexOf(cardKey)) % REWARD_COLORS.length];
-  const pointTiles = Object.entries(settings.credit_cards).map(([cardKey, card]) => {
+  const shownCards = Object.entries(settings.credit_cards).filter(([cardKey]) => !settings.rewards[cardKey].hidden);
+  const hiddenCount = cardKeys.length - shownCards.length;
+  const pointTiles = shownCards.map(([cardKey, card]) => {
     const reward = settings.rewards[cardKey];
     return `<div class="tile rewards-tile points-tile" style="--tile-accent:${colorOf(cardKey)}"><div><b>${card.display_name}</b><div class="small">${escapeHtml(reward.program)}</div></div>
-      <b class="points-number">${editableNumber(`rewards.${cardKey}.points_balance`, card.display_name + " balance", reward.points_balance, false)}</b></div>`;
+      <b class="points-number">${editableNumber(`rewards.${cardKey}.points_balance`, card.display_name + " balance", reward.points_balance, false)}</b>
+      <button class="remove-link" data-remove-points="${cardKey}">remove</button></div>`;
   }).join("");
+  const showPointsButton = hiddenCount ? `<button class="mark-button points-show-button" data-show-points="yes">+ Show points for ${hiddenCount} hidden card${hiddenCount === 1 ? "" : "s"}</button>` : "";
   const benefitTiles = settings.card_benefits.map((benefit, position) => {
     const remaining = benefitRemaining(benefit);
     const percentUsed = Math.min(100, Math.round(((benefit.used || 0) / benefit.total) * 100));
-    return `<div class="tile rewards-tile benefit-tile" style="--tile-accent:${colorOf(benefit.card)}"><div class="tile-row"><b>${escapeHtml(benefit.name)}</b><b class="benefit-left">${formatMoney(remaining)} left</b></div>
+    return `<div class="tile rewards-tile benefit-tile" data-setup-hold="benefit:${position}" style="--tile-accent:${colorOf(benefit.card)}"><div class="tile-row"><b>${escapeHtml(benefit.name)}</b><b class="benefit-left">${formatMoney(remaining)} left</b></div>
       <div class="bar benefit-bar"><div class="bar-fill" style="width:${percentUsed}%"></div></div>
       <div class="tile-row small"><span>${settings.credit_cards[benefit.card].display_name}</span>
-        <span>used ${editableNumber(`card_benefits.${position}.used`, benefit.name + ": amount used", benefit.used || 0, true)} of ${editableNumber(`card_benefits.${position}.total`, benefit.name + ": total credit", benefit.total, true)}</span></div>
+        <span>used ${formatMoney(benefit.used || 0)} of ${formatMoney(benefit.total)}</span></div>
       <button class="remove-link" data-remove-benefit="${position}">remove</button></div>`;
   }).join("");
-  document.getElementById("page-rewards").innerHTML = `<h2>Points</h2>${pointTiles}<h2>Card benefits</h2>${benefitTiles}
+  document.getElementById("page-rewards").innerHTML = `<h2>Points</h2>${pointTiles}${showPointsButton}<h2>Card benefits</h2>${benefitTiles}${benefitTiles ? `<div class="small benefit-hint">Hold a benefit to change it, swipe it to delete.</div>` : ""}
     <button id="add-benefit-button">Add benefit</button>`;
 }
 
@@ -643,3 +648,39 @@ function applyBillEdit(settings, source, index, { name, amount, days, payer }) {
     settings.monthly_bills_paid_from_checking.push(rest);
   }
 }
+
+// Bills tab: swipe a bill or subscription to delete it. Points: swipe a card's points to hide them, the button brings them back.
+document.addEventListener("click", async (event) => {
+  const removeBillButton = event.target.closest("[data-remove-bill-item]");
+  const removePointsButton = event.target.closest("[data-remove-points]");
+  const showPointsButton = event.target.closest("[data-show-points]");
+  if (!removeBillButton && !removePointsButton && !showPointsButton) return;
+  event.preventDefault();
+  const settings = loadSettings();
+  if (!settings) return;
+  if (removeBillButton) {
+    const [source, index] = removeBillButton.dataset.removeBillItem.split(":");
+    const list = source === "bill" ? settings.monthly_bills_paid_from_checking : settings.subscriptions_charged_to_cards;
+    const [removed] = list.splice(Number(index), 1);
+    saveSettings(settings);
+    showEverything();
+    showToast(`${removed.name} removed.`);
+    return;
+  }
+  if (removePointsButton) {
+    const cardKey = removePointsButton.dataset.removePoints;
+    settings.rewards[cardKey].hidden = true;
+    saveSettings(settings);
+    showRewardsPage(settings);
+    showToast(`${settings.credit_cards[cardKey].display_name} points hidden.`);
+    return;
+  }
+  const hiddenChoices = Object.entries(settings.credit_cards).filter(([cardKey]) => settings.rewards[cardKey].hidden)
+    .map(([cardKey, card]) => ({ title: card.display_name, detail: settings.rewards[cardKey].program || "", value: cardKey, color: REWARD_COLORS[Object.keys(settings.credit_cards).indexOf(cardKey) % REWARD_COLORS.length] }));
+  const picked = await askChoice("Show points for which card?", hiddenChoices, "category-picker");
+  if (!picked) return;
+  delete settings.rewards[picked].hidden;
+  saveSettings(settings);
+  showRewardsPage(settings);
+  showToast(`${settings.credit_cards[picked].display_name} points shown.`);
+});

@@ -185,7 +185,7 @@ function showSpendingPage(settings) {
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%${overBudget ? ";background:var(--bad)" : ""}"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}${budgetNote}</div></summary>
-    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`;
+    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>`;
   }).join("");
 
   const isCurrentMonthShown = spendingMonthShown === todayText().slice(0, 7);
@@ -310,8 +310,19 @@ async function chooseCategoryForCharge(transactionId) {
   choices.splice(otherPosition, 1);
   choices.push({ title: "New category\u2026", detail: "Type a name", value: "__new__", wide: true });
   if (overrides[transactionId]) choices.push({ title: "Back to automatic", detail: "Use the keyword rules again", value: "__auto__", wide: true });
-  const picked = await askChoice(`${merchantName(charge)} \u00b7 ${formatMoney(charge.amount)}`, choices, "category-picker");
+  // "Mark as bill" lives in this sheet (hold a charge); a charge you marked by hand offers "Not a bill" instead.
+  const isMarkedBill = loadBillMarks().includes(billMarkKey(charge));
+  const billAction = isMarkedBill ? { label: "&#10005; Not a bill", value: "__unmark_bill__" } : { label: "&#129534; Mark as bill", value: "__mark_bill__" };
+  const picked = await askChoice(`${merchantName(charge)} \u00b7 ${formatMoney(charge.amount)}`, choices, "category-picker", billAction);
   if (!picked) return;
+  if (picked === "__mark_bill__" || picked === "__unmark_bill__") {
+    const key = billMarkKey(charge);
+    const marks = loadBillMarks().filter((existing) => existing !== key);
+    saveBillMarks(picked === "__mark_bill__" ? [...marks, key] : marks);
+    showSpendingKeepingOpen(settings);
+    showToast(picked === "__mark_bill__" ? `${merchantName(charge)} marked as a bill.` : `${merchantName(charge)} is not a bill anymore.`);
+    return;
+  }
   const openTiles = [...document.querySelectorAll("#page-spending details")].map((tile) => tile.open);
   let category = picked;
   if (picked === "__new__") {

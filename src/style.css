@@ -289,6 +289,16 @@ html, body { overflow-x: hidden; }
 .payer-bar .seg { height: 100%; }
 #page-bills .bills-total-tile .tile-row.small { padding: 3px 0; }
 #page-bills .bill-tile .tile-row { gap: 12px; }
+#page-bills .bill-tile .remove-link, #page-rewards .points-tile .remove-link { display: none; }
+.points-show-button { display: block; margin: 4px 0 8px; font-size: 14px; }
+.benefit-hint { text-align: center; margin: 2px 0 10px; }
+/* A pill beside a sheet's title, like "Mark as bill" in the category sheet */
+.sheet-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sheet-title-row .date-question { flex: 1; min-width: 0; }
+.category-picker .sheet-title-row { margin-bottom: 14px; }
+.category-picker .sheet-title-row .date-question { margin-bottom: 0; }
+.sheet-header-action { flex: none; width: auto; margin: 0; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 25%, transparent); transition: transform 0.12s ease; }
+.sheet-header-action:active { transform: scale(0.95); }
 #page-bills .bill-tile .tile-row b:last-child { white-space: nowrap; }
 
 /* Tasks */
@@ -608,7 +618,7 @@ html, body { overflow-x: hidden; }
 .hsa-projection .projection-grid b { font-size: 19px; }
 
 /* Long-press a charge: no text selection or iOS callout, and the list gets its own scroll */
-#page-spending .charge-row[data-charge-id], #page-bills .bill-tile, #page-setup [data-setup-hold], [data-item-hold] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+#page-spending .charge-row[data-charge-id], #page-bills .bill-tile, [data-setup-hold], [data-item-hold], [data-budget-hold] { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .date-box { max-height: 82vh; overflow-y: auto; }
 /* Category picker: a bottom sheet with a two-column grid of colored chips */
 .category-picker { align-items: flex-end; background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: sheet-fade 0.18s ease-out; }

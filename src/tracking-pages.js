@@ -199,14 +199,17 @@ function askForDate(question, currentDate) {
 }
 
 // A pop-up with a question and buttons whose labels say what they do. Resolves with the chosen value (or undefined if dismissed).
-function askChoice(question, choices, extraClass = "") {
+// headerAction (optional): { label, value } shown as a pill beside the question; tapping it resolves with its value.
+function askChoice(question, choices, extraClass = "", headerAction = null) {
   return new Promise((resolve) => {
     const cover = document.createElement("div");
     cover.className = "date-cover " + extraClass;
-    cover.innerHTML = `<div class="date-box"><div class="date-question"></div><div class="choice-list">${choices.map((choice, position) =>
+    const actionButton = headerAction ? `<button class="sheet-header-action" data-header-action>${headerAction.label}</button>` : "";
+    cover.innerHTML = `<div class="date-box"><div class="sheet-title-row"><div class="date-question"></div>${actionButton}</div><div class="choice-list">${choices.map((choice, position) =>
       `<button class="choice-button${choice.current ? " is-current" : ""}${choice.wide ? " is-wide" : ""}" data-choice="${position}" ${choice.color ? `style="--dot:${choice.color}"` : ""}>${choice.color ? '<i class="choice-dot"></i>' : ""}<b>${escapeHtml(choice.title)}</b><span class="small">${escapeHtml(choice.detail)}</span></button>`).join("")}</div></div>`;
     cover.querySelector(".date-question").textContent = question;
     cover.addEventListener("click", (event) => {
+      if (event.target.closest("[data-header-action]")) { cover.remove(); resolve(headerAction.value); return; }
       const button = event.target.closest("[data-choice]");
       if (button) { cover.remove(); resolve(choices[Number(button.dataset.choice)].value); }
       else if (event.target === cover) { cover.remove(); resolve(undefined); }
