@@ -12,13 +12,41 @@ function loanPayoffText(plan) {
   return plan.paymentsLeft > 0 ? monthAndYear(plan.payoffDate) : "Paid off";
 }
 
+// Checks one loan's due dates against checking-account charges. null when the loan has no bank text saved.
+function loanBankCheck(loan) {
+  const store = loadTransactionStore();
+  const charges = Object.values(store.transactions).filter((charge) => store.accounts[charge.account_id] && store.accounts[charge.account_id].type === "depository");
+  const oldestKnown = charges.map((charge) => charge.date).sort()[0];
+  return loanPaymentCheck(loan, todayText(), charges, oldestKnown);
+}
+
+function loanStatusNow(loan) {
+  const check = loanBankCheck(loan);
+  return { check, status: loanStatus(loan, todayText(), check && check.paid) };
+}
+
+// The last few due dates and what the bank shows for each.
+function loanBankCheckHtml(loan, check) {
+  if (!check) return `<div class="small loan-hint">Payments are assumed paid on their due dates. Tap Edit this loan and add the bank text of your payment to check them against your bank.</div>`;
+  const recent = loanDueDates(loan, 600).filter((dueDate) => dueDate <= todayText()).slice(-4).reverse();
+  const rows = recent.map((dueDate) => {
+    const found = check.found[dueDate];
+    const text = found ? `<span class="positive">\u2713 paid ${shortMonthDay(found.date)} \u00b7 ${formatMoney(found.amount)}</span>`
+      : check.waiting.includes(dueDate) ? `<span class="amber-text">\u23f3 not posted yet</span>`
+      : check.missed.includes(dueDate) ? `<span class="negative">\u26a0 not found, not counted</span>`
+      : `<span class="small">before your bank history</span>`;
+    return `<div class="tile-row small"><span>${shortMonthDay(dueDate)} payment</span>${text}</div>`;
+  }).join("");
+  return `<div class="tile car-tile"><b>Bank check</b>${rows}<div class="small">Looks for charges with: ${escapeHtml(loan.payment_text_contains.join(", "))}</div></div>`;
+}
+
 function loanChipsHtml(loans) {
   const chip = (key, label) => `<button class="loan-chip${String(loanShown) === String(key) ? " is-on" : ""}" data-loan-pick="${key}">${label}</button>`;
   return `<div class="loan-chips">${loans.length > 1 ? chip("all", "All") : ""}${loans.map((loan, position) => chip(position, `${loanIcon(loan)} ${escapeHtml(loan.name)}`)).join("")}<button class="loan-chip loan-chip-add" data-loan-add="yes">+ Add</button></div>`;
 }
 
 function loansOverviewHtml(loans) {
-  const overview = loanOverview(loans, todayText());
+  const overview = loanOverview(loans, todayText(), (loan) => { const check = loanBankCheck(loan); return check && check.paid; });
   const percentPaid = Math.round((overview.principalPaid / overview.borrowed) * 100);
   const rows = overview.rows.map((row, position) => {
     const paid = Math.round((row.status.principalPaid / row.loan.amount) * 100);
@@ -35,14 +63,15 @@ function loansOverviewHtml(loans) {
 }
 
 function loanDetailHtml(loan, position) {
-  const status = loanStatus(loan, todayText());
-  const baseline = loanPayoffPlan(loan, status.balance, status.paymentsMade);
+  const { check, status } = loanStatusNow(loan);
+  const baseline = loanPayoffPlan(loan, status.balance, status.dueCount);
   const totalPayments = status.paymentsMade + baseline.paymentsLeft;
   const percentPaid = Math.round((status.principalPaid / loan.amount) * 100);
   const principalShare = status.totalPaid > 0 ? Math.round((status.principalPaid / status.totalPaid) * 100) : 0;
   return `<div class="tile car-hero"><div class="small">Still owed (principal)</div><div class="huge-number">${formatMoney(status.balance)}</div>
       <div class="bar goal-bar"><div class="bar-fill" style="width:${percentPaid}%"></div></div>
-      <div class="small">${percentPaid}% of the ${formatMoney(loan.amount)} loan paid off</div></div>
+      <div class="small">${percentPaid}% of the ${formatMoney(loan.amount)} loan paid off</div>
+      ${status.missedPayments ? `<div class="small negative">\u26a0 ${status.missedPayments} payment${status.missedPayments === 1 ? "" : "s"} not found in your bank, so not counted</div>` : ""}</div>
     <div class="tile car-tile"><div class="small">Paid so far</div><div class="big-number">${formatMoney(status.totalPaid)}</div>
       <div class="split-bar"><span class="split-loan" style="width:${principalShare}%"></span><span class="split-interest" style="width:${100 - principalShare}%"></span></div>
       <div class="tile-row small"><span><span class="dot dot-loan"></span>Went to the loan</span><span>${formatMoney(status.principalPaid)}</span></div>
@@ -59,6 +88,7 @@ function loanDetailHtml(loan, position) {
         <div><span class="fact-icon">&#128197;</span><b>${totalPayments}</b><span class="small">Payments</span></div>
         <div><span class="fact-icon">&#128184;</span><b>${formatMoney(status.interestPaid + baseline.interestRemaining)}</b><span class="small">Total interest</span></div>
       </div></div>
+    ${loanBankCheckHtml(loan, check)}
     <button class="small-button" data-loan-edit="${position}">Edit this loan</button>`;
 }
 
@@ -80,12 +110,12 @@ function showLoansPage(settings) {
   if (loanShown === "all") { resultBox.innerHTML = ""; return; }
   // What paying extra would do to the loan on screen.
   const loan = loans[loanShown];
-  const status = loanStatus(loan, todayText());
-  const baseline = loanPayoffPlan(loan, status.balance, status.paymentsMade);
+  const { status } = loanStatusNow(loan);
+  const baseline = loanPayoffPlan(loan, status.balance, status.dueCount);
   const lumpSum = parseFloat(document.getElementById("car-extra-now").value) || 0;
   const extraEachMonth = parseFloat(document.getElementById("car-extra-monthly").value) || 0;
   if (lumpSum <= 0 && extraEachMonth <= 0) { resultBox.innerHTML = ""; return; }
-  const plan = loanPayoffPlan(loan, status.balance, status.paymentsMade, lumpSum, extraEachMonth);
+  const plan = loanPayoffPlan(loan, status.balance, status.dueCount, lumpSum, extraEachMonth);
   const monthsSaved = baseline.paymentsLeft - plan.paymentsLeft;
   resultBox.innerHTML = `<div class="tile result-hero"><div class="verdict">${plan.paymentsLeft === 0 ? "Paid off right now" : "Paid off " + monthAndYear(plan.payoffDate)}</div>
     <div class="tile-row"><b>Interest saved</b><b class="positive">${formatMoney(baseline.interestRemaining - plan.interestRemaining)}</b></div>
@@ -104,7 +134,7 @@ function openLoanEditor(position) {
   if (!settings) return;
   const existing = position === null ? {} : loansOf(settings)[position];
   if (!existing) return;
-  const values = { name: existing.name || "", kind: existing.kind || "car", amount: existing.amount ?? "", rate: existing.annual_rate_percent ?? "", payment: existing.payment ?? "", first: existing.first_payment_date || "" };
+  const values = { name: existing.name || "", kind: existing.kind || "car", amount: existing.amount ?? "", rate: existing.annual_rate_percent ?? "", payment: existing.payment ?? "", first: existing.first_payment_date || "", words: (existing.payment_text_contains || []).join(", ") };
   const cover = document.createElement("div");
   cover.className = "date-cover category-picker filter-sheet bill-editor";
   let errorText = "";
@@ -118,11 +148,13 @@ function openLoanEditor(position) {
       ${input("loan-edit-rate", "Yearly interest rate (%)", "rate", 'inputmode="decimal"')}
       ${input("loan-edit-payment", "Monthly payment ($)", "payment", 'inputmode="decimal"')}
       ${input("loan-edit-first", "First payment date", "first", 'type="date"')}
+      <div class="filter-label">Bank text of your payment <span class="small">(optional, commas)</span></div><input id="loan-edit-words" value="${escapeHtml(values.words)}" placeholder="like: zelle, kevin" autocomplete="off" autocapitalize="off">
+      <div class="small loan-hint">With this, the loan counts a payment only when a checking charge with all these words posts near its due date.</div>
       ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
       <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-loan-save><b>Save</b></button>${position === null ? "" : `<button class="choice-button is-wide" data-loan-remove><b>Remove this loan</b></button>`}<button class="choice-button is-wide" data-loan-cancel><b>Cancel</b></button></div></div>`;
   };
   const readFields = () => {
-    for (const [field, id] of [["name", "loan-edit-name"], ["amount", "loan-edit-amount"], ["rate", "loan-edit-rate"], ["payment", "loan-edit-payment"], ["first", "loan-edit-first"]]) {
+    for (const [field, id] of [["name", "loan-edit-name"], ["amount", "loan-edit-amount"], ["rate", "loan-edit-rate"], ["payment", "loan-edit-payment"], ["first", "loan-edit-first"], ["words", "loan-edit-words"]]) {
       const box = cover.querySelector("#" + id);
       if (box) values[field] = box.value;
     }

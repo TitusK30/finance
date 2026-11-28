@@ -29,14 +29,19 @@ function loanPaymentsMade(loan, todayDate) {
   return loanDueDates(loan, 600).filter((dueDate) => dueDate <= todayDate).length;
 }
 
-function loanStatus(loan, todayDate) {
-  const duePaymentsCount = loanPaymentsMade(loan, todayDate);
+// paidDueDates (optional): the due dates the bank confirmed. Leave it out to assume every due date was paid (autopay).
+// A due date that was not paid adds no payment; the loan simply stays where it was.
+function loanStatus(loan, todayDate, paidDueDates = null) {
+  const dueDates = loanDueDates(loan, 600).filter((dueDate) => dueDate <= todayDate);
   let balance = loan.amount;
   let interestPaid = 0;
   let totalPaid = 0;
   let paymentsMade = 0;
+  let missedPayments = 0;
   // A loan that is paid off stops there: the last payment is only what was left, and later due dates add nothing.
-  while (paymentsMade < duePaymentsCount && balance > 0) {
+  for (const dueDate of dueDates) {
+    if (balance <= 0) break;
+    if (paidDueDates && !paidDueDates.has(dueDate)) { missedPayments++; continue; }
     const interest = roundToCents((balance * loan.annual_rate_percent) / 1200);
     const thisPayment = Math.min(loan.payment, roundToCents(balance + interest));
     interestPaid += interest;
@@ -46,11 +51,42 @@ function loanStatus(loan, todayDate) {
   }
   return {
     paymentsMade,
+    dueCount: dueDates.length,
+    missedPayments,
     balance,
     interestPaid: roundToCents(interestPaid),
     principalPaid: roundToCents(loan.amount - balance),
     totalPaid: roundToCents(totalPaid),
   };
+}
+
+// Checks each due date that has passed against the bank. loan.payment_text_contains = words that must all appear in the
+// bank's text for the payment (like ["zelle", "kevin"]). charges = money-out bank transactions; oldestKnownDate = the first
+// date the app has bank data for, so older due dates are assumed paid. A payment can post a few days early or late.
+// Returns null when no words are saved. Otherwise { paid: Set of due dates counted as paid, found: { due: charge },
+// waiting: due dates still inside the posting window, missed: due dates with no payment found }.
+const LOAN_EARLY_DAYS = 5;
+const LOAN_LATE_DAYS = 10;
+
+function dayDifference(firstDate, secondDate) {
+  return Math.round((new Date(firstDate + "T12:00:00Z") - new Date(secondDate + "T12:00:00Z")) / 86400000);
+}
+
+function loanPaymentCheck(loan, todayDate, charges, oldestKnownDate) {
+  const words = (loan.payment_text_contains || []).map((word) => String(word).toLowerCase().trim()).filter(Boolean);
+  if (!words.length || !oldestKnownDate) return null;
+  const textOf = (charge) => (String(charge.merchant_name || "") + " " + String(charge.name || "")).toLowerCase();
+  const candidates = charges.filter((charge) => charge.amount > 0 && words.every((word) => textOf(charge).includes(word)));
+  const claimed = new Set();
+  const result = { paid: new Set(), found: {}, waiting: [], missed: [], assumed: [] };
+  for (const dueDate of loanDueDates(loan, 600).filter((date) => date <= todayDate)) {
+    if (dayDifference(dueDate, oldestKnownDate) < LOAN_EARLY_DAYS) { result.paid.add(dueDate); result.assumed.push(dueDate); continue; }
+    const match = candidates.filter((charge) => !claimed.has(charge.transaction_id) && dayDifference(charge.date, dueDate) >= -LOAN_EARLY_DAYS && dayDifference(charge.date, dueDate) <= LOAN_LATE_DAYS)
+      .sort((first, second) => Math.abs(dayDifference(first.date, dueDate)) - Math.abs(dayDifference(second.date, dueDate)))[0];
+    if (match) { claimed.add(match.transaction_id); result.paid.add(dueDate); result.found[dueDate] = match; continue; }
+    if (dayDifference(todayDate, dueDate) <= LOAN_LATE_DAYS) { result.paid.add(dueDate); result.waiting.push(dueDate); } else result.missed.push(dueDate);
+  }
+  return result;
 }
 
 // What happens from here if you pay a lump sum now and/or extra every month.
@@ -108,14 +144,17 @@ function loanFromInputs(values, existing = {}) {
   if (!(rate >= 0)) return { error: "Interest rate can't be negative." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(first) || Number.isNaN(Date.parse(first))) return { error: "Pick the date of the first payment." };
   if (payment <= (amount * rate) / 1200) return { error: "That payment doesn't cover a month of interest, so the loan would never shrink." };
-  return { loan: { ...existing, name: String(values.name || "").trim() || LOAN_KINDS[kind][0], kind, amount, annual_rate_percent: rate, payment, first_payment_date: first, skipped_months: existing.skipped_months || [] } };
+  const words = String(values.words || "").split(",").map((word) => word.trim().toLowerCase()).filter(Boolean);
+  const loan = { ...existing, name: String(values.name || "").trim() || LOAN_KINDS[kind][0], kind, amount, annual_rate_percent: rate, payment, first_payment_date: first, skipped_months: existing.skipped_months || [] };
+  if (words.length) loan.payment_text_contains = words; else delete loan.payment_text_contains;
+  return { loan };
 }
 
 // Every loan's status and payoff plan today, plus totals for the "All" view.
-function loanOverview(loans, todayDate) {
+function loanOverview(loans, todayDate, paidFor = () => null) {
   const rows = loans.map((loan) => {
-    const status = loanStatus(loan, todayDate);
-    return { loan, status, plan: loanPayoffPlan(loan, status.balance, status.paymentsMade) };
+    const status = loanStatus(loan, todayDate, paidFor(loan));
+    return { loan, status, plan: loanPayoffPlan(loan, status.balance, status.dueCount) };
   });
   const sum = (pick) => roundToCents(rows.reduce((total, row) => total + pick(row), 0));
   const stillPaying = rows.filter((row) => row.plan.paymentsLeft > 0);
@@ -131,5 +170,5 @@ function loanOverview(loans, todayDate) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { loanDueDates, loanPaymentsMade, loanStatus, loanPayoffPlan, LOAN_KINDS, loansOf, saveLoansTo, loanFromInputs, loanOverview };
+  module.exports = { loanDueDates, loanPaymentsMade, loanStatus, loanPayoffPlan, loanPaymentCheck, LOAN_KINDS, loansOf, saveLoansTo, loanFromInputs, loanOverview };
 }

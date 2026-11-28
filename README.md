@@ -182,7 +182,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
 | `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
-| `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. An older single `car_loan` with the same fields still shows up as the first loan |
+| `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. `payment_text_contains` (optional words from the bank text of the payment, so the loan counts a payment only when your checking account shows it). An older single `car_loan` with the same fields still shows up as the first loan |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
 
 Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`. The Set up page has a dropdown, so you only need these names for the file.
