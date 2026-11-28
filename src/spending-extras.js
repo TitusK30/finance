@@ -141,7 +141,7 @@ function vsLastMonthHtml(charges, yearMonth) {
       <div class="bar"><div class="bar-fill" style="width:${Math.round((entry.total / biggest) * 100)}%;background:${CATEGORY_COLORS[entry.category] || "var(--accent)"}"></div></div>
       <div class="bar"><div class="bar-fill compare-last" style="width:${Math.round((entry.previousTotal / biggest) * 100)}%"></div></div>
       <div class="tile-row small"><span>This month ${formatMoney(entry.total)}</span><span>Last month ${formatMoney(entry.previousTotal)}</span></div></div>`).join("");
-  return `<details class="tile category-tile spending-accent" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Vs last month</b></div><div class="small">${headline}</div></summary>${rows}</details>`;
+  return `<details class="tile category-tile spending-accent" data-icon="\u{1F4C5}" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Vs last month</b></div><div class="small">${headline}</div></summary>${rows}</details>`;
 }
 
 // ---- Daily pace: a running total through the month, this month against last month.
@@ -194,7 +194,7 @@ function budgetsTileHtml(settings, month) {
   const note = !rows.length ? "None set yet" : overCount ? `<span class="negative">${overCount} over budget</span>` : `<span class="positive">All on track</span>`;
   const totals = rows.length ? `<span class="budget-amounts"><b>${formatMoney(totalSpent)}</b> / ${formatMoney(totalLimit)}</span>` : "";
   const hint = rows.length ? `<div class="small budget-hint">Hold a budget to change it, swipe it to delete.${isCurrentMonth ? " The thin line is today." : ""}</div>` : "";
-  return `<details class="tile category-tile spending-accent budget-tile no-swipe-parent" style="--tile-accent:var(--good)"><summary><div class="tile-row"><b>Budgets</b>${totals}</div><div class="small">${note}</div></summary>
+  return `<details class="tile category-tile spending-accent budget-tile no-swipe-parent" data-icon="\u{1F3AF}" style="--tile-accent:var(--good)"><summary><div class="tile-row"><b>Budgets</b>${totals}</div><div class="small">${note}</div></summary>
     ${cards}<button class="budget-add" data-add-budget="yes">+ Add a budget</button>${hint}</details>`;
 }
 
@@ -284,7 +284,7 @@ function recurringTileHtml(settings, store) {
   const rows = candidates.map((candidate) => `<div class="place-row"><div class="tile-row"><span>${escapeHtml(candidate.name)}</span><b>${formatMoney(candidate.amount)}</b></div>
       <div class="tile-row small"><span>around the ${candidate.day}${ordinalEnding(candidate.day)} · ${candidate.monthsSeen} months in a row · ${escapeHtml(cardNameForAccount(settings, store, candidate.accountId))}</span></div>
       <div class="tile-row small"><button class="mark-button" data-add-recurring="${escapeHtml(candidate.key)}">add to Bills</button><button class="mark-button" data-dismiss-recurring="${escapeHtml(candidate.key)}">not recurring</button></div></div>`).join("");
-  return `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Looks recurring</b><b>${candidates.length}</b></div><div class="small">Charged every month, not in Bills yet</div></summary>${rows}</details>`;
+  return `<details class="tile category-tile spending-accent" data-icon="\u{1F501}" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Looks recurring</b><b>${candidates.length}</b></div><div class="small">Charged every month, not in Bills yet</div></summary>${rows}</details>`;
 }
 
 document.addEventListener("click", (event) => {
