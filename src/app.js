@@ -116,11 +116,16 @@ function dateRow(label, dateText, today, redWithinDays, amberWithinDays) {
 function showCards(settings) {
   const today = todayText();
   // Farthest statement close date first, closest last.
-  const closeDateOf = (card) => nextStatementCloseDate(card, addDaysToDateText(today, -1));
+  // The statement stays open until its close day. Once the bank shows that statement as issued (even on the close day itself),
+  // nothing more can be added to it, so the open cycle's close date moves to the following month.
+  const closeDateOf = (card) => {
+    const closeDate = nextStatementCloseDate(card, addDaysToDateText(today, -1));
+    const bankAlreadyIssued = card.balances_by_statement.some((statement) => !statement.still_accumulating && statement.statement_closed_on >= closeDate);
+    return bankAlreadyIssued ? nextStatementCloseDate(card, addDaysToDateText(closeDate, 1)) : closeDate;
+  };
   const cardsByCloseDate = Object.values(settings.credit_cards).sort((first, second) => closeDateOf(second).localeCompare(closeDateOf(first)));
   const html = cardsByCloseDate.map((card) => {
-    // The statement stays open until its close day. Starting from yesterday lets "closes today" count as 0 days.
-    const closeDate = nextStatementCloseDate(card, addDaysToDateText(today, -1));
+    const closeDate = closeDateOf(card);
     const closed = card.balances_by_statement.filter((statement) => !statement.still_accumulating);
     const open = card.balances_by_statement.filter((statement) => statement.still_accumulating);
     const closedTotal = closed.reduce((sum, statement) => sum + statement.amount, 0);
