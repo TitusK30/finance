@@ -540,20 +540,21 @@ function editBillItem(source, index) {
   let payer = currentPayer;
   const cover = document.createElement("div");
   cover.className = "date-cover category-picker filter-sheet bill-editor";
-  const values = { name: original.name, amount: original.amount, days: (refillDays || [original.day_of_month]).join(", ") };
+  const values = { name: original.name, amount: original.amount, days: (refillDays || [original.day_of_month]).join(", "), words: (original.charge_text_contains || []).join(", ") };
   let errorText = "";
   const draw = () => {
     cover.innerHTML = `<div class="date-box"><div class="date-question">Edit ${escapeHtml(original.name)}</div>
       <div class="filter-label">Name</div><input id="edit-bill-name" value="${escapeHtml(values.name)}" autocomplete="off">
       <div class="filter-label">Amount ($)${refillDays ? ' <span class="small">(each charge)</span>' : ""}</div><input id="edit-bill-amount" inputmode="decimal" value="${values.amount}">
       <div class="filter-label">${refillDays ? "Days of the month" : "Day of the month"}${refillDays ? ' <span class="small">(like 5, 15, 25)</span>' : ""}</div><input id="edit-bill-days" inputmode="numeric" value="${escapeHtml(values.days)}">
+      <div class="filter-label">Bank text to recognize <span class="small">(optional, separate with commas)</span></div><input id="edit-bill-words" value="${escapeHtml(values.words)}" placeholder="like: zelle, kevin" autocomplete="off" autocapitalize="off">
       <div class="filter-label">Paid from</div>
       <div class="choice-list">${payerKeys.map((key) => `<button class="choice-button${payer === key ? " is-current" : ""}" data-edit-payer="${key}" style="--dot:${payerColor(settings, key)}"><i class="choice-dot"></i><b>${escapeHtml(payerName(settings, key))}</b></button>`).join("")}</div>
       ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
       <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-edit-save><b>Save</b></button><button class="choice-button is-wide" data-edit-cancel><b>Cancel</b></button></div></div>`;
   };
   const readFields = () => {
-    for (const [key, id] of [["name", "edit-bill-name"], ["amount", "edit-bill-amount"], ["days", "edit-bill-days"]]) { const input = cover.querySelector("#" + id); if (input) values[key] = input.value; }
+    for (const [key, id] of [["name", "edit-bill-name"], ["amount", "edit-bill-amount"], ["days", "edit-bill-days"], ["words", "edit-bill-words"]]) { const input = cover.querySelector("#" + id); if (input) values[key] = input.value; }
   };
   draw();
   cover.addEventListener("click", (event) => {
@@ -567,7 +568,7 @@ function editBillItem(source, index) {
       const daysOk = days.length > 0 && days.every((day) => Number.isInteger(day) && day >= 1 && day <= 31) && (refillDays ? true : days.length === 1);
       errorText = !name ? "Give it a name." : !(amount > 0) ? "Amount needs to be more than 0." : !daysOk ? (refillDays ? "Days should be numbers from 1 to 31, like 5, 15, 25." : "Day should be one number from 1 to 31.") : "";
       if (errorText) { draw(); return; }
-      applyBillEdit(settings, source, index, { name, amount, days, payer });
+      applyBillEdit(settings, source, index, { name, amount, days, payer, words: String(values.words).split(",").map((word) => word.trim().toLowerCase()).filter(Boolean) });
       cover.remove();
       showEverything();
       showToast(`${name} updated.`);
@@ -580,11 +581,14 @@ function editBillItem(source, index) {
 
 // Writes the edit into settings. Keeps the match words so renaming does not break matching, keeps expenses on the Expenses tab,
 // and moves the item between the checking bills and card subscriptions when "paid from" crosses over.
-function applyBillEdit(settings, source, index, { name, amount, days, payer }) {
+function applyBillEdit(settings, source, index, { name, amount, days, payer, words }) {
   const sourceList = source === "bill" ? settings.monthly_bills_paid_from_checking : settings.subscriptions_charged_to_cards;
   const original = sourceList[index];
   const updated = { ...original, name, amount };
   if (name !== original.name && !(original.charge_text_contains && original.charge_text_contains.length) && nameWords(original.name).length) updated.charge_text_contains = nameWords(original.name);
+  // Words you typed for the bank text win; clearing the box goes back to matching on the name.
+  if (words && words.length) updated.charge_text_contains = words;
+  else if (words && original.charge_text_contains) delete updated.charge_text_contains;
   if (EXPENSE_ITEM_NAMES.includes(original.name)) updated.is_expense = true;
   if (original.assumed_days_of_month) updated.assumed_days_of_month = days; else updated.day_of_month = days[0];
   if (source === "bill" && payer === "checking") { sourceList[index] = updated; return; }
