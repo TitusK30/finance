@@ -109,11 +109,11 @@ Tap **↻** (or open the app after 30 minutes away).
 
 ## What is in the app
 
-Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up.
+Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up. **Customize Home** (bottom of Home) moves Home's blocks up or down and hides the ones you don't want.
 
 | Page | What it gives you |
 |---|---|
-| **Home** | Left to spend this month (needs a bank link; tap it to open the breakdown, closed it shows just the number), checking, savings, retirement and net worth, your credit score (tap the number to log a new one), a "move money from savings" warning or "no transfer needed", a 40-day chart of your checking balance (touch and drag to read any day), each card's closed and open statements with due and close dates, and a 40-day timeline of paydays, bills and card payments |
+| **Home** | Today's date; Left to spend this month (needs a bank link; tap it to open the breakdown, closed it shows just the number), checking, savings, retirement and net worth (green or red triangles show the change since the day before), a Coming up list of the next three money moves, your credit score (tap the number to log a new one), a "move money from savings" warning or "no transfer needed", a 40-day chart of your checking balance (touch and drag to read any day), each card's closed and open statements with due and close dates, and a 40-day timeline of paydays, bills and card payments |
 | **Spending** | The month at a glance, then categories you can tap open, pending charges, bills and subscriptions, transfers, and top places. Browse earlier months with the arrows (needs a bank link) |
 | **Cards** | Each card's utilization plan (how much you can spend before its statement closes to stay under your target), expiry and annual fee, your other cards, and rewards points and card benefits |
 | **Bills** | Bills from checking and subscriptions on cards, with one monthly total |
@@ -185,6 +185,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and your savings account's name on bank charges (moves to and from savings leave Spending and show in its Savings block) |
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
 | `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. `payment_text_contains` (optional words from the bank text of the payment, so the loan counts a payment only when your checking account shows it). An older single `car_loan` with the same fields still shows up as the first loan |
+| `home_layout` | Home block order and hidden blocks (`order`, `hidden`), set with Customize Home |
 | `other_points` | Points accounts not tied to a credit card (`name`, `program`, `points_balance`) |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA numbers, time-off buckets (`pto.buckets`: `name`, `hours`; older `pto_hours`-style numbers still read), retirement balance, and menu tabs to hide |
 

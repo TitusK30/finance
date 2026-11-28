@@ -69,6 +69,30 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 #side-menu button { display: block; width: 100%; margin: 0 0 4px; padding: 14px 12px; text-align: left; border-radius: 10px; background: none; color: var(--main-text); font-size: 17px; font-weight: 500; }
 #side-menu button.active-tab { background: var(--bar-track); color: var(--accent); }
 #data-status { margin: 0 0 12px; }
+.home-top { margin: 4px 0 0; }
+.home-date { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.home-top #data-status { margin: 2px 0 12px; }
+.balance-change { margin-top: 4px; font-size: 12px; color: var(--muted-text); }
+.balance-change.change-up { color: var(--good); }
+.balance-change.change-down { color: var(--bad); }
+.balance-change-note { text-align: center; margin: 2px 0 6px; }
+/* Home: Coming up (next 3 money moves) */
+.coming-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 6px; }
+.coming-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; background: color-mix(in srgb, var(--muted-text) 16%, transparent); color: var(--main-text); }
+.coming-in .coming-icon { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.coming-body { display: grid; min-width: 0; }
+.coming-body b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.coming-amount { font-size: 16px; white-space: nowrap; }
+/* Customize Home */
+.customize-home { display: block; width: 100%; margin: 18px 0 6px; padding: 12px; border-radius: 14px; background: transparent; border: 1px dashed var(--bar-track); color: var(--muted-text); font-size: 15px; }
+.customize-hint { margin: -4px 4px 12px; }
+.customize-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 6px; padding: 8px 4px 8px 12px; margin-bottom: 6px; border-radius: 12px; background: var(--bar-track); }
+.customize-row.is-hidden .customize-name { color: var(--muted-text); text-decoration: line-through; }
+.customize-name { font-size: 15px; font-weight: 600; }
+.customize-button { width: auto; margin: 0; padding: 7px 10px; border-radius: 10px; font-size: 13px; background: rgba(255, 255, 255, 0.06); color: var(--main-text); border: 0; }
+.customize-button:disabled { opacity: 0.25; }
+.customize-eye { min-width: 64px; color: var(--accent); }
+.customize-row.is-hidden .customize-eye { color: var(--muted-text); }
 .list-group { background: var(--tile-background); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
 .list-row { display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box; margin: 0; padding: 16px; border-radius: 0; background: none; color: var(--main-text); font-size: 17px; font-weight: 400; text-align: left; border-top: 1px solid var(--bar-track); }
 .list-row:first-child { border-top: 0; }

@@ -27,14 +27,113 @@ function saveSettings(settings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
+// The four balances, each with a green or red triangle for the change since the last day the app saw.
+// One snapshot per day is kept on the phone (the last 14 days), so the change compares with the day before today.
+const BALANCE_SNAPSHOTS_KEY = "finance_balance_snapshots";
+function balanceChanges(currentBalances) {
+  let snapshots = {};
+  try { snapshots = JSON.parse(localStorage.getItem(BALANCE_SNAPSHOTS_KEY)) || {}; } catch (error) { snapshots = {}; }
+  const today = todayText();
+  const earlierDates = Object.keys(snapshots).filter((date) => date < today).sort();
+  const compareDate = earlierDates[earlierDates.length - 1] || null;
+  snapshots[today] = currentBalances;
+  const keptDates = Object.keys(snapshots).sort().slice(-14);
+  localStorage.setItem(BALANCE_SNAPSHOTS_KEY, JSON.stringify(Object.fromEntries(keptDates.map((date) => [date, snapshots[date]]))));
+  return { previous: compareDate ? snapshots[compareDate] : null, sinceText: !compareDate ? "" : daysBetween(compareDate, today) === 1 ? "since yesterday" : `since ${shortMonthDay(compareDate)}` };
+}
+
+function changeLineHtml(now, before, sinceText) {
+  if (now == null || before == null) return "";
+  const change = Math.round((now - before) * 100) / 100;
+  if (change === 0) return `<div class="balance-change">no change</div>`;
+  return `<div class="balance-change ${change > 0 ? "change-up" : "change-down"}">${change > 0 ? "\u25b2" : "\u25bc"} ${formatMoney(Math.abs(change))}</div>`;
+}
+
 function showBalances(settings) {
   const { checking_balance, savings_balance } = settings.starting_balances;
+  const current = { checking: checking_balance, savings: savings_balance, retirement: settings.retirement.balance, networth: netWorth(settings) };
+  const { previous, sinceText } = balanceChanges(current);
+  const change = (key) => previous ? changeLineHtml(current[key], previous[key], sinceText) : "";
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
-    <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div></div>
-    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? formatMoney(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div></div>
-    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? formatMoney(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div></div>
-    <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div></div></div>`;
+    <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div>${change("checking")}</div>
+    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? formatMoney(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div>${change("savings")}</div>
+    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? formatMoney(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div>${change("retirement")}</div>
+    <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div>${change("networth")}</div></div>
+    ${previous ? `<div class="small balance-change-note">\u25b2\u25bc change ${sinceText}</div>` : ""}`;
 }
+
+// The next three money moves in the forecast (paydays, bills, card payments), soonest first.
+function showComingUp(forecast) {
+  const today = todayText();
+  const moves = [forecast.today, ...forecast.days].flatMap((day) => day.events.filter((event) => event.amount).map((event) => ({ ...event, date: day.date }))).slice(0, 3);
+  const whenText = (date) => { const days = daysBetween(today, date); return days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`; };
+  const rows = moves.map((move) => `<div class="tile coming-row ${move.amount > 0 ? "coming-in" : "coming-out"}"><span class="coming-icon">${move.amount > 0 ? "&#8595;" : "&#8593;"}</span>
+      <div class="coming-body"><b>${escapeHtml(move.label)}</b><span class="small">${shortMonthDay(move.date)} \u00b7 ${whenText(move.date)}</span></div>
+      <b class="coming-amount ${move.amount > 0 ? "positive" : ""}">${move.amount > 0 ? "+" : "\u2212"}${formatMoney(Math.abs(move.amount))}</b></div>`).join("");
+  document.getElementById("coming-up").innerHTML = rows || `<div class="tile small">Nothing scheduled in the next 40 days.</div>`;
+}
+
+// ---- Customize Home: the order of the blocks and which are hidden live in settings.home_layout.
+const HOME_BLOCK_NAMES = { outlook: "Left to spend", balances: "Balances", comingup: "Coming up", score: "Credit score", transfer: "Savings transfer advice", chart: "Checking chart", cards: "Credit cards", calendar: "Next 40 days" };
+function homeLayoutOf(settings) {
+  const layout = settings.home_layout || {};
+  const savedOrder = (layout.order || []).filter((key) => HOME_BLOCK_NAMES[key]);
+  return { order: [...savedOrder, ...Object.keys(HOME_BLOCK_NAMES).filter((key) => !savedOrder.includes(key))], hidden: (layout.hidden || []).filter((key) => HOME_BLOCK_NAMES[key]) };
+}
+
+function applyHomeLayout(settings) {
+  const container = document.getElementById("home-blocks");
+  const layout = homeLayoutOf(settings);
+  for (const key of layout.order) {
+    const block = container.querySelector(`[data-home-block="${key}"]`);
+    block.hidden = layout.hidden.includes(key);
+    container.appendChild(block);
+  }
+}
+
+function openCustomizeHome() {
+  const settings = loadSettings();
+  const layout = homeLayoutOf(settings);
+  const cover = document.createElement("div");
+  cover.className = "date-cover category-picker filter-sheet bill-editor";
+  const draw = () => {
+    cover.innerHTML = `<div class="date-box" style="--sheet-accent:var(--accent)"><div class="date-question sheet-title"><span class="sheet-badge" style="--badge-color:var(--accent)">&#9881;&#65039;</span><span>Customize Home</span></div>
+      <div class="small customize-hint">Move blocks up or down. Tap Shown or Hidden to switch.</div>
+      ${layout.order.map((key, position) => {
+        const isHidden = layout.hidden.includes(key);
+        return `<div class="customize-row${isHidden ? " is-hidden" : ""}"><span class="customize-name">${HOME_BLOCK_NAMES[key]}</span>
+          <button class="customize-button" data-move-block="${position}:-1" aria-label="Move up"${position === 0 ? " disabled" : ""}>&#9650;</button>
+          <button class="customize-button" data-move-block="${position}:1" aria-label="Move down"${position === layout.order.length - 1 ? " disabled" : ""}>&#9660;</button>
+          <button class="customize-button customize-eye" data-toggle-block="${key}" aria-label="${isHidden ? "Show" : "Hide"}">${isHidden ? "Hidden" : "Shown"}</button></div>`;
+      }).join("")}
+      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-customize-done><b>Done</b></button><button class="choice-button is-wide" data-customize-reset><b>Back to the usual order</b></button></div></div>`;
+  };
+  const saveLayout = () => { settings.home_layout = { order: layout.order, hidden: layout.hidden }; saveSettings(settings); applyHomeLayout(settings); };
+  draw();
+  cover.addEventListener("click", (event) => {
+    const moveButton = event.target.closest("[data-move-block]");
+    const toggleButton = event.target.closest("[data-toggle-block]");
+    if (moveButton) {
+      const [position, step] = moveButton.dataset.moveBlock.split(":").map(Number);
+      const [moved] = layout.order.splice(position, 1);
+      layout.order.splice(position + step, 0, moved);
+      saveLayout(); draw(); return;
+    }
+    if (toggleButton) {
+      const key = toggleButton.dataset.toggleBlock;
+      layout.hidden = layout.hidden.includes(key) ? layout.hidden.filter((hiddenKey) => hiddenKey !== key) : [...layout.hidden, key];
+      saveLayout(); draw(); return;
+    }
+    if (event.target.closest("[data-customize-reset]")) {
+      layout.order = Object.keys(HOME_BLOCK_NAMES); layout.hidden = [];
+      saveLayout(); draw(); showToast("Home is back to the usual order."); return;
+    }
+    if (event.target.closest("[data-customize-done]") || event.target === cover) { cover.remove(); showToast("Home layout saved."); }
+  });
+  document.body.appendChild(cover);
+}
+
+document.getElementById("customize-home-button").addEventListener("click", openCustomizeHome);
 
 function adviceDaysFor(settings, purchases) {
   let neededDays = MINIMUM_ADVICE_DAYS;
@@ -337,7 +436,9 @@ function showEverything() {
   setTypedPaychecks(typedPay.list.filter((entry) => !entry.in_balance)); // one the bank balance already holds must not be added again
   const forecast = buildForecast(settings, MINIMUM_ADVICE_DAYS);
   showStatusLine(settings);
+  document.getElementById("home-date").textContent = new Date(todayText() + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   showBalances(settings);
+  showComingUp(forecast);
   try { showMonthOutlook(settings); } catch (error) { document.getElementById("month-outlook").innerHTML = ""; }
   showTransferAdvice(settings, forecast);
   showBalanceChart(settings, forecast);
@@ -346,6 +447,7 @@ function showEverything() {
   fillWhatIfChoices(settings);
   showWhatIf(settings);
   showExtraPages(settings);
+  applyHomeLayout(settings);
 }
 
 document.getElementById("settings-file-input").addEventListener("change", async (event) => {
@@ -354,7 +456,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "loans", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "transaction_categories", "category_budgets", "other_points", "optional_monthly_variable_spending_allowance"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "loans", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "transaction_categories", "category_budgets", "other_points", "home_layout", "optional_monthly_variable_spending_allowance"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);
