@@ -794,3 +794,67 @@ html, body { overflow-x: hidden; }
 .close-chips span { background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 8px 10px; }
 .close-chips b { display: block; font-size: 16px; color: var(--main-text); }
 .loan-hint { margin: 8px 4px 0; line-height: 1.35; }
+
+/* ===== Home restyle (trial): one calm system for every Home block ===== */
+#home-content { --home-card: #17191e; --home-line: rgba(255, 255, 255, 0.06); }
+#home-content .tile { border-radius: 18px; }
+#home-blocks > [data-home-block] { margin-bottom: 12px; }
+#home-blocks section { margin-bottom: 0; }
+.cents { font-size: 0.62em; font-weight: 600; opacity: 0.7; letter-spacing: 0; }
+/* Header: big date, a small live dot before the update line */
+.home-date { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.home-top #data-status { display: flex; align-items: center; gap: 7px; margin: 4px 0 14px; }
+.home-top #data-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 8px var(--good); flex: none; }
+/* Every small label on Home reads the same: quiet caps */
+#balance-tiles .balance-tile > .small:first-child, .outlook-head .small, .score-left > .small:first-child, .chart-headline > .small:first-child { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+/* Section headers: icon, quiet caps, a thin line to the edge */
+.home-section { display: flex; align-items: center; gap: 8px; margin: 22px 2px 10px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted-text); }
+.home-section::after { content: ""; flex: 1; height: 1px; background: var(--home-line); }
+.home-section-icon { font-size: 15px; letter-spacing: 0; }
+/* Balances: tabular numbers so the columns line up, change as a small pill */
+#balance-tiles .horizon-grid { gap: 10px; }
+#balance-tiles .balance-tile { padding: 14px 14px 12px 18px; border: 1px solid var(--home-line); margin: 0; }
+#balance-tiles .big-number { font-size: 23px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; margin-top: 4px; }
+#balance-tiles .balance-change { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255, 255, 255, 0.05); }
+#balance-tiles .balance-change.change-up { background: color-mix(in srgb, var(--good) 14%, transparent); }
+#balance-tiles .balance-change.change-down { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+#balance-tiles .balance-change-note { margin-top: 8px; font-size: 11px; }
+/* Transfer advice: one compact status row with an icon */
+.status-row { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--home-line); }
+.status-row b { font-size: 15px; }
+.status-icon { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+.status-good { background: linear-gradient(135deg, color-mix(in srgb, var(--good) 10%, var(--tile-background)), var(--tile-background) 70%); }
+.status-good .status-icon { background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
+.status-bad { background: linear-gradient(135deg, color-mix(in srgb, var(--bad) 12%, var(--tile-background)), var(--tile-background) 70%); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+.status-bad .status-icon { background: color-mix(in srgb, var(--bad) 22%, transparent); color: var(--bad); }
+/* Chart and score: same border as the rest */
+#balance-chart, .score-card, .outlook-tile { border: 1px solid var(--home-line); }
+#balance-chart .chart-low { font-variant-numeric: tabular-nums; }
+/* Credit cards on Home: a small card chip, tabular numbers, calmer panels */
+#card-list .card-tile { padding: 14px; border: 1px solid var(--home-line); margin-bottom: 10px; }
+.card-tile-head { align-items: center; margin-bottom: 10px; }
+.card-tile-name { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; min-width: 0; }
+.mini-card-chip { width: 26px; height: 18px; flex: none; border-radius: 4px; background: linear-gradient(135deg, var(--accent), #a78bfa); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15); }
+#card-list .big-number { font-variant-numeric: tabular-nums; }
+#card-list .statement-panel { background: rgba(255, 255, 255, 0.03); border-radius: 14px; }
+/* Next 40 days: tighter rows, one line per event, day colored by which way money moved */
+#calendar-list .timeline::before { left: 54px; }
+#calendar-list .timeline-day { grid-template-columns: 40px 28px 1fr; margin-bottom: 6px; }
+#calendar-list .timeline-date { padding-top: 8px; }
+#calendar-list .timeline-date b { font-size: 19px; }
+#calendar-list .timeline-date .small { font-size: 11px; }
+#calendar-list .timeline-dot { width: 10px; height: 10px; margin: 14px 0 0 8px; }
+#calendar-list .day-up .timeline-dot { background: var(--good); }
+#calendar-list .day-down .timeline-dot { background: color-mix(in srgb, var(--bad) 80%, var(--main-text)); }
+#calendar-list .timeline-card { padding: 10px 12px; gap: 6px; border: 1px solid var(--home-line); }
+#calendar-list .day-up .timeline-card { background: linear-gradient(135deg, color-mix(in srgb, var(--good) 7%, var(--tile-background)), var(--tile-background) 60%); }
+#calendar-list .day-under-floor .timeline-card { border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
+#calendar-list .timeline-event { grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; }
+#calendar-list .timeline-icon { width: 24px; height: 24px; font-size: 12px; }
+#calendar-list .timeline-label { font-size: 15px; line-height: 1.3; }
+#calendar-list .timeline-event > .timeline-label:first-child { grid-column: 1 / -1; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+#calendar-list .timeline-label .pay-chip { margin-left: 6px; }
+#calendar-list .timeline-event b { font-size: 15px; font-variant-numeric: tabular-nums; }
+#calendar-list .timeline-balance { border-top: 0; padding-top: 0; font-size: 12px; }
+#calendar-list .timeline-balance b { font-variant-numeric: tabular-nums; }
+.customize-home { border-radius: 16px; }

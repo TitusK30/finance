@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: Customize Home sheet redesigned: drag a row by its handle to reorder (touch drag, the other rows slide aside), iPhone-style on/off switches, a colored icon per block (`HOME_BLOCK_LOOKS` in app.js), "#N on Home" and "N of M shown". Before that: removed Home "Coming up"; credit score sheet preset sources.
-- Version tag 20261128zo, 158 tests passing.
-- Waiting on the user to confirm on the phone: dragging in Customize Home; score sheet buttons; change triangles from tomorrow.
+- Last built (TRIAL, the user may ask to revert it): Home restyle, same information. Bigger date with a live dot on the status line; quiet caps labels; smaller cents on big numbers (`moneyHtml` in app.js); balance change shown as small pills; transfer advice as one status row with an icon (`status-row`); section headers with an icon and a thin line (`home-section` in index.html); credit cards with a small card chip and calmer panels; Next 40 days tighter, dot and tint by the day's direction (`day-up`/`day-down`, `day-under-floor`), "Today" as a small label. All Home-only styles sit in the "Home restyle (trial)" block at the end of style.css. To undo: `git revert --no-edit` this commit. Before that: Customize Home drag and switches.
+- Version tag 20261128zp, 158 tests passing.
+- Waiting on the user: keep or revert the Home restyle; Customize Home drag; change triangles.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.

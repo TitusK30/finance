@@ -124,7 +124,7 @@ function showMonthOutlook(settings) {
   // Tap the tile to open or close it. Closed, it shows just the number left and a thin version of the bar.
   box.innerHTML = `<details class="tile outlook-tile ${left >= 0 ? "outlook-good" : "outlook-over"}"${isOpen ? " open" : ""}>
     <summary><div class="outlook-head"><div><div class="small">Left to spend this month</div>
-      <div class="huge-number ${left >= 0 ? "positive" : "negative"}">${money(left)}</div></div><span class="outlook-chevron">&#8250;</span></div>
+      <div class="huge-number ${left >= 0 ? "positive" : "negative"}">${moneyHtml(Math.round(left * 100) / 100)}</div></div><span class="outlook-chevron">&#8250;</span></div>
       <div class="outlook-mini">${segments}</div></summary>
     <div class="outlook-body">
     ${perDayLine}

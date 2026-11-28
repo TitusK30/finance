@@ -5,6 +5,13 @@ function formatMoney(amount) {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
+// A money amount with smaller cents, for the big numbers on Home: "$2,122" reads first, ".51" sits quietly beside it.
+function moneyHtml(amount) {
+  const text = formatMoney(amount);
+  const dotPosition = text.lastIndexOf(".");
+  return dotPosition < 0 ? text : `${text.slice(0, dotPosition)}<span class="cents">${text.slice(dotPosition)}</span>`;
+}
+
 function formatDate(dateText) {
   return new Date(dateText + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
@@ -55,10 +62,10 @@ function showBalances(settings) {
   const { previous, sinceText } = balanceChanges(current);
   const change = (key) => previous ? changeLineHtml(current[key], previous[key], sinceText) : "";
   document.getElementById("balance-tiles").innerHTML = `<div class="horizon-grid">
-    <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${formatMoney(checking_balance)}</div>${change("checking")}</div>
-    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? formatMoney(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div>${change("savings")}</div>
-    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? formatMoney(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div>${change("retirement")}</div>
-    <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div>${change("networth")}</div></div>
+    <div class="tile balance-tile balance-checking"><div class="small">Checking</div><div class="big-number">${moneyHtml(checking_balance)}</div>${change("checking")}</div>
+    <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? moneyHtml(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div>${change("savings")}</div>
+    <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? moneyHtml(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div>${change("retirement")}</div>
+    <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${moneyHtml(netWorth(settings))}</div>${change("networth")}</div></div>
     <div class="small balance-change-note">${previous ? `\u25b2\u25bc change ${sinceText}` : "\u25b2\u25bc change arrows start tomorrow, once there is a day to compare with"}</div>`;
 }
 
@@ -187,10 +194,10 @@ function showTransferAdvice(settings, forecast) {
   const box = document.getElementById("transfer-advice");
   const floor = formatMoney(settings.minimum_checking_floor);
   if (forecast.savings_transfer_needed > 0) {
-    box.innerHTML = `<div class="tile warning"><b>${transferSentence(settings, forecast)}</b>
-      <div class="small">Checking drops to ${formatMoney(forecast.lowest_balance)} on ${formatDate(forecast.lowest_balance_date)}, under your ${floor} floor.</div></div>`;
+    box.innerHTML = `<div class="tile status-row status-bad"><span class="status-icon">!</span><div><b>${transferSentence(settings, forecast)}</b>
+      <div class="small">Checking drops to ${formatMoney(forecast.lowest_balance)} on ${formatDate(forecast.lowest_balance_date)}, under your ${floor} floor.</div></div></div>`;
   } else {
-    box.innerHTML = `<div class="tile good"><b>No transfer needed</b><div class="small">Checking stays above ${floor} for the next ${forecast.days.length} days.</div></div>`;
+    box.innerHTML = `<div class="tile status-row status-good"><span class="status-icon">&#10003;</span><div><b>No transfer needed</b><div class="small">Checking stays above ${floor} for the next ${forecast.days.length} days.</div></div></div>`;
   }
 }
 
@@ -234,7 +241,7 @@ function showBalanceChart(settings, forecast) {
   const chip = (label, amount, extraClass = "") => `<div class="chart-chip ${extraClass}"><span>${label}</span><b>${formatMoney(amount)}</b></div>`;
   const chartBox = document.getElementById("balance-chart");
   chartBox.innerHTML = `<div class="chart-headline"><div class="small">Lowest point</div>
-      <div class="chart-low ${lowestIsSafe ? "positive" : "negative"}">${formatMoney(balances[lowestPosition])}</div>
+      <div class="chart-low ${lowestIsSafe ? "positive" : "negative"}">${moneyHtml(balances[lowestPosition])}</div>
       <div class="small">${formatDate(days[lowestPosition].date)} \u00b7 ${lowestIsSafe ? "above" : "below"} your ${formatMoney(floor)} floor</div></div>
     <div class="chart-chips">${chip("Today", balances[0])}${chip(shortMonthDay(days[days.length - 1].date), lastBalance)}${chip("Floor", floor, "chart-chip-floor")}</div>
     <div class="chart-wrap"><svg viewBox="0 0 360 196" width="100%" class="balance-svg">
@@ -307,10 +314,10 @@ function showCards(settings) {
     const pendingRow = pendingAmount > 0 ? `<div class="date-row"><span>Pending</span><b class="amber">+${formatMoney(pendingAmount)}</b></div>` : "";
     const closedDueRow = closed.length ? dateRow("Due", closed[0].due_date, today, 7, 14) : `<div class="date-row"><span>Nothing due</span></div>`;
     const openDueRow = open.length ? dateRow("Due", open[0].due_date, today, -1, -1) : "";
-    return `<div class="tile card-tile"><div class="tile-row"><b>${card.display_name}</b><b class="big-number">${formatMoney(card.current_balance)}</b></div>
+    return `<div class="tile card-tile"><div class="tile-row card-tile-head"><span class="card-tile-name"><span class="mini-card-chip"></span>${escapeHtml(card.display_name)}</span><b class="big-number">${moneyHtml(card.current_balance)}</b></div>
       <div class="statement-pair">
-        <div class="statement-panel closed-panel"><div class="stat-label">CLOSED</div><div class="big-number">${formatMoney(closedTotal)}</div>${closedDueRow}</div>
-        <div class="statement-panel open-panel"><div class="stat-label">OPEN</div><div class="big-number">${formatMoney(openTotal)}</div>
+        <div class="statement-panel closed-panel"><div class="stat-label">CLOSED</div><div class="big-number">${moneyHtml(closedTotal)}</div>${closedDueRow}</div>
+        <div class="statement-panel open-panel"><div class="stat-label">OPEN</div><div class="big-number">${moneyHtml(openTotal)}</div>
           ${pendingRow}${dateRow("Closes", closeDate, today, -1, 7)}${openDueRow}</div></div></div>`;
   });
   document.getElementById("card-list").innerHTML = html.join("");
@@ -332,7 +339,8 @@ function showCalendar(forecast, settings) {
     const month = dateParts.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
     const eventLines = day.events.map(timelineEventHtml).join("");
     const belowFloor = day.checking_balance < settings.minimum_checking_floor;
-    return `<div class="timeline-day"><div class="timeline-date"><span class="small">${weekday}</span><b>${dateParts.getUTCDate()}</b><span class="small">${month}</span></div>
+    const dayNet = day.events.reduce((sum, event) => sum + event.amount, 0);
+    return `<div class="timeline-day ${dayNet >= 0 ? "day-up" : "day-down"}${belowFloor ? " day-under-floor" : ""}"><div class="timeline-date"><span class="small">${weekday}</span><b>${dateParts.getUTCDate()}</b><span class="small">${month}</span></div>
       <div class="timeline-dot"></div>
       <div class="tile timeline-card">${eventLines}<div class="timeline-balance small">balance <b class="${belowFloor ? "negative" : ""}">${formatMoney(day.checking_balance)}</b></div></div></div>`;
   });
