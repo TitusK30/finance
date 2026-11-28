@@ -672,22 +672,10 @@ html, body { overflow-x: hidden; }
 .loan-row { cursor: pointer; box-shadow: inset 5px 0 0 var(--tile-accent); padding-left: 20px; }
 .loan-row .bar-fill { background: var(--tile-accent); }
 .loan-row:active { transform: scale(0.99); }
-/* Cards: what the statement should read at close */
-.close-box { margin-top: 10px; padding: 12px 12px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); }
-.close-box summary { cursor: pointer; list-style: none; }
-.close-box summary::-webkit-details-marker { display: none; }
-.close-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.close-total { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-.close-bar { position: relative; display: flex; height: 12px; margin: 24px 0 8px; border-radius: 6px; background: var(--bar-track); overflow: visible; }
-.close-open { height: 100%; border-radius: 6px 0 0 6px; }
-.close-coming { height: 100%; background: repeating-linear-gradient(135deg, var(--bar-color) 0 5px, color-mix(in srgb, var(--bar-color) 35%, transparent) 5px 10px); opacity: 0.85; }
-.close-target { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--main-text); border-radius: 1px; }
-.close-target span { position: absolute; top: -17px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted-text); }
-.close-legend { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted-text); }
-.close-dot-coming { background: repeating-linear-gradient(135deg, var(--bar-color) 0 3px, transparent 3px 5px); }
-.close-hint { margin-top: 8px; color: var(--accent); }
-.close-box[open] .close-hint { display: none; }
-.close-box[open] summary { margin-bottom: 8px; }
+/* Cards: subscriptions and fees still coming before close (like the pending line, in its own color) */
+.expected-details summary { color: #a78bfa; }
+.expected-details .expected-at-close { color: var(--muted-text); }
+.expected-details .expected-at-close b { color: var(--main-text); }
 .close-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; font-size: 13px; color: var(--muted-text); }
 .close-chips span { background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 8px 10px; }
 .close-chips b { display: block; font-size: 16px; color: var(--main-text); }

@@ -209,19 +209,19 @@ function shortMonthDay(dateText) {
   return new Date(dateText + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// "At close": what the statement should read when it closes = what is on the open statement now plus the
-// subscriptions and fees due before then. The bar shows both parts against the target; tap to see the list.
-function atCloseHtml(plan, targetPercent, cardColor, estimateMark) {
-  const scale = Math.max(plan.projectedStatement, plan.targetAmount, 1) * 1.15;
-  const percentOf = (amount) => Math.min(100, (amount / scale) * 100);
+// Subscriptions and fees due on this card before it closes: a small line like the pending one, tap to list them.
+// They are not in the open amount yet; the list ends with what the statement should read at close.
+function expectedChargesHtml(plan, estimateMark) {
   const coming = plan.comingCharges;
+  if (!coming.length) return "";
   const comingRows = coming.map((charge) => `<div class="tile-row small"><span>${shortMonthDay(charge.date)} \u00b7 ${escapeHtml(charge.name)}</span><span>${formatMoney(charge.amount)}</span></div>`).join("");
-  const summary = `<div class="close-head"><span class="stat-label">Expected on the statement at close \u00b7 ${shortMonthDay(plan.closeDate)}</span><b class="close-total">${formatMoney(plan.projectedStatement)}${estimateMark}</b></div>
-    <div class="close-bar"><div class="close-open" style="width:${percentOf(plan.openBalanceNow)}%;background:${cardColor}"></div><div class="close-coming" style="width:${percentOf(plan.comingTotal)}%;--bar-color:${cardColor}"></div><div class="close-target" style="left:${percentOf(plan.targetAmount)}%"><span>${targetPercent}%</span></div></div>
-    <div class="close-legend"><span><span class="dot" style="background:${cardColor}"></span>On it now ${formatMoney(plan.openBalanceNow)}</span><span><span class="dot close-dot-coming" style="--bar-color:${cardColor}"></span>Still coming ${formatMoney(plan.comingTotal)}</span></div>`;
-  const chips = `<div class="close-chips"><span>Closes in <b>${plan.daysUntilClose} day${plan.daysUntilClose === 1 ? "" : "s"}</b></span><span>${targetPercent}% target <b>${formatMoney(plan.targetAmount)}</b></span></div>`;
-  if (!coming.length) return `<div class="close-box">${summary}<div class="small">No subscriptions or fees are due on this card before it closes.</div></div>${chips}`;
-  return `<details class="close-box">${`<summary>${summary}<div class="small close-hint">Tap to see the ${coming.length} charge${coming.length === 1 ? "" : "s"} still coming</div></summary>`}${comingRows}</details>${chips}`;
+  return `<details class="pending-details expected-details"><summary class="small">+${formatMoney(plan.comingTotal)} expected, not counted in open</summary>${comingRows}
+    <div class="tile-row small expected-at-close"><span>On the statement at close \u00b7 ${shortMonthDay(plan.closeDate)}</span><b>${formatMoney(plan.projectedStatement)}${estimateMark}</b></div></details>`;
+}
+
+// Days until the statement closes and the dollar amount of the utilization target.
+function closeChipsHtml(plan, targetPercent) {
+  return `<div class="close-chips"><span>Closes in <b>${plan.daysUntilClose} day${plan.daysUntilClose === 1 ? "" : "s"}</b></span><span>${targetPercent}% target <b>${formatMoney(plan.targetAmount)}</b></span></div>`;
 }
 
 function showCreditPage(settings) {
@@ -239,8 +239,9 @@ function showCreditPage(settings) {
       <div class="bar target-bar ${percentClass === "positive" ? "bar-ok" : "bar-over"}"><div class="bar-fill" style="width:${barWidth}%"></div></div>
       ${closedAndOpenBlocks(card)}
       ${pendingDetailsHtml(settings, cardKey)}
+      ${expectedChargesHtml(plan, estimateMark)}
       <div class="verdict ${plan.payDownNeeded > 0 ? "verdict-bad" : "verdict-good"}">${verdict}</div>
-      ${atCloseHtml(plan, targetPercent, cardColor, estimateMark)}
+      ${closeChipsHtml(plan, targetPercent)}
       <div class="tile-row small card-facts"><span>${expiryText(settings.card_expirations[cardKey], settings)}</span><span>${annualFeeText(settings, cardKey)}</span></div></div>`;
   }).join("");
   const otherCardRows = settings.other_cards.map((otherCard) =>

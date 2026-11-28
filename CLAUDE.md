@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: hold-to-edit on Set up rows. Holding a card opens its edit form; a bill or subscription opens the same editor as the Bills tab; a one-time paycheck, category rule, other card or benefit opens a small edit sheet. Before that: swipe-to-delete on Set up lists and the Tasks swipe fix.
-- Version tag 20261128za, 156 tests passing.
-- Waiting on the user to confirm on the phone: holding each kind of Set up row opens the right editor; swiping a task and a Set up row opens Delete fully.
+- Last built: Cards tab: the big "Expected on the statement at close" block is replaced by a small collapsible purple line under Open (like the yellow pending line): "+$X expected, not counted in open", tap to list the charges and the expected statement total. The "Closes in" and target chips stay. Before that: hold-to-edit on Set up rows, swipe-to-delete on Set up lists, Tasks swipe fix.
+- Version tag 20261128zb, 156 tests passing.
+- Waiting on the user to confirm on the phone: the new expected line on Cards; holding each kind of Set up row opens the right editor; swiping a task and a Set up row opens Delete fully.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
@@ -57,7 +57,7 @@ Browser-only extras: Bills filter, bill marks, dismissed recurring suggestions (
 
 ## Behaviors worth remembering
 - Bills: monthly items match charges by account/text/date, never by amount. A new subscription is not flagged missing before its first charge. Unpaid items past their day show a warning; items never charged after month end go to "Never charged (not counted)". Hold a Bills item to edit name, amount, day and card.
-- Cards: a closed statement stays until the bank shows it paid (the card's own statement is the trusted signal). The open statement's close date moves to next month once the bank shows that statement issued.
+- Cards: a closed statement stays until the bank shows it paid (the card's own statement is the trusted signal). The open statement's close date moves to next month once the bank shows that statement issued. Subscriptions and fees due before close (`cardUtilizationPlan().comingCharges`) show as a small purple collapsible line (`expectedChargesHtml` in extra-pages.js), never added to Open.
 - Loans: with `payment_text_contains` set, a due date counts as paid only if a checking charge with all those words posts 5 days before to 10 days after it; recent ones wait; older than the app's bank history are assumed paid. Without it, every due date is assumed paid.
 - Spending: transfers are excluded from spending lists; bills are split from everything else.
 
