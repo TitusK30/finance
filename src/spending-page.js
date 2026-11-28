@@ -172,7 +172,7 @@ function showSpendingPage(settings) {
     ${notSeen.length ? `<div class="small not-seen"><b>Still to pay this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${bill.overdue ? "\u26a0\ufe0f " : ""}${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}
     ${neverCharged.length ? `<div class="small not-seen"><b>\u26a0\ufe0f Never charged (not counted)</b>${neverCharged.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
-  const pending = pendingCharges(store).filter((charge) => !isBill(charge) && charge.date.startsWith(spendingMonthShown));
+  const pending = pendingCharges(store).filter((charge) => !isBill(charge) && !isMoneyMovedNotSpent(charge) && charge.date.startsWith(spendingMonthShown));
   const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
 </summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
@@ -220,6 +220,13 @@ function showSpendingPage(settings) {
   const transfersTile = transfers.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:${netTransfers >= 0 ? "var(--good)" : "var(--bad)"}"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
     <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}</div></summary>${transferRows}</details>` : "";
 
+  // Money moved to or from your savings (found by the savings words in Set up). Not spending, just shown here.
+  const savingsMoves = savingsMovesInMonth(store, spendingMonthShown, settings);
+  const netToSavings = Math.round((savingsMoves.toSavings - savingsMoves.fromSavings) * 100) / 100;
+  const savingsRows = savingsMoves.items.map((move) => `<div class="tile-row small"><span>${shortMonthDay(move.date)} · ${escapeHtml(merchantName(move))} · ${move.amount > 0 ? "to savings" : "from savings"}${move.pending ? ' <span class="amber-text">pending</span>' : ""}</span><span class="amount-nowrap">${formatMoney(Math.abs(move.amount))}</span></div>`).join("");
+  const savingsTile = savingsMoves.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Savings</b><b>${netToSavings >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netToSavings))}</b></div>
+    <div class="small">${formatMoney(savingsMoves.toSavings)} in · ${formatMoney(savingsMoves.fromSavings)} out · not counted as spending</div></summary>${savingsRows}</details>` : "";
+
   const biggestMerchant = Math.max(1, ...month.topMerchants.map((merchant) => merchant.amount));
   const merchantRows = month.topMerchants.map((merchant, position) => `<div class="place-row"><div class="tile-row"><span><span class="place-rank">${position + 1}</span>${escapeHtml(merchant.name)}</span><b>${formatMoney(merchant.amount)}</b></div>
     <div class="bar"><div class="bar-fill" style="width:${Math.round((merchant.amount / biggestMerchant) * 100)}%"></div></div></div>`).join("");
@@ -239,7 +246,7 @@ function showSpendingPage(settings) {
     ${earnedTile}
     ${leftTile}
     ${paceTileHtml(allCharges, spendingMonthShown)}${vsLastMonthHtml(charges, spendingMonthShown)}${budgetsTileHtml(settings, month)}
-    ${pendingTile}${categoryRows}${billsTile}${transfersTile}${recurringTile}
+    ${pendingTile}${categoryRows}${billsTile}${transfersTile}${savingsTile}${recurringTile}
     <div class="tile"><b>Top places</b>${merchantRows}</div></div>`;
   refreshSpendingResults(settings);
 }
@@ -318,6 +325,7 @@ async function chooseCategoryForCharge(transactionId) {
   saveSettings(settings);
   setTransactionCategories(settings.transaction_categories);
   setMerchantRules(settings.merchant_rules);
+  setSavingsAccountWords(settings.transfers_ignore_text);
   showSpendingPage(settings);
   [...document.querySelectorAll("#page-spending details")].forEach((tile, position) => { tile.open = Boolean(openTiles[position]); });
   const movedTo = categoryDisplayName(settings.merchant_rules && ruleSaved ? settings.merchant_rules.find((rule) => rule.text === ruleSaved).category : settings.transaction_categories[transactionId]);

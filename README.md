@@ -133,6 +133,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 - **Bills are left out of Spending.** Bills and subscriptions are matched to charges by account, charge text and date (within 5 days of the due date), never by amount. If one slips through, tap **mark as bill** on it. If your bank writes a bill differently from its name, put the bank's wording in the bill's "text on the bank statement" box.
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
 - **Typed in by you:** savings (unless linked), rewards, benefits, loans, goals, credit scores, PTO, tasks.
+- Credit card payments never show on Spending. Moves to or from your savings (set your savings bank's name in Set up) show only in the **Savings** block near the bottom of Spending.
 - Swipe left on a task, goal or Set up row to reveal **Delete**.
 - Hold a Set up row (card, bill, subscription, one-time paycheck, category rule, other card, benefit) to edit it, the same way you hold a Bills item.
 
@@ -181,7 +182,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `card_expirations`, `annual_card_fees`, `other_cards`, `card_benefits`, `rewards`, `credit_utilization` | Card extras: expiry (`YYYY-MM`), yearly fee (card, amount, month, day), cards without a limit tracked, credits like a travel credit (`total`, `used`), points program name, target utilization percent |
 | `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` | Name, amount, `day_of_month` (subscriptions also name the `card`). Optional `charge_text_contains` words to match the bank's wording |
 | `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
-| `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
+| `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and your savings account's name on bank charges (moves to and from savings leave Spending and show in its Savings block) |
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
 | `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. `payment_text_contains` (optional words from the bank text of the payment, so the loan counts a payment only when your checking account shows it). An older single `car_loan` with the same fields still shows up as the first loan |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |

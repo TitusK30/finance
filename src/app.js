@@ -282,6 +282,7 @@ document.addEventListener("click", (event) => {
 function showEverything() {
   const settings = loadSettings();
   setMerchantRules(settings && settings.merchant_rules);
+  setSavingsAccountWords(settings && settings.transfers_ignore_text);
   setTransactionCategories(settings && settings.transaction_categories);
   document.getElementById("setup").hidden = Boolean(settings);
   document.getElementById("home-content").hidden = !settings || !basicsAreSet(settings);

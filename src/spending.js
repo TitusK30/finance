@@ -110,10 +110,28 @@ function merchantName(transaction) {
   return transaction.merchant_name || transaction.name || "Unknown";
 }
 
+// Money moved, not spent: paying a credit card, and moving money to or from your own savings.
+// Savings is found by the words in settings.transfers_ignore_text (like the savings bank's name), set with setSavingsAccountWords.
+let savingsAccountWords = [];
+function setSavingsAccountWords(words) {
+  savingsAccountWords = (words || []).map((word) => String(word).toLowerCase().replace(/[^a-z0-9 ]/g, "").trim()).filter(Boolean);
+}
+const CARD_PAYMENT_TEXT = /credit crd|credit card|crd pmt|card pmt|card payment|payment thank you|(capital one|citi|chase|discover|amex|american express|barclays|synchrony|bank of america|wells fargo)\b.*\b(pmt|payment|autopay|epay)\b/;
+function isCardPayment(transaction) {
+  return String(transaction.category_detail || "").includes("CREDIT_CARD_PAYMENT") || CARD_PAYMENT_TEXT.test(plainMerchantText(transaction));
+}
+function isSavingsMove(transaction) {
+  const text = plainMerchantText(transaction);
+  return savingsAccountWords.some((word) => text.includes(word));
+}
+function isMoneyMovedNotSpent(transaction) {
+  return isCardPayment(transaction) || isSavingsMove(transaction);
+}
+
 // Everything that counts as spending (card and bank purchases, refunds as negatives), newest first.
 function spendingCharges(store) {
   return Object.values(store.transactions)
-    .filter((transaction) => !NOT_SPENDING_CATEGORIES.includes(transaction.category))
+    .filter((transaction) => !NOT_SPENDING_CATEGORIES.includes(transaction.category) && !isMoneyMovedNotSpent(transaction))
     .sort((first, second) => second.date.localeCompare(first.date));
 }
 
@@ -126,7 +144,7 @@ function payDeposits(store, settings, isWanted) {
   return Object.values(store.transactions).filter((transaction) => {
     if (transaction.amount >= 0 || !isWanted(transaction)) return false; // a pending paycheck counts: it is already in the bank's available balance
     const account = store.accounts[transaction.account_id];
-    if (!account || account.type !== "depository") return false;
+    if (!account || account.type !== "depository" || isSavingsMove(transaction)) return false; // money back from savings is not pay
     const text = (String(transaction.merchant_name || "") + " " + String(transaction.name || "")).toLowerCase();
     return transaction.category === "INCOME" || /payroll|direct dep/.test(text) || hintWords.some((word) => text.includes(word));
   }).sort((first, second) => second.date.localeCompare(first.date));
@@ -207,7 +225,7 @@ function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
   const ignoredWords = [...((settings && settings.transfers_ignore_text) || []).map((word) => String(word).toLowerCase())];
   const items = Object.values(store.transactions).filter((transaction) => {
     if (ignoredWords.some((word) => plainMerchantText(transaction).includes(word))) return false;
-    if (transaction.pending || !transaction.date.startsWith(yearMonth) || payIds.has(transaction.transaction_id) || isBill(transaction)) return false;
+    if (transaction.pending || !transaction.date.startsWith(yearMonth) || payIds.has(transaction.transaction_id) || isBill(transaction) || isMoneyMovedNotSpent(transaction)) return false;
     const account = store.accounts[transaction.account_id];
     if (!account || account.type !== "depository") return false;
     const text = plainMerchantText(transaction);
@@ -215,6 +233,19 @@ function transfersInMonth(store, yearMonth, settings, isBill = () => false) {
   }).sort((first, second) => second.date.localeCompare(first.date));
   const sumOf = (list) => roundCents(list.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0));
   return { items, totalIn: sumOf(items.filter((transaction) => transaction.amount < 0)), totalOut: sumOf(items.filter((transaction) => transaction.amount > 0)) };
+}
+
+// Money moved between your bank and your savings in a month (pending included), seen from the bank side:
+// amount > 0 left the bank for savings, amount < 0 came back from savings. The savings account's own copy is skipped.
+function savingsMovesInMonth(store, yearMonth, settings) {
+  const savingsMask = settings && settings.account_masks && settings.account_masks.savings;
+  const items = Object.values(store.transactions).filter((transaction) => {
+    const account = store.accounts[transaction.account_id];
+    if (!account || account.type !== "depository" || (savingsMask && account.mask === savingsMask)) return false;
+    return transaction.date.startsWith(yearMonth) && isSavingsMove(transaction);
+  }).sort((first, second) => second.date.localeCompare(first.date));
+  const sumOf = (list) => roundCents(list.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0));
+  return { items, toSavings: sumOf(items.filter((transaction) => transaction.amount > 0)), fromSavings: sumOf(items.filter((transaction) => transaction.amount < 0)) };
 }
 
 // Puts a spending-history backup back into the phone's saved copy. What is already on the phone wins; the backup only fills gaps.
@@ -303,4 +334,4 @@ function pendingAmountOnCard(card) {
   return roundCents(card.balances_by_statement.reduce((sum, statement) => sum + (statement.pending_amount || 0), 0));
 }
 
-if (typeof module !== "undefined") module.exports = { plainMerchantText, setTransactionCategories, categoryDisplayName, spendingCategoryChoices, expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };
+if (typeof module !== "undefined") module.exports = { setSavingsAccountWords, isCardPayment, isSavingsMove, isMoneyMovedNotSpent, savingsMovesInMonth, plainMerchantText, setTransactionCategories, categoryDisplayName, spendingCategoryChoices, expectedPaychecks, paydayDepositMatches, paidEarlyPaydays, setMerchantRules, mergeHistoryBackup, transfersInMonth, earnedInMonth, usualPayDeposit, categoryOf, pendingAmountOnCard, emptyTransactionStore, applyTransactionChanges, spendingCharges, monthsWithSpending, monthlyBreakdown, monthComparison, previousYearMonth, pendingCharges, pendingTotalsByAccount, accountIdForCard, pendingChargesForCard, merchantName, CATEGORY_NAMES };

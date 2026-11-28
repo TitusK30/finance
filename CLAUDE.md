@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: Cards tab: the big "Expected on the statement at close" block is replaced by a small collapsible purple line under Open (like the yellow pending line): "+$X expected, not counted in open", tap to list the charges and the expected statement total. The "Closes in" and target chips stay. Before that: hold-to-edit on Set up rows, swipe-to-delete on Set up lists, Tasks swipe fix.
-- Version tag 20261128zb, 156 tests passing.
-- Waiting on the user to confirm on the phone: the new expected line on Cards; holding each kind of Set up row opens the right editor; swiping a task and a Set up row opens Delete fully.
+- Last built: Spending: credit card payments (checking autopay and card-side "payment thank you") are never on Spending, pending or posted; moves to or from savings (words in `transfers_ignore_text`) leave Spending and show in a new "Savings" block near the bottom. Before that: small purple expected-charges line on Cards, hold-to-edit and swipe-to-delete on Set up rows, Tasks swipe fix.
+- Version tag 20261128zc, 158 tests passing.
+- Waiting on the user to confirm on the phone: no card payment or savings move in Pending; the Savings block; the expected line on Cards; hold-to-edit and swipe on Set up rows.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
@@ -59,7 +59,7 @@ Browser-only extras: Bills filter, bill marks, dismissed recurring suggestions (
 - Bills: monthly items match charges by account/text/date, never by amount. A new subscription is not flagged missing before its first charge. Unpaid items past their day show a warning; items never charged after month end go to "Never charged (not counted)". Hold a Bills item to edit name, amount, day and card.
 - Cards: a closed statement stays until the bank shows it paid (the card's own statement is the trusted signal). The open statement's close date moves to next month once the bank shows that statement issued. Subscriptions and fees due before close (`cardUtilizationPlan().comingCharges`) show as a small purple collapsible line (`expectedChargesHtml` in extra-pages.js), never added to Open.
 - Loans: with `payment_text_contains` set, a due date counts as paid only if a checking charge with all those words posts 5 days before to 10 days after it; recent ones wait; older than the app's bank history are assumed paid. Without it, every due date is assumed paid.
-- Spending: transfers are excluded from spending lists; bills are split from everything else.
+- Spending: transfers are excluded from spending lists; bills are split from everything else. `isMoneyMovedNotSpent` (spending.js) drops card payments (`isCardPayment`: Plaid's CREDIT_CARD_PAYMENT detail or issuer payment text) and savings moves (`isSavingsMove`: words from `transfers_ignore_text`, set with `setSavingsAccountWords` next to `setMerchantRules`) from spending, pending, transfers and earned. `savingsMovesInMonth` feeds the Savings block (bank side only; the savings account's own copy, by `account_masks.savings`, is skipped).
 
 ## Known caveats
 Phone data is separate per phone and per browser. Plaid Trial allows about 10 linked logins. Some card balances lag a day. Old git history holds a few early commits with example text that was later made generic; history was not rewritten.
