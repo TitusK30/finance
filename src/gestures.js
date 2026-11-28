@@ -86,7 +86,7 @@ let longPressStart = null;
 let longPressFired = false;
 
 document.addEventListener("touchstart", (event) => {
-  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-rewards [data-setup-hold], #page-spending [data-budget-hold], #page-todo [data-item-hold], #page-goals [data-item-hold], #page-hsa [data-item-hold], #page-pto [data-item-hold], #page-rewards [data-item-hold]");
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-rewards [data-setup-hold], #page-spending [data-budget-hold], #page-todo [data-item-hold], #page-goals [data-item-hold], #page-hsa [data-item-hold], #page-pto [data-item-hold], #page-rewards [data-item-hold], #credit-score-tile [data-item-hold]");
   longPressFired = false;
   clearTimeout(longPressTimer);
   if (!row) return;

@@ -541,18 +541,26 @@ html, body { overflow-x: hidden; }
 .facts-grid > div { background: var(--bar-track); border-radius: 14px; padding: 12px 6px; display: grid; justify-items: center; gap: 3px; text-align: center; }
 .facts-grid b { font-size: 17px; }
 .fact-icon { font-size: 20px; }
-.score-home { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 20px; box-shadow: inset 5px 0 0 var(--accent); background-image: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%); }
-.score-home .huge-number { font-size: 38px; font-weight: 800; line-height: 1.1; }
-.score-great { box-shadow: inset 5px 0 0 var(--good); } .score-good { box-shadow: inset 5px 0 0 var(--warning); } .score-low { box-shadow: inset 5px 0 0 var(--bad); }
-.score-button { margin: 0; padding: 10px 16px; border-radius: 999px; font-size: 14px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
-.score-home { display: block; padding: 0; }
-.score-home summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 20px; cursor: pointer; }
-.score-home summary::-webkit-details-marker { display: none; }
-.score-number { display: block; margin: 2px 0; padding: 0; background: none; border: 0; border-bottom: 2px dotted var(--muted-text); border-radius: 0; color: var(--main-text); font-size: 38px; font-weight: 800; line-height: 1.15; }
-.score-chevron { color: var(--muted-text); font-size: 20px; transition: transform 0.2s ease; }
-.score-home[open] .score-chevron { transform: rotate(180deg); }
+/* Home credit score tile: band color, small gauge, change since last month; hold to log, tap for history */
+.score-card { display: block; padding: 0; --score-color: var(--accent); background: linear-gradient(135deg, color-mix(in srgb, var(--score-color) 11%, var(--tile-background)), var(--tile-background) 65%); box-shadow: inset 5px 0 0 var(--score-color); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.score-card summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 16px 20px; cursor: pointer; }
+.score-card summary::-webkit-details-marker { display: none; }
+.score-left { display: grid; gap: 2px; min-width: 0; }
+.score-big { display: flex; align-items: baseline; gap: 10px; font-size: 40px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; color: var(--score-color); }
+.score-band { font-size: 12px; font-weight: 700; letter-spacing: 0; padding: 3px 9px; border-radius: 999px; color: var(--score-color); background: color-mix(in srgb, var(--score-color) 16%, transparent); align-self: center; }
+.score-change { font-size: 13px; margin-top: 2px; color: var(--muted-text); }
+.score-change.change-up { color: var(--good); }
+.score-change.change-down { color: var(--bad); }
+.score-gauge { width: 92px; flex: none; }
+.score-gauge path { fill: none; stroke-width: 7; stroke-linecap: round; }
+.score-gauge-track { stroke: var(--bar-track); }
+.score-gauge-fill { stroke: var(--score-color); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--score-color) 50%, transparent)); }
+.score-gauge-text { fill: var(--muted-text); font-size: 9px; }
 .score-history { display: grid; gap: 4px; padding: 0 16px 14px 20px; }
 .score-history .tile-row { padding: 8px 0; border-top: 1px solid var(--bar-track); }
+.score-hint { text-align: center; margin-top: 6px; }
+.score-empty { padding: 18px 20px; }
+.score-empty-text { display: block; margin-top: 4px; font-size: 20px; color: var(--muted-text); }
 .facts-grid { grid-template-columns: 1fr 1fr; }
 
 /* Side menu */

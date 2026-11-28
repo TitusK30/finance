@@ -136,25 +136,62 @@ function historyRows(entries, valueKey, listName, isMoney, labelFor) {
 }
 
 // The latest credit score on Home. Tap the number to log a new one; open the tile for one entry per month (the last log of that month).
+// Home credit score tile: the score in its band's color, a small 300-850 gauge, and the change since the month before.
+// Hold the tile to log or fix a score; tap it to open the month-by-month history.
 function showCreditScoreTile(settings) {
   const scores = settings.credit_scores;
-  const latest = scores[scores.length - 1];
-  const band = !latest ? "" : latest.score >= 740 ? "score-great" : latest.score >= 670 ? "score-good" : "score-low";
+  const latest = [...scores].sort((a, b) => (a.date < b.date ? -1 : 1)).pop();
+  const bandOf = (score) => score >= 800 ? ["Excellent", "var(--good)"] : score >= 740 ? ["Very good", "var(--good)"] : score >= 670 ? ["Good", "var(--warning)"] : score >= 580 ? ["Fair", "#fb923c"] : ["Poor", "var(--bad)"];
   const lastLogOfMonth = {};
   for (const entry of [...scores].sort((a, b) => (a.date < b.date ? -1 : 1))) lastLogOfMonth[entry.date.slice(0, 7)] = entry;
   const months = Object.keys(lastLogOfMonth).sort().reverse();
+  const tile = document.getElementById("credit-score-tile");
+  if (!latest) {
+    tile.innerHTML = `<div class="tile score-card score-empty" data-item-hold="score:new"><div class="small">Credit score</div><b class="score-empty-text">Hold to log your score</b></div>`;
+    return;
+  }
+  const [bandName, bandColor] = bandOf(latest.score);
+  const previousMonth = lastLogOfMonth[months[1]];
+  const change = previousMonth ? latest.score - previousMonth.score : null;
+  const changeLine = change === null ? "" : change === 0 ? `<span class="score-change">no change since ${shortMonthName(previousMonth.date)}</span>`
+    : `<span class="score-change ${change > 0 ? "change-up" : "change-down"}">${change > 0 ? "\u25b2" : "\u25bc"} ${Math.abs(change)} since ${shortMonthName(previousMonth.date)}</span>`;
+  const gaugeShare = Math.max(0, Math.min(100, ((latest.score - 300) / 550) * 100));
   const monthRows = months.map((month, position) => {
     const entry = lastLogOfMonth[month];
     const earlier = lastLogOfMonth[months[position + 1]];
     const monthName = new Date(month + "-15T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
-    return `<div class="tile-row small"><span>${monthName}${entry.source ? ` (${escapeHtml(entry.source)})` : ""}</span><span>${entry.score} ${earlier ? changeText(entry.score - earlier.score, false) : ""}</span></div>`;
+    return `<div class="tile-row small"><span>${monthName}${entry.source ? ` \u00b7 ${escapeHtml(entry.source)}` : ""}</span><span><b>${entry.score}</b> ${earlier ? changeText(entry.score - earlier.score, false) : ""}</span></div>`;
   }).join("");
-  document.getElementById("credit-score-tile").innerHTML = `<details class="tile score-home ${band}"><summary>
-    <div><div class="small">Credit score &middot; tap the number to log a new one</div>
-      <button id="add-score-button" class="score-number">${latest ? latest.score : "Log a score"}</button>
-      ${latest ? `<div class="small">${latest.source ? escapeHtml(latest.source) + " &middot; " : ""}${formatDate(latest.date)}</div>` : ""}</div>
-    ${months.length ? `<span class="score-chevron">&#9662;</span>` : ""}</summary>
-    ${months.length ? `<div class="score-history">${monthRows}</div>` : ""}</details>`;
+  tile.innerHTML = `<details class="tile score-card" data-item-hold="score:latest" style="--score-color:${bandColor}"><summary>
+    <div class="score-left"><div class="small">Credit score</div>
+      <div class="score-big">${latest.score}<span class="score-band">${bandName}</span></div>
+      <div class="small">${latest.source ? escapeHtml(latest.source) + " \u00b7 " : ""}${formatDate(latest.date)}</div>${changeLine}</div>
+    <svg class="score-gauge" viewBox="0 0 80 46" aria-hidden="true"><path d="M 7 41 A 33 33 0 0 1 73 41" class="score-gauge-track" pathLength="100"/>
+      <path d="M 7 41 A 33 33 0 0 1 73 41" class="score-gauge-fill" pathLength="100" style="stroke-dasharray:${gaugeShare.toFixed(1)} 100"/>
+      <text x="40" y="40" text-anchor="middle" class="score-gauge-text">of 850</text></svg></summary>
+    <div class="score-history">${monthRows}<div class="small score-hint">Hold to log a new score or fix this one.</div></div></details>`;
+}
+
+function shortMonthName(dateText) {
+  return new Date(dateText + "T12:00:00").toLocaleDateString("en-US", { month: "short" });
+}
+
+// Log a score, or fix the one on a given date (one score per date). Same sheet style as the other edits.
+function openScoreSheet() {
+  const settings = loadSettings();
+  const latest = [...settings.credit_scores].sort((a, b) => (a.date < b.date ? -1 : 1)).pop();
+  const sources = [...new Set(["FICO", "VantageScore", ...settings.credit_scores.map((entry) => entry.source).filter(Boolean)])];
+  openSetupItemSheet({
+    title: "Credit score", icon: "&#128200;", accent: "#4ade80", saveLabel: "Save score",
+    fields: [{ id: "score", label: "Score (300 to 850)", isMoney: true, placeholder: "760", value: latest ? latest.score : "" },
+      { id: "source", label: "From", chips: sources.map((source) => [source, source, "var(--good)"]), value: (latest && latest.source) || "FICO" },
+      { id: "date", label: "Date", type: "date", value: todayText() }],
+    save: (values) => {
+      if (!(values.score >= 300 && values.score <= 850)) return "Type a score from 300 to 850.";
+      if (!values.date) return "Pick a date.";
+      settings.credit_scores = addEntryForDate(settings.credit_scores, { date: values.date, score: Math.round(values.score), source: values.source });
+    },
+  }, () => saveAndRefresh(settings));
 }
 
 const URGENCY_WORDS = { overdue: "overdue", soon: "due soon", upcoming: "coming up", later: "later", none: "no date" };
@@ -287,11 +324,6 @@ document.addEventListener("click", async (event) => {
   } else if (event.target.closest("[data-remove-goal]")) {
     if (!confirm("Remove this goal?")) return;
     settings.savings_goals.splice(Number(event.target.closest("[data-remove-goal]").dataset.removeGoal), 1);
-  } else if (event.target.id === "add-score-button") {
-    const score = parseInt(prompt("Credit score"), 10);
-    if (!score || score < 300 || score > 850) return;
-    const source = prompt("Where is it from? (optional, for example: Credit Karma)") || "";
-    settings.credit_scores = addEntryForDate(settings.credit_scores, { date: todayText(), score, source });
   } else if (event.target.closest("[data-remove-entry]")) {
     const [listName, position] = event.target.closest("[data-remove-entry]").dataset.removeEntry.split(":");
     if (!confirm("Remove this entry?")) return;
@@ -384,6 +416,7 @@ function editTrackedItem(holdKey) {
       },
     }),
   };
+  if (kind === "score") return openScoreSheet();
   if (!editors[kind]) return;
   openSetupItemSheet(editors[kind](), () => saveAndRefresh(settings));
 }
