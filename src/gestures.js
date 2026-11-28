@@ -107,3 +107,45 @@ document.addEventListener("touchcancel", () => { clearTimeout(longPressTimer); l
 document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile")) event.preventDefault(); });
 // The tap that ends a long-press must not also open or toggle anything.
 document.addEventListener("click", (event) => { if (longPressFired) { longPressFired = false; event.preventDefault(); event.stopPropagation(); } }, true);
+
+// Swipe any bottom sheet down from its top edge (the little grab bar) to close it. Tapping outside still works too.
+// Closing is done by clicking the dimmed background, so each sheet's own "cancel" code runs.
+(() => {
+  let drag = null;
+  document.addEventListener("touchstart", (event) => {
+    const box = event.target.closest(".category-picker .date-box");
+    if (!box || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (touch.clientY - box.getBoundingClientRect().top > 56 || box.scrollTop > 4) return;
+    drag = { box, startY: touch.clientY, lastY: touch.clientY, lastTime: Date.now(), speed: 0, offset: 0 };
+    box.style.transition = "none";
+  }, { passive: true });
+  document.addEventListener("touchmove", (event) => {
+    if (!drag) return;
+    const y = event.touches[0].clientY;
+    const now = Date.now();
+    drag.speed = (y - drag.lastY) / Math.max(1, now - drag.lastTime);
+    drag.lastY = y;
+    drag.lastTime = now;
+    drag.offset = Math.max(0, y - drag.startY);
+    drag.box.style.transform = `translateY(${drag.offset}px)`;
+    event.preventDefault();
+  }, { passive: false });
+  const letGo = () => {
+    if (!drag) return;
+    const { box, offset, speed } = drag;
+    drag = null;
+    const cover = box.parentElement;
+    box.style.transition = "transform 0.2s ease-out";
+    if (offset > 110 || (offset > 30 && speed > 0.6)) {
+      box.style.transform = "translateY(100%)";
+      cover.style.transition = "opacity 0.2s";
+      cover.style.opacity = "0";
+      setTimeout(() => cover.click(), 190);
+    } else {
+      box.style.transform = "";
+    }
+  };
+  document.addEventListener("touchend", letGo);
+  document.addEventListener("touchcancel", letGo);
+})();
