@@ -5,7 +5,8 @@ Read this first in every session. Keep it current: when a change alters the arch
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
 - Last built (TRIAL, the user may ask to revert it): Home restyle, same information. Bigger date with a live dot on the status line; quiet caps labels; smaller cents on big numbers (`moneyHtml` in app.js); balance change shown as small pills; transfer advice as one status row with an icon (`status-row`); section headers with an icon and a thin line (`home-section` in index.html); credit cards with a small card chip and calmer panels; Next 40 days tighter, dot and tint by the day's direction (`day-up`/`day-down`, `day-under-floor`), "Today" as a small label. All Home-only styles sit in the "Home restyle (trial)" block at the end of style.css. To undo: `git revert --no-edit` this commit. Before that: Customize Home drag and switches.
-- Version tag 20261128zp, 158 tests passing.
+- Also: default Home order (for anyone who hasn't customized) is Left to spend, Savings transfer advice, Balances, Credit score, Credit cards, Checking chart, Next 40 days; it is the key order of `HOME_BLOCK_NAMES` and the wrapper order in index.html (keep both the same). "Back to the usual order" returns to it.
+- Version tag 20261128zq, 158 tests passing.
 - Waiting on the user: keep or revert the Home restyle; Customize Home drag; change triangles.
 
 ## What it is

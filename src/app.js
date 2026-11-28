@@ -70,7 +70,7 @@ function showBalances(settings) {
 }
 
 // ---- Customize Home: the order of the blocks and which are hidden live in settings.home_layout.
-const HOME_BLOCK_NAMES = { outlook: "Left to spend", balances: "Balances", score: "Credit score", transfer: "Savings transfer advice", chart: "Checking chart", cards: "Credit cards", calendar: "Next 40 days" };
+const HOME_BLOCK_NAMES = { outlook: "Left to spend", transfer: "Savings transfer advice", balances: "Balances", score: "Credit score", cards: "Credit cards", chart: "Checking chart", calendar: "Next 40 days" }; // this order is the default Home order
 function homeLayoutOf(settings) {
   const layout = settings.home_layout || {};
   const savedOrder = (layout.order || []).filter((key) => HOME_BLOCK_NAMES[key]);
