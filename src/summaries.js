@@ -18,7 +18,8 @@ const EXPENSE_ITEM_NAMES = ["Auto/Renters insurance", "Toll tag (auto refill)", 
 
 // Card subscriptions and checking bills in one list, filtered to one tab.
 function monthlyItemsForTab(settings, tabName) {
-  const itemsOnCards = settings.subscriptions_charged_to_cards.map((subscription) => ({
+  const itemsOnCards = settings.subscriptions_charged_to_cards.map((subscription, index) => ({
+    source: "sub", index, isExpense: Boolean(subscription.is_expense),
     name: subscription.name,
     paidFrom: subscription.card,
     monthlyAmount: monthlyAmountOfSubscription(subscription),
@@ -29,7 +30,8 @@ function monthlyItemsForTab(settings, tabName) {
     daysOfMonth: subscription.assumed_days_of_month || [subscription.day_of_month],
     isEstimate: Boolean(subscription.assumed_days_of_month),
   }));
-  const itemsFromChecking = settings.monthly_bills_paid_from_checking.map((bill) => ({
+  const itemsFromChecking = settings.monthly_bills_paid_from_checking.map((bill, index) => ({
+    source: "bill", index, isExpense: Boolean(bill.is_expense),
     name: bill.name,
     paidFrom: "checking",
     monthlyAmount: bill.amount,
@@ -42,7 +44,7 @@ function monthlyItemsForTab(settings, tabName) {
   // Sorted by day of the month. The toll tag has no fixed day, so it sits at its first assumed refill day.
   const dayToSortBy = (item) => item.dayOfMonth || item.firstAssumedDay;
   return [...itemsOnCards, ...itemsFromChecking]
-    .filter((item) => (EXPENSE_ITEM_NAMES.includes(item.name) ? "expenses" : "subscriptions") === tabName)
+    .filter((item) => (EXPENSE_ITEM_NAMES.includes(item.name) || item.isExpense ? "expenses" : "subscriptions") === tabName)
     .sort((first, second) => dayToSortBy(first) - dayToSortBy(second) || first.name.localeCompare(second.name));
 }
 
