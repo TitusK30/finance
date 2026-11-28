@@ -6,7 +6,8 @@ Read this first in every session. Keep it current: when a change alters the arch
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
 - Last built: Loans tab with several loans and bank-checked payments, swipe-down to close sheets, Spending tab tools (search, filter, pace, vs last month, budgets, merchant rules, recurring detector), "Expected at close" block on Cards.
 - Version tag 20261128y, 156 tests passing.
-- Waiting on the user to confirm on the phone: a card's close date moving to next month once its statement is issued; the Loans bank check after saving payment text.
+- Confirmed on the phone: a card's close date moves to next month once its statement is issued; the Loans bank check works after saving payment text. Nothing waiting on the user.
+- Known gap: several lists still show a visible "remove" button (Set up bills, subscriptions, cards, overrides, rules, benefits, other cards; goals, to-dos, expected items, what-ifs, HSA items, overtime, typed paychecks) instead of swipe-to-delete.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
