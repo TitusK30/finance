@@ -64,7 +64,9 @@ function showTransferAdvice(settings, forecast) {
   }
 }
 
-// Line chart of the predicted checking balance, one point per day: a single line with a soft fill, a dashed floor and the lowest day marked.
+// Chart of the predicted checking balance, one value per day (same numbers as before). Drawn as steps, because the
+// balance holds all day and jumps when money moves. Soft weekly bands, a dashed floor, the lowest day ringed, and
+// touch-and-drag to read any day.
 function showBalanceChart(settings, forecast) {
   // Day 1 is today, at the balance the bank shows now; the 39 days after it follow.
   const days = [forecast.today, ...forecast.days].slice(0, 40);
@@ -72,38 +74,78 @@ function showBalanceChart(settings, forecast) {
   const floor = settings.minimum_checking_floor;
   const low = Math.min(...balances, floor);
   const high = Math.max(...balances, floor);
-  const spread = high - low || 1;
-  const left = 50, right = 346, top = 16, bottom = 168;
-  const xFor = (dayNumber) => left + ((dayNumber - 1) / (days.length - 1)) * (right - left);
-  const yFor = (balance) => bottom - ((balance - low) / spread) * (bottom - top);
-  const linePoints = balances.map((balance, position) => `${xFor(position + 1).toFixed(1)},${yFor(balance).toFixed(1)}`).join(" ");
-  const areaPoints = `${left},${bottom} ${linePoints} ${right},${bottom}`;
-  const gridLines = [low, (low + high) / 2, high].map((balance) =>
-    `<line x1="${left}" y1="${yFor(balance)}" x2="${right}" y2="${yFor(balance)}" stroke="var(--bar-track)" stroke-width="1" opacity="0.6"/>
-     <text x="${left - 8}" y="${yFor(balance) + 4}" text-anchor="end" class="chart-label">$${Math.round(balance).toLocaleString("en-US")}</text>`).join("");
-  const dateLabels = [1, 10, 20, 30, 40].map((dayNumber) =>
-    `<text x="${xFor(dayNumber)}" y="${bottom + 18}" text-anchor="${dayNumber === 1 ? "start" : dayNumber === 40 ? "end" : "middle"}" class="chart-label">${dayNumber === 1 ? (days[0].date === todayText() ? "Today" : shortMonthDay(days[0].date)) : shortMonthDay(days[dayNumber - 1].date)}</text>`).join("");
+  const padding = (high - low) * 0.08 || 50;
+  const chartLow = Math.max(0, low - padding), chartHigh = high + padding;
+  const left = 44, right = 350, top = 14, bottom = 172;
+  const dayWidth = (right - left) / days.length;
+  const xFor = (position) => left + position * dayWidth;
+  const yFor = (balance) => bottom - ((balance - chartLow) / (chartHigh - chartLow)) * (bottom - top);
+  const compact = (amount) => Math.abs(amount) >= 1000 ? `$${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1)}k` : `$${Math.round(amount)}`;
+  // Steps: flat across each day, straight up or down where the next day starts.
+  const stepPoints = balances.map((balance, position) => `${xFor(position).toFixed(1)},${yFor(balance).toFixed(1)} ${xFor(position + 1).toFixed(1)},${yFor(balance).toFixed(1)}`).join(" ");
+  const areaPoints = `${left},${bottom} ${stepPoints} ${right},${bottom}`;
+  // Every other week (Monday to Sunday) gets a faint band, so weeks are easy to count.
+  const mondayPositions = days.map((day, position) => new Date(day.date + "T12:00:00").getDay() === 1 ? position : -1).filter((position) => position >= 0);
+  const weekBands = mondayPositions.filter((unused, mondayNumber) => mondayNumber % 2 === 0).map((position) =>
+    `<rect x="${xFor(position)}" y="${top}" width="${(dayWidth * Math.min(7, days.length - position)).toFixed(1)}" height="${bottom - top}" class="chart-band"/>`).join("");
+  const gridLines = [chartLow + (chartHigh - chartLow) * 0.1, (chartLow + chartHigh) / 2, chartHigh - (chartHigh - chartLow) * 0.1].map((balance) => Math.round(balance / 100) * 100).map((balance) =>
+    `<line x1="${left}" y1="${yFor(balance)}" x2="${right}" y2="${yFor(balance)}" class="chart-grid"/>
+     <text x="${left - 7}" y="${yFor(balance) + 3.5}" text-anchor="end" class="chart-label">${compact(balance)}</text>`).join("");
+  const dateLabels = [0, 10, 20, 30, 39].map((position) =>
+    `<text x="${xFor(position) + (position === 39 ? dayWidth : 0)}" y="${bottom + 17}" text-anchor="${position === 0 ? "start" : position === 39 ? "end" : "middle"}" class="chart-label">${position === 0 ? (days[0].date === todayText() ? "Today" : shortMonthDay(days[0].date)) : shortMonthDay(days[position].date)}</text>`).join("");
   const lowestPosition = balances.indexOf(Math.min(...balances));
-  const lowestX = xFor(lowestPosition + 1), lowestY = yFor(balances[lowestPosition]);
+  const lowestX = xFor(lowestPosition) + dayWidth / 2, lowestY = yFor(balances[lowestPosition]);
   const lowestIsSafe = balances[lowestPosition] >= floor;
   const lowestColor = lowestIsSafe ? "var(--good)" : "var(--bad)";
-  const calloutAbove = lowestY > top + 26;
-  document.getElementById("balance-chart").innerHTML = `<div class="chart-headline"><div class="small">Lowest point</div>
+  const calloutAbove = lowestY > top + 30;
+  const calloutX = Math.min(Math.max(lowestX, left + 26), right - 26);
+  const calloutY = calloutAbove ? lowestY - 24 : lowestY + 12;
+  const lastBalance = balances[balances.length - 1];
+  const chip = (label, amount, extraClass = "") => `<div class="chart-chip ${extraClass}"><span>${label}</span><b>${formatMoney(amount)}</b></div>`;
+  const chartBox = document.getElementById("balance-chart");
+  chartBox.innerHTML = `<div class="chart-headline"><div class="small">Lowest point</div>
       <div class="chart-low ${lowestIsSafe ? "positive" : "negative"}">${formatMoney(balances[lowestPosition])}</div>
       <div class="small">${formatDate(days[lowestPosition].date)} \u00b7 ${lowestIsSafe ? "above" : "below"} your ${formatMoney(floor)} floor</div></div>
-    <svg viewBox="0 0 360 196" width="100%">
+    <div class="chart-chips">${chip("Today", balances[0])}${chip(shortMonthDay(days[days.length - 1].date), lastBalance)}${chip("Floor", floor, "chart-chip-floor")}</div>
+    <div class="chart-wrap"><svg viewBox="0 0 360 196" width="100%" class="balance-svg">
     <defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.35"/><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs>
-    ${gridLines}
+      <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.28"/><stop offset="100%" style="stop-color:var(--accent);stop-opacity:0.02"/></linearGradient></defs>
+    ${weekBands}${gridLines}
+    <rect x="${left}" y="${yFor(floor)}" width="${right - left}" height="${Math.max(0, bottom - yFor(floor))}" class="chart-under-floor"/>
     <polygon points="${areaPoints}" fill="url(#chart-fill)"/>
-    <line x1="${left}" y1="${yFor(floor)}" x2="${right}" y2="${yFor(floor)}" stroke="var(--bad)" stroke-dasharray="5 4" stroke-width="1.5"/>
-    <text x="${right}" y="${yFor(floor) - 5}" text-anchor="end" class="chart-label" style="fill:var(--bad)">floor</text>
-    <polyline points="${linePoints}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${xFor(1)}" cy="${yFor(balances[0])}" r="4" fill="var(--accent)"/>
-    <circle cx="${lowestX}" cy="${lowestY}" r="9" fill="${lowestColor}" opacity="0.25"/>
+    <line x1="${left}" y1="${yFor(floor)}" x2="${right}" y2="${yFor(floor)}" class="chart-floor"/>
+    <polyline points="${stepPoints}" class="chart-line" pathLength="1"/>
+    <circle cx="${xFor(0) + 1}" cy="${yFor(balances[0])}" r="4" fill="var(--accent)"/>
+    <circle cx="${lowestX}" cy="${lowestY}" r="10" fill="${lowestColor}" class="chart-low-ring"/>
     <circle cx="${lowestX}" cy="${lowestY}" r="5" fill="${lowestColor}" stroke="var(--tile-background)" stroke-width="2"/>
-    <text x="${Math.min(Math.max(lowestX, left + 22), right - 22)}" y="${calloutAbove ? lowestY - 14 : lowestY + 22}" text-anchor="middle" class="chart-label" style="fill:${lowestColor};font-weight:600">$${Math.round(balances[lowestPosition]).toLocaleString("en-US")}</text>
-    ${dateLabels}</svg>`;
+    <rect x="${calloutX - 24}" y="${calloutY}" width="48" height="16" rx="8" class="chart-callout" style="stroke:${lowestColor}"/>
+    <text x="${calloutX}" y="${calloutY + 11.5}" text-anchor="middle" class="chart-label chart-callout-text" style="fill:${lowestColor}">${compact(balances[lowestPosition])}</text>
+    ${dateLabels}
+    <g class="chart-scrub" visibility="hidden"><line class="chart-scrub-line" y1="${top}" y2="${bottom}"/><circle class="chart-scrub-dot" r="4.5"/></g>
+    </svg><div class="chart-readout" hidden></div></div>
+    <div class="small chart-hint">Touch and drag the chart to see any day.</div>`;
+  // Touch and drag: a thin line follows your finger and a label shows that day's date and balance.
+  const svg = chartBox.querySelector(".balance-svg");
+  const scrub = svg.querySelector(".chart-scrub");
+  const readout = chartBox.querySelector(".chart-readout");
+  const showDayAt = (clientX) => {
+    const box = svg.getBoundingClientRect();
+    const svgX = ((clientX - box.left) / box.width) * 360;
+    const position = Math.max(0, Math.min(days.length - 1, Math.floor((svgX - left) / dayWidth)));
+    const x = xFor(position) + dayWidth / 2, y = yFor(balances[position]);
+    scrub.querySelector("line").setAttribute("x1", x); scrub.querySelector("line").setAttribute("x2", x);
+    scrub.querySelector("circle").setAttribute("cx", x); scrub.querySelector("circle").setAttribute("cy", y);
+    scrub.setAttribute("visibility", "visible");
+    readout.hidden = false;
+    readout.innerHTML = `<span>${formatDate(days[position].date)}</span><b class="${balances[position] < floor ? "negative" : ""}">${formatMoney(balances[position])}</b>`;
+    readout.style.left = `${Math.min(Math.max((x / 360) * 100, 18), 82)}%`;
+  };
+  const hideDay = () => { scrub.setAttribute("visibility", "hidden"); readout.hidden = true; };
+  svg.addEventListener("touchstart", (event) => showDayAt(event.touches[0].clientX), { passive: true });
+  svg.addEventListener("touchmove", (event) => { showDayAt(event.touches[0].clientX); event.preventDefault(); }, { passive: false });
+  svg.addEventListener("touchend", hideDay);
+  svg.addEventListener("mousemove", (event) => showDayAt(event.clientX));
+  svg.addEventListener("mouseleave", hideDay);
 }
 
 // One row like "Due   Dec 5 · 11d". Turns red or amber when the date is close.

@@ -179,19 +179,36 @@ html, body { overflow-x: hidden; }
 .dot-else { background: var(--accent); }
 .split-columns + .small { margin-top: 10px; }
 
-.outlook-bar { display: flex; height: 16px; background: var(--bar-track); border-radius: 8px; overflow: hidden; margin: 4px 0 12px; }
-.seg { height: 100%; }
+/* Home: Left to spend (tap to open; closed it shows the number and a thin bar) */
+.outlook-tile { border: 1px solid color-mix(in srgb, var(--good) 35%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--good) 9%, var(--tile-background)), var(--tile-background) 70%); }
+.outlook-tile.outlook-over { border-color: color-mix(in srgb, var(--bad) 40%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--bad) 9%, var(--tile-background)), var(--tile-background) 70%); }
+.outlook-tile summary { list-style: none; cursor: pointer; }
+.outlook-tile summary::-webkit-details-marker { display: none; }
+.outlook-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.outlook-chevron { font-size: 26px; color: var(--muted-text); transition: transform 0.25s ease; }
+.outlook-tile[open] .outlook-chevron { transform: rotate(90deg); }
+.outlook-mini .outlook-bar { height: 5px; gap: 2px; margin: 10px 0 2px; opacity: 0.85; }
+.outlook-tile[open] .outlook-mini { display: none; }
+.outlook-body { animation: outlook-open 0.25s ease; }
+@keyframes outlook-open { from { opacity: 0; transform: translateY(-4px); } }
+.outlook-per-day { margin: 6px 0 12px; font-size: 14px; color: var(--muted-text); }
+.outlook-per-day b { color: var(--main-text); }
+.outlook-bar { display: flex; gap: 3px; height: 12px; margin: 4px 0 14px; }
+.seg { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.seg[style*="width:0%"] { display: none; }
 .seg-else { background: var(--accent); }
 .seg-bills { background: var(--warning); }
-.seg-unpaid { background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 3px, transparent 3px, transparent 6px); }
+.seg-unpaid { background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 3px, color-mix(in srgb, var(--warning) 25%, transparent) 3px, color-mix(in srgb, var(--warning) 25%, transparent) 6px); }
 .seg-left { background: var(--good); }
 .dot-unpaid { background: repeating-linear-gradient(45deg, var(--warning), var(--warning) 2px, transparent 2px, transparent 4px); }
 .dot-left { background: var(--good); }
-.outlook-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 12px; }
-.outlook-legend-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 0; }
-.outlook-legend-item b { grid-column: 2; font-size: 16px; }
-.outlook-rows { border-top: 1px solid var(--bar-track); padding-top: 10px; display: grid; gap: 6px; font-size: 14px; }
-.outlook-total { border-top: 1px dashed var(--bar-track); padding-top: 6px; }
+.outlook-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.outlook-legend-item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 8px; row-gap: 2px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.035); }
+.outlook-legend-label { font-size: 13px; color: var(--muted-text); }
+.outlook-legend-item b { grid-column: 1 / -1; font-size: 17px; }
+.outlook-legend-share { grid-column: 1 / -1; font-size: 11px; color: var(--muted-text); }
+.outlook-rows { border-top: 1px solid var(--bar-track); padding-top: 10px; display: grid; gap: 7px; font-size: 14px; }
+.outlook-total { border-top: 1px dashed var(--bar-track); padding-top: 7px; }
 
 .balance-tile { position: relative; overflow: hidden; padding-left: 16px; }
 .balance-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--tile-accent); }
@@ -201,7 +218,31 @@ html, body { overflow-x: hidden; }
 .balance-retirement { --tile-accent: #a78bfa; }
 .balance-networth { --tile-accent: var(--warning); }
 .chart-headline { margin-bottom: 4px; }
-.chart-low { font-size: 28px; font-weight: 700; }
+.chart-low { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+/* Home: balance chart */
+#balance-chart { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--tile-background)), var(--tile-background) 55%); }
+.chart-chips { display: flex; gap: 6px; margin: 10px 0 4px; }
+.chart-chip { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); }
+.chart-chip span { display: block; font-size: 11px; color: var(--muted-text); }
+.chart-chip b { font-size: 14px; }
+.chart-chip-floor b { color: var(--bad); }
+.chart-wrap { position: relative; }
+.balance-svg { display: block; touch-action: pan-y; }
+.chart-band { fill: rgba(255, 255, 255, 0.025); }
+.chart-grid { stroke: var(--bar-track); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.8; }
+.chart-floor { stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 5 4; opacity: 0.85; }
+.chart-under-floor { fill: var(--bad); opacity: 0.06; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent)); stroke-dasharray: 1; stroke-dashoffset: 0; animation: chart-draw 0.9s ease-out backwards; }
+@keyframes chart-draw { from { stroke-dashoffset: 1; } }
+.chart-low-ring { opacity: 0.22; transform-box: fill-box; transform-origin: center; animation: chart-pulse 2.4s ease-in-out infinite; }
+@keyframes chart-pulse { 50% { transform: scale(1.35); opacity: 0.1; } }
+.chart-callout { fill: var(--tile-background); stroke-width: 1; }
+.chart-callout-text { font-weight: 700; font-size: 10px; }
+.chart-scrub-line { stroke: var(--main-text); stroke-width: 1; opacity: 0.35; }
+.chart-scrub-dot { fill: var(--main-text); stroke: var(--accent); stroke-width: 2; }
+.chart-readout { position: absolute; top: 0; transform: translateX(-50%); padding: 5px 10px; border-radius: 10px; background: #26282f; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); font-size: 12px; white-space: nowrap; pointer-events: none; display: grid; text-align: center; }
+.chart-readout span { color: var(--muted-text); }
+.chart-hint { text-align: center; margin-top: 2px; opacity: 0.8; }
 
 .timeline { position: relative; }
 .timeline::before { content: ""; position: absolute; left: 66px; top: 8px; bottom: 8px; width: 2px; background: var(--bar-track); }

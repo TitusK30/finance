@@ -90,6 +90,8 @@ function billsStillToPay(billMatches, yearMonth) {
   return [...(month.unseen || []), ...(month.upcoming || [])].sort((first, second) => first.expected.localeCompare(second.expected));
 }
 
+const OUTLOOK_OPEN_KEY = "finance_outlook_open"; // remembers whether the Left to spend tile is open
+
 function showMonthOutlook(settings) {
   const box = document.getElementById("month-outlook");
   const store = loadTransactionStore();
@@ -109,16 +111,24 @@ function showMonthOutlook(settings) {
   const left = estimatedEarned - estimatedSpent;
   const scale = Math.max(estimatedEarned, estimatedSpent, 1);
   const percent = (amount) => Math.max(0, Math.min(100, (amount / scale) * 100));
-  const legend = (className, label, amount) => `<div class="outlook-legend-item"><span class="dot ${className}"></span><span class="small">${label}</span><b>${money(amount)}</b></div>`;
-  box.innerHTML = `<div class="tile outlook-tile ${left >= 0 ? "good" : "warning"}">
-    <div class="small">Left to spend this month (estimate)</div>
-    <div class="huge-number ${left >= 0 ? "positive" : "negative"}">${money(left)}</div>
-    <div class="outlook-bar">
-      <div class="seg seg-else" style="width:${percent(everythingElse)}%"></div>
-      <div class="seg seg-bills" style="width:${percent(billsCharged)}%"></div>
-      <div class="seg seg-unpaid" style="width:${percent(billsUnpaid)}%"></div>
-      <div class="seg seg-left" style="width:${percent(left)}%"></div>
-    </div>
+  const shareOfEarned = (amount) => estimatedEarned > 0 ? `${Math.round((Math.max(amount, 0) / estimatedEarned) * 100)}% of pay` : "";
+  const today = Number(todayText().slice(8, 10));
+  const [year, monthNumber] = yearMonth.split("-").map(Number);
+  const daysLeft = new Date(year, monthNumber, 0).getDate() - today + 1;
+  const perDayLine = left > 0 ? `<div class="outlook-per-day">About <b>${money(left / daysLeft)}</b> a day for the ${daysLeft} day${daysLeft === 1 ? "" : "s"} left</div>` : `<div class="outlook-per-day negative">Over by ${money(-left)} this month</div>`;
+  const segments = `<div class="outlook-bar">
+      <div class="seg seg-else" style="width:${percent(everythingElse)}%"></div><div class="seg seg-bills" style="width:${percent(billsCharged)}%"></div>
+      <div class="seg seg-unpaid" style="width:${percent(billsUnpaid)}%"></div><div class="seg seg-left" style="width:${percent(left)}%"></div></div>`;
+  const legend = (className, label, amount) => `<div class="outlook-legend-item"><span class="dot ${className}"></span><span class="outlook-legend-label">${label}</span><b>${money(amount)}</b><span class="outlook-legend-share">${shareOfEarned(amount)}</span></div>`;
+  const isOpen = localStorage.getItem(OUTLOOK_OPEN_KEY) === "yes";
+  // Tap the tile to open or close it. Closed, it shows just the number left and a thin version of the bar.
+  box.innerHTML = `<details class="tile outlook-tile ${left >= 0 ? "outlook-good" : "outlook-over"}"${isOpen ? " open" : ""}>
+    <summary><div class="outlook-head"><div><div class="small">Left to spend this month</div>
+      <div class="huge-number ${left >= 0 ? "positive" : "negative"}">${money(left)}</div></div><span class="outlook-chevron">&#8250;</span></div>
+      <div class="outlook-mini">${segments}</div></summary>
+    <div class="outlook-body">
+    ${perDayLine}
+    ${segments}
     <div class="outlook-legend">
       ${legend("dot-else", "Spent", everythingElse)}${legend("dot-bills", "Bills paid", billsCharged)}
       ${legend("dot-unpaid", "Bills to pay", billsUnpaid)}${legend("dot-left", "Left", Math.max(left, 0))}
@@ -128,7 +138,9 @@ function showMonthOutlook(settings) {
       <div class="tile-row"><span>${ahead.known ? `${ahead.count} more payday${ahead.count === 1 ? "" : "s"}` : "More paydays"}</span><b>+${money(ahead.amount)}</b></div>
       <div class="tile-row outlook-total"><span>Estimated earned</span><b>${money(estimatedEarned)}</b></div>
       <div class="tile-row"><span>Estimated spent, with bills still to pay</span><b>&minus;${money(estimatedSpent)}</b></div>
-    </div></div>`;
+      <div class="tile-row outlook-total"><span>Left to spend (estimate)</span><b class="${left >= 0 ? "positive" : "negative"}">${money(left)}</b></div>
+    </div></div></details>`;
+  box.querySelector("details").addEventListener("toggle", (event) => localStorage.setItem(OUTLOOK_OPEN_KEY, event.target.open ? "yes" : "no"));
 }
 
 function showSpendingPage(settings) {

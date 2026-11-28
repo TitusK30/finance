@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: swipe-to-delete on Bills tab items and card benefits; swiping a card's points hides them (`rewards[card].hidden`, "Show points" brings them back); card benefits edit by hold (the old tap-the-dollar-amount links are gone); "mark as bill" moved off the Spending charge rows into the hold sheet as a pill beside the title (`askChoice` takes an optional `headerAction`), "Not a bill" for hand-marked charges. Before that: PTO buckets list, HSA hold-to-edit, Tasks/Goals hold-to-edit, Budgets cards.
-- Version tag 20261128zg, 158 tests passing.
-- Waiting on the user to confirm on the phone: Bills swipe, points hide/show, benefit hold, Mark as bill pill; PTO and HSA changes; Budgets cards.
+- Last built: Home restyle (same numbers). Balance chart: steps per day, weekly bands, dashed grid, shaded area under the floor, glowing line that draws in, pulsing ring on the lowest day, Today / last day / Floor chips, touch-and-drag readout (`showBalanceChart` in app.js). Left to spend: a tap-to-open tile (open state remembered in localStorage `finance_outlook_open`); closed it shows the number and a thin bar; open adds a per-day amount, the bar, four small legend cards with share of pay, and the earned/spent rows (`showMonthOutlook` in spending-page.js). Before that: swipe/hold on Bills, benefits and points, Mark as bill in the charge sheet.
+- Version tag 20261128zh, 158 tests passing.
+- Waiting on the user to confirm on the phone: the new Home chart and the collapsible Left to spend tile; Bills swipe, points hide/show, benefit hold, Mark as bill pill.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
@@ -53,7 +53,7 @@ Classic `<script>` globals, loaded in this order: lock, forecast, summaries, spe
 
 ## Settings model
 Stored on the phone, never in git. See `finance_settings.example.json` (fake data) and the README table. Key parts: `minimum_checking_floor`, `paycheck`, `credit_cards`, `card_masks`, `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` (optional `charge_text_contains`), `loans` (older single `car_loan` still reads as the first loan; saving moves it to `loans`), `merchant_rules`, `transaction_categories` (per-charge overrides), `category_budgets`, `transfers_ignore_text`, `hidden_tabs`, `pto.buckets` (`ptoBucketsOf` in extra-pages.js reads older `pto_hours`/`comp_time_hours`/`holiday_hours`; the PTO page migrates them on first show). Bank refresh fills balances, statements and masks. Typed data is never wiped by loading a settings file; add new keys to the preserved list in `app.js` (the file-import handler) and do not put them in the defaults object if an older stored value must still be read.
-Browser-only extras: Bills filter, bill marks, dismissed recurring suggestions (localStorage). The Spending filter is memory-only on purpose.
+Browser-only extras: Bills filter, bill marks, dismissed recurring suggestions, whether the Home Left to spend tile is open (localStorage). The Spending filter is memory-only on purpose.
 
 ## Behaviors worth remembering
 - Bills: monthly items match charges by account/text/date, never by amount. A new subscription is not flagged missing before its first charge. Unpaid items past their day show a warning; items never charged after month end go to "Never charged (not counted)". Hold a Bills item to edit name, amount, day and card.
