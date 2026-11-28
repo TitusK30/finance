@@ -359,6 +359,30 @@ function editTrackedItem(holdKey) {
         settings.pto.buckets[position] = { ...bucket, name: values.name, hours: values.hours >= 0 ? values.hours : null };
       },
     }),
+    points: () => {
+      const cardKey = positionText;
+      const card = settings.credit_cards[cardKey];
+      const reward = settings.rewards[cardKey] || {};
+      return {
+        title: "Edit points", icon: "&#11088;", accent: "#fbbf24",
+        fields: [{ id: "name", label: "Card name", value: card.display_name }, { id: "program", label: "Rewards program", value: reward.program || "" },
+          { id: "points", label: "Points", isMoney: true, value: reward.points_balance ?? "" }],
+        save: (values) => {
+          if (!values.name) return "Give the card a name.";
+          card.display_name = values.name;
+          settings.rewards[cardKey] = { ...reward, program: values.program || "Points", points_balance: values.points >= 0 ? Math.round(values.points) : null };
+        },
+      };
+    },
+    otherpoints: (entry = settings.other_points[position]) => ({
+      title: "Edit points", icon: "&#11088;", accent: "#fbbf24",
+      fields: [{ id: "name", label: "Name (card or account)", value: entry.name }, { id: "program", label: "Rewards program", value: entry.program || "" },
+        { id: "points", label: "Points", isMoney: true, value: entry.points_balance ?? "" }],
+      save: (values) => {
+        if (!values.name) return "Give it a name.";
+        settings.other_points[position] = { ...entry, name: values.name, program: values.program, points_balance: values.points >= 0 ? Math.round(values.points) : null };
+      },
+    }),
   };
   if (!editors[kind]) return;
   openSetupItemSheet(editors[kind](), () => saveAndRefresh(settings));

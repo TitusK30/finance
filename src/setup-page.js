@@ -717,8 +717,8 @@ function editSetupItem(holdKey) {
       },
     }),
     benefit: (benefit = settings.card_benefits[Number(key)]) => ({
-      title: "Edit benefit",
-      fields: [{ id: "name", label: "Benefit", value: benefit.name }, { id: "card", label: "Card", options: cardOptions, value: benefit.card },
+      title: "Edit benefit", icon: "&#127873;", accent: "#a78bfa",
+      fields: [{ id: "name", label: "Benefit", value: benefit.name }, { id: "card", label: "Card", chips: cardChipsFor(settings), value: benefit.card },
         { id: "total", label: "Total credit ($)", isMoney: true, value: benefit.total }, { id: "used", label: "Already used ($)", isMoney: true, value: benefit.used || 0 }],
       save: (values) => {
         if (!values.name || !(values.total > 0)) return "Give the benefit a name and a total amount.";
@@ -732,25 +732,34 @@ function editSetupItem(holdKey) {
 }
 
 // A bottom sheet with one box per field, Save and Cancel. editor.save returns an error message, or nothing when it worked.
+// Optional: editor.icon and editor.accent put a colored badge beside the title; editor.saveLabel renames Save;
+// a field with chips: [[value, name, color]] shows tap-to-pick buttons instead of a box.
 function openSetupItemSheet(editor, afterSave) {
   const cover = document.createElement("div");
   cover.className = "date-cover category-picker filter-sheet bill-editor";
   const typedValues = Object.fromEntries(editor.fields.map((field) => [field.id, field.value ?? ""]));
   let errorText = "";
-  const fieldHtml = (field) => `<div class="filter-label">${field.label}</div>` + (field.options
+  const fieldHtml = (field) => `<div class="filter-label">${field.label}</div>` + (field.chips
+    ? `<div class="choice-list sheet-chips">${field.chips.map(([value, name, color]) => `<button class="choice-button${String(typedValues[field.id]) === String(value) ? " is-current" : ""}" data-sheet-chip="${field.id}" data-chip-value="${escapeHtml(value)}" style="--dot:${color || "var(--accent)"}"><i class="choice-dot"></i><b>${escapeHtml(name)}</b></button>`).join("")}</div>`
+    : field.options
     ? `<select id="setup-sheet-${field.id}">${field.options.map(([value, name]) => `<option value="${escapeHtml(value)}"${String(typedValues[field.id]) === String(value) ? " selected" : ""}>${escapeHtml(name)}</option>`).join("")}</select>`
-    : `<input id="setup-sheet-${field.id}" type="${field.type || "text"}"${field.isMoney ? ' inputmode="decimal"' : ""} value="${escapeHtml(String(typedValues[field.id]))}" autocomplete="off">`);
+    : `<input id="setup-sheet-${field.id}" type="${field.type || "text"}"${field.isMoney ? ' inputmode="decimal"' : ""}${field.placeholder ? ` placeholder="${escapeHtml(field.placeholder)}"` : ""} value="${escapeHtml(String(typedValues[field.id]))}" autocomplete="off">`);
+  const badge = editor.icon ? `<span class="sheet-badge" style="--badge-color:${editor.accent || "var(--accent)"}">${editor.icon}</span>` : "";
   const draw = () => {
-    cover.innerHTML = `<div class="date-box"><div class="date-question">${escapeHtml(editor.title)}</div>
+    cover.innerHTML = `<div class="date-box" style="--sheet-accent:${editor.accent || "var(--accent)"}"><div class="date-question sheet-title">${badge}<span>${escapeHtml(editor.title)}</span></div>
       ${editor.fields.map(fieldHtml).join("")}
       ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
-      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-setup-sheet-save><b>Save</b></button><button class="choice-button is-wide" data-setup-sheet-cancel><b>Cancel</b></button></div></div>`;
+      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-setup-sheet-save><b>${escapeHtml(editor.saveLabel || "Save")}</b></button><button class="choice-button is-wide" data-setup-sheet-cancel><b>Cancel</b></button></div></div>`;
   };
+  // Keep what was typed in the boxes before the sheet re-draws (picking a chip re-draws it).
+  const readTypedBoxes = () => { for (const field of editor.fields) { const box = cover.querySelector("#setup-sheet-" + field.id); if (box) typedValues[field.id] = box.value.trim(); } };
   draw();
   cover.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-sheet-chip]");
+    if (chip) { readTypedBoxes(); typedValues[chip.dataset.sheetChip] = chip.dataset.chipValue; draw(); return; }
     if (event.target.closest("[data-setup-sheet-save]")) {
-      for (const field of editor.fields) typedValues[field.id] = cover.querySelector("#setup-sheet-" + field.id).value.trim();
-      const values = Object.fromEntries(editor.fields.map((field) => [field.id, field.isMoney ? parseFloat(typedValues[field.id].replace(/[$,]/g, "")) : typedValues[field.id]]));
+      readTypedBoxes();
+      const values = Object.fromEntries(editor.fields.map((field) => [field.id, field.isMoney ? parseFloat(String(typedValues[field.id]).replace(/[$,]/g, "")) : typedValues[field.id]]));
       errorText = editor.save(values) || "";
       if (errorText) { draw(); return; }
       cover.remove();

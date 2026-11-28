@@ -289,7 +289,7 @@ html, body { overflow-x: hidden; }
 #page-rewards .benefit-bar .bar-fill { background: var(--tile-accent); border-radius: 5px; }
 #page-rewards .benefit-tile .remove-link { justify-self: end; }
 #page-rewards h2 { margin: 18px 0 8px; }
-#add-benefit-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
+#add-benefit-button, #add-points-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
 
 #page-rewards .benefit-tile .remove-link { display: none; }
 .other-cards-tile { padding: 14px 16px; background-image: linear-gradient(135deg, rgba(167, 139, 250, 0.12), transparent 65%); }
@@ -331,6 +331,15 @@ html, body { overflow-x: hidden; }
 #page-bills .bills-total-tile .tile-row.small { padding: 3px 0; }
 #page-bills .bill-tile .tile-row { gap: 12px; }
 #page-bills .bill-tile .remove-link, #page-rewards .points-tile .remove-link { display: none; }
+.points-empty { font-size: 14px; font-weight: 500; color: var(--muted-text); }
+/* Sheets with a title badge (Add points, Add benefit, edit points) and tap-to-pick chips */
+.sheet-title { display: flex; align-items: center; gap: 12px; }
+.sheet-badge { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 12px; font-size: 20px; background: color-mix(in srgb, var(--badge-color) 20%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--badge-color) 25%, transparent); }
+.bill-editor .date-box { background: linear-gradient(180deg, color-mix(in srgb, var(--sheet-accent, var(--accent)) 8%, #1c1c1e), #1c1c1e 40%); }
+.bill-editor input::placeholder { color: color-mix(in srgb, var(--muted-text) 70%, transparent); }
+.sheet-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.sheet-chips .choice-button { padding: 11px 12px; display: flex; align-items: center; gap: 8px; }
+.sheet-chips .choice-button b { font-size: 14px; }
 .points-show-button { display: block; margin: 4px 0 8px; font-size: 14px; }
 .benefit-hint { text-align: center; margin: 2px 0 10px; }
 /* A pill beside a sheet's title, like "Mark as bill" in the category sheet */

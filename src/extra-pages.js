@@ -151,10 +151,14 @@ function showRewardsPage(settings) {
   const hiddenCount = cardKeys.length - shownCards.length;
   const pointTiles = shownCards.map(([cardKey, card]) => {
     const reward = settings.rewards[cardKey];
-    return `<div class="tile rewards-tile points-tile" style="--tile-accent:${colorOf(cardKey)}"><div><b>${card.display_name}</b><div class="small">${escapeHtml(reward.program)}</div></div>
-      <b class="points-number">${editableNumber(`rewards.${cardKey}.points_balance`, card.display_name + " balance", reward.points_balance, false)}</b>
+    return `<div class="tile rewards-tile points-tile" data-item-hold="points:${cardKey}" style="--tile-accent:${colorOf(cardKey)}"><div><b>${escapeHtml(card.display_name)}</b><div class="small">${escapeHtml(reward.program)}</div></div>
+      <b class="points-number">${pointsText(reward.points_balance)}</b>
       <button class="remove-link" data-remove-points="${cardKey}">remove</button></div>`;
   }).join("");
+  // Points you track that are not on one of your credit cards (an airline or hotel account, for example).
+  const otherPointTiles = (settings.other_points || []).map((entry, position) => `<div class="tile rewards-tile points-tile" data-item-hold="otherpoints:${position}" style="--tile-accent:${REWARD_COLORS[(cardKeys.length + position) % REWARD_COLORS.length]}"><div><b>${escapeHtml(entry.name)}</b><div class="small">${escapeHtml(entry.program || "")}</div></div>
+      <b class="points-number">${pointsText(entry.points_balance)}</b>
+      <button class="remove-link" data-remove-other-points="${position}">remove</button></div>`).join("");
   const showPointsButton = hiddenCount ? `<button class="mark-button points-show-button" data-show-points="yes">+ Show points for ${hiddenCount} hidden card${hiddenCount === 1 ? "" : "s"}</button>` : "";
   const benefitTiles = settings.card_benefits.map((benefit, position) => {
     const remaining = benefitRemaining(benefit);
@@ -165,7 +169,7 @@ function showRewardsPage(settings) {
         <span>used ${formatMoney(benefit.used || 0)} of ${formatMoney(benefit.total)}</span></div>
       <button class="remove-link" data-remove-benefit="${position}">remove</button></div>`;
   }).join("");
-  document.getElementById("page-rewards").innerHTML = `<h2>Points</h2>${pointTiles}${showPointsButton}<h2>Card benefits</h2>${benefitTiles}${benefitTiles ? `<div class="small benefit-hint">Hold a benefit to change it, swipe it to delete.</div>` : ""}
+  document.getElementById("page-rewards").innerHTML = `<h2>Points</h2>${pointTiles}${otherPointTiles}<div class="small benefit-hint">Hold to change, swipe to delete.</div><button id="add-points-button">Add points</button>${showPointsButton}<h2>Card benefits</h2>${benefitTiles}${benefitTiles ? `<div class="small benefit-hint">Hold a benefit to change it, swipe it to delete.</div>` : ""}
     <button id="add-benefit-button">Add benefit</button>`;
 }
 
@@ -519,18 +523,39 @@ function valueAtPath(settings, path) {
   return path.split(".").reduce((current, step) => current[step], settings);
 }
 
-function addBenefitWithPrompts(settings) {
-  const cardEntries = Object.entries(settings.credit_cards);
-  const name = prompt("Benefit name (for example: Airline fee credit)");
-  if (!name) return;
-  const cardMenu = cardEntries.map(([, card], position) => `${position + 1} = ${card.display_name}`).join("\n");
-  const cardNumber = parseInt(prompt("Which card?\n" + cardMenu), 10);
-  if (!cardEntries[cardNumber - 1]) return;
-  const total = parseFloat(prompt("Total credit amount ($)"));
-  if (!total) return;
-  settings.card_benefits.push({ name, card: cardEntries[cardNumber - 1][0], total, used: 0 });
-  saveSettings(settings);
-  showEverything();
+function pointsText(pointsBalance) {
+  return pointsBalance == null ? `<span class="points-empty">Hold to set</span>` : Math.round(pointsBalance).toLocaleString("en-US");
+}
+
+// The card buttons used in the points and benefit sheets: name and color, like the card tiles.
+function cardChipsFor(settings) {
+  return Object.entries(settings.credit_cards).map(([cardKey, card], position) => [cardKey, card.display_name, REWARD_COLORS[position % REWARD_COLORS.length]]);
+}
+
+function addBenefitWithSheet(settings) {
+  const cardChips = cardChipsFor(settings);
+  if (!cardChips.length) { showToast("Add a card in Set up first."); return; }
+  openSetupItemSheet({
+    title: "Add a card benefit", icon: "&#127873;", accent: "#a78bfa", saveLabel: "Add benefit",
+    fields: [{ id: "name", label: "Benefit", placeholder: "for example: Airline fee credit", value: "" }, { id: "card", label: "Card", chips: cardChips, value: cardChips[0][0] },
+      { id: "total", label: "Total credit ($)", isMoney: true, placeholder: "300", value: "" }, { id: "used", label: "Already used ($, optional)", isMoney: true, placeholder: "0", value: "" }],
+    save: (values) => {
+      if (!values.name || !(values.total > 0)) return "Give the benefit a name and a total more than 0.";
+      settings.card_benefits.push({ name: values.name, card: values.card, total: values.total, used: values.used >= 0 ? values.used : 0 });
+    },
+  }, () => saveAndRefresh(settings));
+}
+
+function addPointsWithSheet(settings) {
+  openSetupItemSheet({
+    title: "Add points", icon: "&#11088;", accent: "#fbbf24", saveLabel: "Add points",
+    fields: [{ id: "name", label: "Name (card or account)", placeholder: "for example: Hilton Honors", value: "" }, { id: "program", label: "Rewards program (optional)", placeholder: "for example: Hilton points", value: "" },
+      { id: "points", label: "Points", isMoney: true, placeholder: "25000", value: "" }],
+    save: (values) => {
+      if (!values.name) return "Give it a name.";
+      settings.other_points = [...(settings.other_points || []), { name: values.name, program: values.program, points_balance: values.points >= 0 ? Math.round(values.points) : null }];
+    },
+  }, () => saveAndRefresh(settings));
 }
 
 for (const inputId of ["car-extra-now", "car-extra-monthly"]) {
@@ -561,7 +586,8 @@ document.addEventListener("click", (event) => {
     saveSettings(settings);
     showEverything();
   }
-  if (event.target.id === "add-benefit-button") addBenefitWithPrompts(settings);
+  if (event.target.id === "add-benefit-button") addBenefitWithSheet(settings);
+  if (event.target.id === "add-points-button") addPointsWithSheet(settings);
   if (event.target.id === "overtime-add-button") {
     const hours = parseFloat(document.getElementById("overtime-hours").value);
     if (!hours || hours <= 0) return;
@@ -653,6 +679,15 @@ function applyBillEdit(settings, source, index, { name, amount, days, payer }) {
 document.addEventListener("click", async (event) => {
   const removeBillButton = event.target.closest("[data-remove-bill-item]");
   const removePointsButton = event.target.closest("[data-remove-points]");
+  const removeOtherPointsButton = event.target.closest("[data-remove-other-points]");
+  if (removeOtherPointsButton) {
+    const settings = loadSettings();
+    const [removed] = settings.other_points.splice(Number(removeOtherPointsButton.dataset.removeOtherPoints), 1);
+    saveSettings(settings);
+    showRewardsPage(settings);
+    showToast(`${removed.name} removed.`);
+    return;
+  }
   const showPointsButton = event.target.closest("[data-show-points]");
   if (!removeBillButton && !removePointsButton && !showPointsButton) return;
   event.preventDefault();
