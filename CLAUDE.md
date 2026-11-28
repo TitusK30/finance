@@ -17,6 +17,7 @@ A private cash-flow forecaster, a "weather forecast for a bank account". Plain H
 - Never full card numbers or CVV in the app. Never add a paid service without asking.
 - Code style: minimal, surgical changes; simple human-readable code; very descriptive variable names.
 - UI style: keep the same information when restyling; swipe-to-delete only on lists (no visible remove buttons); show a toast when a button does something; everything configurable in the app's Set up page.
+- **Set up happens in the app, not in a JSON file.** The Set up page (and its guided wizard) is the main path for every user; the settings file is an optional extra, collapsed in the README and never required. Any new setting must be editable in the app. Don't add features that only work by hand-editing JSON (the few file-only items, like skipped loan months, are leftovers to move into the app when touched). The README's main path stays "Set up in the app", plus its "Sharing with a partner" section.
 - Finance advice: say you are not a financial advisor.
 
 ## Publishing every change
