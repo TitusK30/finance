@@ -859,11 +859,10 @@ html, body { overflow-x: hidden; }
 #calendar-list .timeline-balance b { font-variant-numeric: tabular-nums; }
 .customize-home { border-radius: 16px; }
 
-/* ===== Spending restyle (trial): same information and category colors, calmer and easier to scan ===== */
+/* ===== Spending restyle: same information and category colors, calmer and easier to scan ===== */
 #page-spending { --spend-line: rgba(255, 255, 255, 0.06); }
 #page-spending > h2:first-child { display: none; }
 #page-spending .tile { border-radius: 18px; border: 1px solid var(--spend-line); }
-#page-spending .spend-section { margin: 22px 2px 10px; }
 /* Month switcher: one calm pill, arrows as round buttons */
 #page-spending .month-nav { border: 1px solid var(--spend-line); border-radius: 999px; padding: 5px; margin: 0 0 10px; }
 #page-spending .month-nav .small-button { width: 40px; height: 40px; min-width: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: rgba(255, 255, 255, 0.06); }
@@ -881,9 +880,6 @@ html, body { overflow-x: hidden; }
 /* Left to spend tile: same calm look as Home instead of a bright outline */
 #page-spending .tile.good, #page-spending .tile.warning { border: 1px solid var(--spend-line); background: linear-gradient(160deg, color-mix(in srgb, var(--good) 10%, var(--tile-background)), var(--tile-background) 70%); }
 #page-spending .tile.warning { background: linear-gradient(160deg, color-mix(in srgb, var(--bad) 10%, var(--tile-background)), var(--tile-background) 70%); }
-/* Every block: an icon badge in the block's own color before its name */
-#page-spending .category-tile > summary > .tile-row:first-child > b[data-icon] { display: flex; align-items: center; gap: 10px; min-width: 0; }
-#page-spending .category-tile > summary > .tile-row:first-child > b[data-icon]::before { content: attr(data-icon); display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px; font-size: 16px; background: color-mix(in srgb, var(--tile-accent) 20%, transparent); }
 #page-spending .spending-accent { padding: 13px 14px 13px 18px; margin-bottom: 8px; background-image: linear-gradient(135deg, color-mix(in srgb, var(--tile-accent) 11%, transparent), transparent 60%); }
 #page-spending .spending-accent::before { width: 4px; }
 #page-spending .spending-accent > summary > .tile-row:first-child > b:last-child { font-variant-numeric: tabular-nums; font-size: 17px; }
@@ -891,11 +887,5 @@ html, body { overflow-x: hidden; }
 #page-spending .spending-accent > summary > .small, #page-spending .spending-accent > summary > div > .small { font-size: 12px; }
 #page-spending .category-tile[open] > summary { margin-bottom: 6px; }
 #page-spending .charge-row { padding: 9px 0; border-top-color: var(--spend-line); }
-/* Top places: colored rank badges, thin bars */
-#page-spending .top-places { padding: 6px 16px 14px; }
-#page-spending .top-places .place-row:first-child { margin-top: 4px; }
-#page-spending .place-rank { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); font-weight: 700; }
-#page-spending .place-row:nth-child(1) .place-rank { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--warning); }
 #page-spending .place-row .tile-row b { font-variant-numeric: tabular-nums; }
-#page-spending .spending-accent > summary > .tile-row:first-child { align-items: center; }
 #page-spending .spending-accent > summary > .small:first-child, #page-spending .tile.good > .small:first-child, #page-spending .tile.warning > .small:first-child { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }

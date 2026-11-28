@@ -61,8 +61,6 @@ function monthLabel(yearMonth) {
 const CATEGORY_COLORS = { GROCERIES: "#4ade80", AMAZON: "#fb923c", TOLLS: "#2dd4bf", FOOD_AND_DRINK: "#f87171", GENERAL_MERCHANDISE: "#a78bfa", TRANSPORTATION: "#5aa2ff", TRAVEL: "#22d3ee", ENTERTAINMENT: "#f472b6", RENT_AND_UTILITIES: "#fbbf24", GENERAL_SERVICES: "#818cf8", PERSONAL_CARE: "#fb7185", MEDICAL: "#ef4444", BANK_FEES: "#9ca3af", OTHER: "#9ca3af" };
 
 // Charges that are not bills, with refill-style subscription charges (the toll tag) moved to the Tolls category.
-const CATEGORY_ICONS = { GROCERIES: "\u{1F6D2}", AMAZON: "\u{1F4E6}", TOLLS: "\u{1F6E3}\uFE0F", FOOD_AND_DRINK: "\u{1F354}", GENERAL_MERCHANDISE: "\u{1F6CD}\uFE0F", TRANSPORTATION: "\u26FD", TRAVEL: "\u2708\uFE0F", ENTERTAINMENT: "\u{1F3AC}", RENT_AND_UTILITIES: "\u{1F4A1}", GENERAL_SERVICES: "\u{1F9F0}", PERSONAL_CARE: "\u{1F486}", MEDICAL: "\u{1F48A}", BANK_FEES: "\u{1F3E6}", OTHER: "\u{1F3F7}\uFE0F" };
-
 function nonBillCharges(settings, store, billMatches) {
   const refillBills = recurringBills(settings).filter((bill) => bill.anyDay);
   return spendingCharges(store).filter((charge) => !billMatches.billCharges[charge.transaction_id])
@@ -145,11 +143,6 @@ function showMonthOutlook(settings) {
   box.querySelector("details").addEventListener("toggle", (event) => localStorage.setItem(OUTLOOK_OPEN_KEY, event.target.open ? "yes" : "no"));
 }
 
-// A small section header like the ones on Home: icon, quiet caps, thin line.
-function spendSectionHeader(icon, title) {
-  return `<h2 class="home-section spend-section"><span class="home-section-icon">${icon}</span>${title}</h2>`;
-}
-
 function showSpendingPage(settings) {
   const page = document.getElementById("page-spending");
   const store = loadTransactionStore();
@@ -181,7 +174,7 @@ function showSpendingPage(settings) {
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
   const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small still-to-pay">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
-  const billsTile = billRows.length || notSeen.length || neverCharged.length ? `<details class="tile category-tile spending-accent" data-icon="\u{1F9FE}" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
+  const billsTile = billRows.length || notSeen.length || neverCharged.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
     ${billRows.map((charge) => {
       const markedByHand = billMatches.billCharges[charge.transaction_id] === "Marked by you";
@@ -192,7 +185,7 @@ function showSpendingPage(settings) {
     ${neverCharged.length ? `<div class="small not-seen"><b>\u26a0\ufe0f Never charged (not counted)</b>${neverCharged.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge) && !isMoneyMovedNotSpent(charge) && charge.date.startsWith(spendingMonthShown));
-  const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" data-icon="\u23F3" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
+  const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
 </summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
   const budgets = settings.category_budgets || {};
@@ -200,7 +193,7 @@ function showSpendingPage(settings) {
     const limit = budgets[entry.category];
     const overBudget = limit > 0 && entry.total > limit;
     const budgetNote = limit > 0 ? ` · <span class="${overBudget ? "negative" : ""}">${formatMoney(entry.total)} of ${formatMoney(limit)} budget</span>` : "";
-    return `<details class="tile category-tile spending-accent" data-icon="${CATEGORY_ICONS[entry.category] || "\u{1F3F7}\uFE0F"}" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
+    return `<details class="tile category-tile spending-accent"\u{1F3F7}\uFE0F"}" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%${overBudget ? ";background:var(--bad)" : ""}"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}${budgetNote}</div></summary>
@@ -236,14 +229,14 @@ function showSpendingPage(settings) {
 
   const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
   const netTransfers = Math.round((transfers.totalIn - transfers.totalOut) * 100) / 100;
-  const transfersTile = transfers.items.length ? `<details class="tile category-tile spending-accent" data-icon="\u{1F504}" style="--tile-accent:${netTransfers >= 0 ? "var(--good)" : "var(--bad)"}"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
+  const transfersTile = transfers.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:${netTransfers >= 0 ? "var(--good)" : "var(--bad)"}"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
     <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}</div></summary>${transferRows}</details>` : "";
 
   // Money moved to or from your savings (found by the savings words in Set up). Not spending, just shown here.
   const savingsMoves = savingsMovesInMonth(store, spendingMonthShown, settings);
   const netToSavings = Math.round((savingsMoves.toSavings - savingsMoves.fromSavings) * 100) / 100;
   const savingsRows = savingsMoves.items.map((move) => `<div class="tile-row small"><span>${shortMonthDay(move.date)} · ${escapeHtml(merchantName(move))} · ${move.amount > 0 ? "to savings" : "from savings"}${move.pending ? ' <span class="amber-text">pending</span>' : ""}</span><span class="amount-nowrap">${formatMoney(Math.abs(move.amount))}</span></div>`).join("");
-  const savingsTile = savingsMoves.items.length ? `<details class="tile category-tile spending-accent" data-icon="\u{1F3E6}" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Savings</b><b>${netToSavings >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netToSavings))}</b></div>
+  const savingsTile = savingsMoves.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Savings</b><b>${netToSavings >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netToSavings))}</b></div>
     <div class="small">${formatMoney(savingsMoves.toSavings)} in · ${formatMoney(savingsMoves.fromSavings)} out · not counted as spending</div></summary>${savingsRows}</details>` : "";
 
   const biggestMerchant = Math.max(1, ...month.topMerchants.map((merchant) => merchant.amount));
@@ -264,15 +257,9 @@ function showSpendingPage(settings) {
       ${stillToPayLine}</div>
     ${earnedTile}
     ${leftTile}
-    ${spendSectionHeader("\u{1F4C8}", "Trends")}${paceTileHtml(allCharges, spendingMonthShown)}${vsLastMonthHtml(charges, spendingMonthShown)}${budgetsTileHtml(settings, month)}
-    ${spendSectionHeader("\u{1F3A8}", "Categories")}${pendingTile}${categoryRows}
-    ${billsTile || transfersTile || savingsTile || recurringTile ? spendSectionHeader("\u{1F4B8}", "Bills and money moves") : ""}${billsTile}${transfersTile}${savingsTile}${recurringTile}
-    ${spendSectionHeader("\u{1F3C6}", "Top places")}<div class="tile top-places">${merchantRows}</div></div>`;
-  // Each block's icon sits in a small badge before its name (the CSS draws it from the name's data-icon).
-  for (const tile of page.querySelectorAll(".category-tile[data-icon]")) {
-    const nameElement = tile.querySelector(":scope > summary > .tile-row > b");
-    if (nameElement) nameElement.dataset.icon = tile.dataset.icon;
-  }
+    ${paceTileHtml(allCharges, spendingMonthShown)}${vsLastMonthHtml(charges, spendingMonthShown)}${budgetsTileHtml(settings, month)}
+    ${pendingTile}${categoryRows}${billsTile}${transfersTile}${savingsTile}${recurringTile}
+    <div class="tile"><b>Top places</b>${merchantRows}</div></div>`;
   refreshSpendingResults(settings);
 }
 
