@@ -86,14 +86,15 @@ let longPressStart = null;
 let longPressFired = false;
 
 document.addEventListener("touchstart", (event) => {
-  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-spending [data-budget-hold]");
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-spending [data-budget-hold], #page-todo [data-item-hold], #page-goals [data-item-hold]");
   longPressFired = false;
   clearTimeout(longPressTimer);
   if (!row) return;
   longPressStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
   longPressTimer = setTimeout(() => {
     longPressFired = true;
-    if (row.dataset.budgetHold) openBudgetSheet(row.dataset.budgetHold);
+    if (row.dataset.itemHold) editTrackedItem(row.dataset.itemHold);
+    else if (row.dataset.budgetHold) openBudgetSheet(row.dataset.budgetHold);
     else if (row.dataset.setupHold) editSetupItem(row.dataset.setupHold);
     else if (row.dataset.billSource) editBillItem(row.dataset.billSource, Number(row.dataset.billIndex));
     else chooseCategoryForCharge(row.dataset.chargeId);
@@ -108,7 +109,7 @@ document.addEventListener("touchmove", (event) => {
 
 document.addEventListener("touchend", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
 document.addEventListener("touchcancel", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
-document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile, #page-setup [data-setup-hold], #page-spending [data-budget-hold]")) event.preventDefault(); });
+document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile, #page-setup [data-setup-hold], #page-spending [data-budget-hold], [data-item-hold]")) event.preventDefault(); });
 // The tap that ends a long-press must not also open or toggle anything.
 document.addEventListener("click", (event) => { if (longPressFired) { longPressFired = false; event.preventDefault(); event.stopPropagation(); } }, true);
 

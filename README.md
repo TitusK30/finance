@@ -134,7 +134,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
 - **Typed in by you:** savings (unless linked), rewards, benefits, loans, goals, credit scores, PTO, tasks.
 - Credit card payments never show on Spending. Moves to or from your savings (set your savings bank's name in Set up) show only in the **Savings** block near the bottom of Spending.
-- Swipe left on a task, goal, budget or Set up row to reveal **Delete**. Hold a budget on Spending to change it.
+- Swipe left on a task, goal, budget or Set up row to reveal **Delete**. Hold a budget on Spending, a task, a goal or an expected-money item to change it.
 - Hold a Set up row (card, bill, subscription, one-time paycheck, category rule, other card, benefit) to edit it, the same way you hold a Bills item.
 
 ---

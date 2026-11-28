@@ -11,7 +11,7 @@ function showGoalsPage(settings) {
   const tiles = goals.map((goal, position) => {
     const { percent, remaining } = goalProgress(goal);
     const savedText = goal.tracks_savings ? formatMoney(goal.saved) : editableNumber(`savings_goals.${position}.saved`, goal.name + ": saved so far ($)", goal.saved, true);
-    return `<div class="tile goal-tile"><div class="tile-row"><b class="goal-name">${escapeHtml(goal.name)}</b><span class="goal-percent">${percent}%</span>
+    return `<div class="tile goal-tile" data-item-hold="goal:${position}"><div class="tile-row"><b class="goal-name">${escapeHtml(goal.name)}</b><span class="goal-percent">${percent}%</span>
         <button class="remove-link" data-remove-goal="${position}">remove</button></div>
       <div class="goal-amounts"><span class="goal-saved">${savedText}</span>
         <span class="small">of ${editableNumber(`savings_goals.${position}.target`, goal.name + ": goal amount ($)", goal.target, true)}</span></div>
@@ -64,7 +64,7 @@ function showExpectedMoney(settings) {
   const items = (settings.expected_money || []).map((item, position) => ({ ...item, position })).sort((a, b) => (a.date < b.date ? -1 : 1));
   const rows = items.map((item) => {
     const isOut = item.kind === "out";
-    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
+    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}" data-item-hold="expected:${item.position}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
       <div class="expected-body"><b>${escapeHtml(item.label || (isOut ? "Money going out" : "Money coming in"))}</b>
         <div class="small">${formatDate(item.date)}${isOut ? " (out of checking)" : " (into savings)"}${item.date <= todayText() ? " - date has passed, not counted" : ""}</div></div>
       <b class="${isOut ? "negative" : "positive"}">${isOut ? "-" : "+"}${formatMoney(item.amount)}</b>
@@ -164,7 +164,7 @@ function showTodoPage(settings) {
   const tiles = sortedTodoItems(settings.todo_items).map((item) => {
     const { level, daysLeft } = item.done ? { level: "done", daysLeft: null } : dueUrgency(item.due_date, today);
     const countdown = daysLeft === null ? "" : daysLeft < 0 ? `${-daysLeft} days overdue` : daysLeft === 0 ? "due today" : `${daysLeft} days left`;
-    return `<div class="tile todo-tile todo-${level}">
+    return `<div class="tile todo-tile todo-${level}" data-item-hold="todo:${item.position}">
       <button class="todo-check ${item.done ? "is-done" : ""}" data-toggle-todo="${item.position}" aria-label="${item.done ? "Mark not done" : "Mark done"}"><span>&#10003;</span></button>
       <div class="todo-body"><b class="todo-name ${item.done ? "todo-finished" : ""}">${escapeHtml(item.name)}</b>
         <div class="todo-meta"><span class="todo-date editable" data-todo-date="${item.position}">${item.due_date ? formatDate(item.due_date) : "Tap to set a date"}</span>
@@ -299,3 +299,45 @@ document.addEventListener("click", async (event) => {
   saveSettings(settings);
   showEverything();
 });
+
+// Hold a task, a goal or a "money coming in or going out" item to edit it in a sheet (the same sheet Set up uses).
+// holdKey is "kind:position", for example "todo:2".
+function editTrackedItem(holdKey) {
+  const [kind, positionText] = holdKey.split(":");
+  const position = Number(positionText);
+  const settings = loadSettings();
+  if (!settings) return;
+  const editors = {
+    todo: (task = settings.todo_items[position]) => ({
+      title: "Edit task",
+      fields: [{ id: "name", label: "Task", value: task.name }, { id: "date", label: "Due date (optional)", type: "date", value: task.due_date || "" }],
+      save: (values) => {
+        if (!values.name) return "Give the task a name.";
+        settings.todo_items[position] = { ...task, name: values.name, due_date: values.date || null };
+      },
+    }),
+    goal: (goal = settings.savings_goals[position]) => ({
+      title: "Edit goal",
+      fields: [{ id: "name", label: "Goal name", value: goal.name }, { id: "target", label: "Goal amount ($)", isMoney: true, value: goal.target },
+        ...(goal.tracks_savings ? [] : [{ id: "saved", label: "Saved so far ($)", isMoney: true, value: goal.saved || 0 }])],
+      save: (values) => {
+        if (!values.name || !(values.target > 0)) return "Give the goal a name and an amount more than 0.";
+        const updated = { ...goal, name: values.name, target: values.target };
+        if (!goal.tracks_savings) updated.saved = values.saved >= 0 ? values.saved : 0;
+        settings.savings_goals[position] = updated;
+      },
+    }),
+    expected: (item = settings.expected_money[position]) => ({
+      title: "Edit expected money",
+      fields: [{ id: "label", label: "What is it (optional)", value: item.label || "" },
+        { id: "kind", label: "Direction", options: [["in", "Coming in (into savings)"], ["out", "Going out (out of checking)"]], value: item.kind === "out" ? "out" : "in" },
+        { id: "date", label: "Date", type: "date", value: item.date }, { id: "amount", label: "Amount ($)", isMoney: true, value: item.amount }],
+      save: (values) => {
+        if (!values.date || !(values.amount > 0)) return "Pick a date and an amount more than 0.";
+        settings.expected_money[position] = { ...item, label: values.label, kind: values.kind, date: values.date, amount: values.amount };
+      },
+    }),
+  };
+  if (!editors[kind]) return;
+  openSetupItemSheet(editors[kind](), () => saveAndRefresh(settings));
+}
