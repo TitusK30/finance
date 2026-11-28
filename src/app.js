@@ -62,19 +62,8 @@ function showBalances(settings) {
     <div class="small balance-change-note">${previous ? `\u25b2\u25bc change ${sinceText}` : "\u25b2\u25bc change arrows start tomorrow, once there is a day to compare with"}</div>`;
 }
 
-// The next three money moves in the forecast (paydays, bills, card payments), soonest first.
-function showComingUp(forecast) {
-  const today = todayText();
-  const moves = [forecast.today, ...forecast.days].flatMap((day) => day.events.filter((event) => event.amount).map((event) => ({ ...event, date: day.date }))).slice(0, 3);
-  const whenText = (date) => { const days = daysBetween(today, date); return days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`; };
-  const rows = moves.map((move) => `<div class="tile coming-row ${move.amount > 0 ? "coming-in" : "coming-out"}"><span class="coming-icon">${move.amount > 0 ? "&#8595;" : "&#8593;"}</span>
-      <div class="coming-body"><b>${escapeHtml(move.label)}</b><span class="small">${shortMonthDay(move.date)} \u00b7 ${whenText(move.date)}</span></div>
-      <b class="coming-amount ${move.amount > 0 ? "positive" : ""}">${move.amount > 0 ? "+" : "\u2212"}${formatMoney(Math.abs(move.amount))}</b></div>`).join("");
-  document.getElementById("coming-up").innerHTML = rows || `<div class="tile small">Nothing scheduled in the next 40 days.</div>`;
-}
-
 // ---- Customize Home: the order of the blocks and which are hidden live in settings.home_layout.
-const HOME_BLOCK_NAMES = { outlook: "Left to spend", balances: "Balances", comingup: "Coming up", score: "Credit score", transfer: "Savings transfer advice", chart: "Checking chart", cards: "Credit cards", calendar: "Next 40 days" };
+const HOME_BLOCK_NAMES = { outlook: "Left to spend", balances: "Balances", score: "Credit score", transfer: "Savings transfer advice", chart: "Checking chart", cards: "Credit cards", calendar: "Next 40 days" };
 function homeLayoutOf(settings) {
   const layout = settings.home_layout || {};
   const savedOrder = (layout.order || []).filter((key) => HOME_BLOCK_NAMES[key]);
@@ -438,7 +427,6 @@ function showEverything() {
   showStatusLine(settings);
   document.getElementById("home-date").textContent = new Date(todayText() + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   showBalances(settings);
-  showComingUp(forecast);
   try { showMonthOutlook(settings); } catch (error) { document.getElementById("month-outlook").innerHTML = ""; }
   showTransferAdvice(settings, forecast);
   showBalanceChart(settings, forecast);

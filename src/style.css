@@ -76,13 +76,6 @@ input[type="date"] { min-width: 0; max-width: 100%; -webkit-appearance: none; ap
 .balance-change.change-up { color: var(--good); }
 .balance-change.change-down { color: var(--bad); }
 .balance-change-note { text-align: center; margin: 2px 0 6px; }
-/* Home: Coming up (next 3 money moves) */
-.coming-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 6px; }
-.coming-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; background: color-mix(in srgb, var(--muted-text) 16%, transparent); color: var(--main-text); }
-.coming-in .coming-icon { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
-.coming-body { display: grid; min-width: 0; }
-.coming-body b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.coming-amount { font-size: 16px; white-space: nowrap; }
 /* Customize Home */
 .customize-home { display: block; width: 100%; margin: 18px 0 6px; padding: 12px; border-radius: 14px; background: transparent; border: 1px dashed var(--bar-track); color: var(--muted-text); font-size: 15px; }
 .customize-hint { margin: -4px 4px 12px; }
