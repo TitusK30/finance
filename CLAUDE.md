@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: removed the Home "Coming up" block (the user decided against it; a saved `home_layout` that still lists it is ignored). Before that: credit score sheet preset sources, credit score tile with gauge and hold to log, Home date, change triangles, Customize Home.
-- Version tag 20261128zn, 158 tests passing.
-- Waiting on the user to confirm on the phone: score sheet buttons; change triangles from tomorrow; Customize Home.
+- Last built: Customize Home sheet redesigned: drag a row by its handle to reorder (touch drag, the other rows slide aside), iPhone-style on/off switches, a colored icon per block (`HOME_BLOCK_LOOKS` in app.js), "#N on Home" and "N of M shown". Before that: removed Home "Coming up"; credit score sheet preset sources.
+- Version tag 20261128zo, 158 tests passing.
+- Waiting on the user to confirm on the phone: dragging in Customize Home; score sheet buttons; change triangles from tomorrow.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
@@ -49,7 +49,7 @@ Classic `<script>` globals, loaded in this order: lock, forecast, summaries, spe
 - **Swipe-to-delete**: gestures.js `DELETE_CONTROLS` lists each list's remove control; the row keeps that control but CSS hides it, and the swipe's Delete presses it (so confirms and toasts still run). A new list needs its control added to `DELETE_CONTROLS` and hidden in style.css. Never give a swipe row an animation with fill-mode `both`/`forwards` that sets `transform`: it overrides the swipe's inline transform (use `backwards`).
 - **Hold-to-edit**: gestures.js long-press covers Spending charges (`data-charge-id`), Bills items (`data-bill-source`) card benefits on the Cards tab (`data-setup-hold="benefit:N"`, same `editSetupItem`), budget cards (`data-budget-hold`, opens `openBudgetSheet` in spending-extras.js), tasks, goals, expected money, HSA items, PTO buckets, points tiles and the Home credit score (`data-item-hold="todo|goal|expected|hsa|pto|otherpoints:position"`, `"points:cardKey"` or `"score:latest"`, handled by `editTrackedItem` in tracking-pages.js) and Set up rows (`data-setup-hold="kind:key"`, handled by `editSetupItem` in setup-page.js; kinds: card, bill, sub, override, rule, othercard, benefit). `openSetupItemSheet` is the shared edit sheet (fields, Save, Cancel; optional `icon`/`accent` badge, `saveLabel`, field `placeholder`, `chips` fields). Use it for every new add or edit pop-up instead of `prompt()`. A new Set up list gets a `data-setup-hold` and an entry in `editSetupItem`.
 - **Bottom sheets**: elements with class `date-cover category-picker`; closing = clicking the dimmed background, which every sheet treats as cancel.
-- **Home blocks**: each Home block is a `<div data-home-block="key">` in `#home-blocks`; `HOME_BLOCK_NAMES` in app.js lists them. A new Home block needs a wrapper there and an entry in `HOME_BLOCK_NAMES`.
+- **Home blocks**: each Home block is a `<div data-home-block="key">` in `#home-blocks`; `HOME_BLOCK_NAMES` and `HOME_BLOCK_LOOKS` (icon, color) in app.js list them. A new Home block needs a wrapper there and an entry in both.
 - **Menu**: Home, Spending, Cards, Bills (with Subscriptions and Expenses), Tasks, Goals, Planner, HSA, PTO, Loans, Set up, Settings. Tab keys are unchanged internally (`car` is the Loans tab).
 
 ## Settings model

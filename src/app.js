@@ -80,38 +80,42 @@ function applyHomeLayout(settings) {
   }
 }
 
+// Icon and color for each Home block in the Customize sheet.
+const HOME_BLOCK_LOOKS = { outlook: ["&#128181;", "#4ade80"], balances: ["&#128176;", "#5aa2ff"], score: ["&#128200;", "#a78bfa"], transfer: ["&#128257;", "#2dd4bf"], chart: ["&#128202;", "#5aa2ff"], cards: ["&#128179;", "#fb923c"], calendar: ["&#128467;&#65039;", "#f472b6"] };
+
+// Customize Home: drag a row by its handle to move it, flip the switch to show or hide it. Changes apply right away.
 function openCustomizeHome() {
   const settings = loadSettings();
   const layout = homeLayoutOf(settings);
   const cover = document.createElement("div");
-  cover.className = "date-cover category-picker filter-sheet bill-editor";
+  cover.className = "date-cover category-picker filter-sheet bill-editor customize-sheet";
   const draw = () => {
+    const shownCount = layout.order.filter((key) => !layout.hidden.includes(key)).length;
     cover.innerHTML = `<div class="date-box" style="--sheet-accent:var(--accent)"><div class="date-question sheet-title"><span class="sheet-badge" style="--badge-color:var(--accent)">&#9881;&#65039;</span><span>Customize Home</span></div>
-      <div class="small customize-hint">Move blocks up or down. Tap Shown or Hidden to switch.</div>
-      ${layout.order.map((key, position) => {
-        const isHidden = layout.hidden.includes(key);
-        return `<div class="customize-row${isHidden ? " is-hidden" : ""}"><span class="customize-name">${HOME_BLOCK_NAMES[key]}</span>
-          <button class="customize-button" data-move-block="${position}:-1" aria-label="Move up"${position === 0 ? " disabled" : ""}>&#9650;</button>
-          <button class="customize-button" data-move-block="${position}:1" aria-label="Move down"${position === layout.order.length - 1 ? " disabled" : ""}>&#9660;</button>
-          <button class="customize-button customize-eye" data-toggle-block="${key}" aria-label="${isHidden ? "Show" : "Hide"}">${isHidden ? "Hidden" : "Shown"}</button></div>`;
-      }).join("")}
+      <div class="customize-summary"><span>${shownCount} of ${layout.order.length} blocks shown</span><span>Drag &#8801; to move</span></div>
+      <div class="customize-list">${layout.order.map((key, position) => {
+        const isShown = !layout.hidden.includes(key);
+        const [icon, color] = HOME_BLOCK_LOOKS[key] || ["&#9632;", "var(--accent)"];
+        return `<div class="customize-row${isShown ? "" : " is-hidden"}" data-block-key="${key}" style="--block-color:${color}">
+          <span class="customize-handle" aria-label="Drag to move">&#8801;</span>
+          <span class="customize-icon">${icon}</span>
+          <span class="customize-name"><b>${HOME_BLOCK_NAMES[key]}</b><span>${isShown ? `#${layout.order.slice(0, position + 1).filter((shownKey) => !layout.hidden.includes(shownKey)).length} on Home` : "Hidden on Home"}</span></span>
+          <button class="customize-switch${isShown ? " is-on" : ""}" data-toggle-block="${key}" role="switch" aria-checked="${isShown}" aria-label="Show ${HOME_BLOCK_NAMES[key]}"></button></div>`;
+      }).join("")}</div>
       <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-customize-done><b>Done</b></button><button class="choice-button is-wide" data-customize-reset><b>Back to the usual order</b></button></div></div>`;
   };
   const saveLayout = () => { settings.home_layout = { order: layout.order, hidden: layout.hidden }; saveSettings(settings); applyHomeLayout(settings); };
   draw();
   cover.addEventListener("click", (event) => {
-    const moveButton = event.target.closest("[data-move-block]");
     const toggleButton = event.target.closest("[data-toggle-block]");
-    if (moveButton) {
-      const [position, step] = moveButton.dataset.moveBlock.split(":").map(Number);
-      const [moved] = layout.order.splice(position, 1);
-      layout.order.splice(position + step, 0, moved);
-      saveLayout(); draw(); return;
-    }
     if (toggleButton) {
       const key = toggleButton.dataset.toggleBlock;
-      layout.hidden = layout.hidden.includes(key) ? layout.hidden.filter((hiddenKey) => hiddenKey !== key) : [...layout.hidden, key];
-      saveLayout(); draw(); return;
+      const willShow = layout.hidden.includes(key);
+      layout.hidden = willShow ? layout.hidden.filter((hiddenKey) => hiddenKey !== key) : [...layout.hidden, key];
+      toggleButton.classList.toggle("is-on", willShow); // let the switch slide before the sheet re-draws
+      saveLayout();
+      setTimeout(draw, 180);
+      return;
     }
     if (event.target.closest("[data-customize-reset]")) {
       layout.order = Object.keys(HOME_BLOCK_NAMES); layout.hidden = [];
@@ -119,6 +123,44 @@ function openCustomizeHome() {
     }
     if (event.target.closest("[data-customize-done]") || event.target === cover) { cover.remove(); showToast("Home layout saved."); }
   });
+  // Dragging: the held row follows the finger, the others slide out of its way, and letting go drops it there.
+  let drag = null;
+  cover.addEventListener("touchstart", (event) => {
+    const handle = event.target.closest(".customize-handle");
+    if (!handle) return;
+    const row = handle.closest(".customize-row");
+    const rows = [...cover.querySelectorAll(".customize-row")];
+    const rowStep = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : row.offsetHeight;
+    drag = { row, rows, startY: event.touches[0].clientY, fromIndex: rows.indexOf(row), toIndex: rows.indexOf(row), rowStep };
+    row.classList.add("is-dragging");
+    if (navigator.vibrate) navigator.vibrate(8);
+  }, { passive: true });
+  cover.addEventListener("touchmove", (event) => {
+    if (!drag) return;
+    event.preventDefault();
+    const offset = event.touches[0].clientY - drag.startY;
+    drag.row.style.transform = `translateY(${offset}px) scale(1.03)`;
+    drag.toIndex = Math.max(0, Math.min(drag.rows.length - 1, drag.fromIndex + Math.round(offset / drag.rowStep)));
+    drag.rows.forEach((other, index) => {
+      if (other === drag.row) return;
+      const shift = index > drag.fromIndex && index <= drag.toIndex ? -drag.rowStep : index < drag.fromIndex && index >= drag.toIndex ? drag.rowStep : 0;
+      other.style.transform = shift ? `translateY(${shift}px)` : "";
+    });
+  }, { passive: false });
+  const dropRow = () => {
+    if (!drag) return;
+    const { fromIndex, toIndex } = drag;
+    drag = null;
+    if (fromIndex !== toIndex) {
+      const [moved] = layout.order.splice(fromIndex, 1);
+      layout.order.splice(toIndex, 0, moved);
+      saveLayout();
+      if (navigator.vibrate) navigator.vibrate(8);
+    }
+    draw();
+  };
+  cover.addEventListener("touchend", dropRow);
+  cover.addEventListener("touchcancel", dropRow);
   document.body.appendChild(cover);
 }
 

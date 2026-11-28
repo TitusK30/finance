@@ -109,7 +109,7 @@ Tap **↻** (or open the app after 30 minutes away).
 
 ## What is in the app
 
-Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up. **Customize Home** (bottom of Home) moves Home's blocks up or down and hides the ones you don't want.
+Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up. **Customize Home** (bottom of Home): drag a block by its handle to move it, and flip its switch to show or hide it.
 
 | Page | What it gives you |
 |---|---|
