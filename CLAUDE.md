@@ -5,7 +5,7 @@ Read this first in every session. Keep it current: when a change alters the arch
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
 - Last built: Home: today's date as a header; green/red triangles under the four balance tiles for the change since the previous day (daily snapshots in localStorage `finance_balance_snapshots`, last 14 days; arrows start the day after the first visit); "Coming up" block with the next 3 money moves from the forecast (`showComingUp`); Customize Home sheet to move blocks up/down and hide them (`settings.home_layout`, `applyHomeLayout` runs at the end of `showEverything`). Home blocks are `[data-home-block]` wrappers inside `#home-blocks` in index.html. Before that: points hold/add, benefit sheets, Home chart restyle.
-- Version tag 20261128zj, 158 tests passing.
+- Version tag 20261128zk, 158 tests passing. Before the first day to compare, the tiles show a note that the arrows start tomorrow.
 - Waiting on the user to confirm on the phone: date header, change triangles (from tomorrow), Coming up, Customize Home; points and benefit sheets.
 
 ## What it is

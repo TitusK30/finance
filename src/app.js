@@ -59,7 +59,7 @@ function showBalances(settings) {
     <div class="tile balance-tile balance-savings"><div class="small">Savings</div><div class="big-number">${settings.account_masks && settings.account_masks.savings ? formatMoney(savings_balance) : editableNumber("starting_balances.savings_balance", "Savings balance", savings_balance, true)}</div>${change("savings")}</div>
     <div class="tile balance-tile balance-retirement"><div class="small">Retirement</div><div class="big-number">${settings.retirement.linked ? formatMoney(settings.retirement.balance) : editableNumber("retirement.balance", "Retirement balance", settings.retirement.balance, true)}</div>${change("retirement")}</div>
     <div class="tile balance-tile balance-networth"><div class="small">Net worth</div><div class="big-number">${formatMoney(netWorth(settings))}</div>${change("networth")}</div></div>
-    ${previous ? `<div class="small balance-change-note">\u25b2\u25bc change ${sinceText}</div>` : ""}`;
+    <div class="small balance-change-note">${previous ? `\u25b2\u25bc change ${sinceText}` : "\u25b2\u25bc change arrows start tomorrow, once there is a day to compare with"}</div>`;
 }
 
 // The next three money moves in the forecast (paydays, bills, card payments), soonest first.
