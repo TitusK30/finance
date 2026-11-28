@@ -11,6 +11,11 @@ Update this section in every commit (generic wording, no personal data): the las
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
 
+## Setup docs (keep them in step with the app)
+- `README.md`: the full breakdown: how the pieces fit, the Cloudflare relay values and secrets, the three addresses (app, relay, GitHub), the app key, Plaid linking, what a refresh does, security, troubleshooting, updating a copy, sharing with a partner, and the file list.
+- `guide.html`: the step-by-step set-up guide for a new user (served at titusk30.github.io/finance/guide.html); it asks for the person's own details and walks through relay, Plaid and the app. `preview.html`: animated sample-data preview.
+- When a feature or setup step changes, update the README and guide.html in the same commit. Friends never use the owner's live app or relay; each person runs their own copy with their own relay.
+
 ## Rules that never change
 - The public repo must contain no personal names, employers, cities, account names, amounts or card numbers. Examples in the UI and docs use generic text.
 - Never put keys or secrets in chat, code or GitHub. Secrets live only in Cloudflare's Secrets box.
