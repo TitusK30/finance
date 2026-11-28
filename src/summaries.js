@@ -128,19 +128,20 @@ function nextStatementCloseDate(card, asOfDateText) {
   }
 }
 
-function cardPurchasesBetween(settings, cardKey, afterDateText, throughDateText) {
-  let total = 0;
+// The subscriptions and annual fees expected on one card after one date through another, each with its date.
+function cardChargesBetween(settings, cardKey, afterDateText, throughDateText) {
+  const charges = [];
   for (let date = addDaysToDateText(afterDateText, 1); date <= throughDateText; date = addDaysToDateText(date, 1)) {
     for (const subscription of settings.subscriptions_charged_to_cards) {
       if (subscription.card !== cardKey) continue;
       const chargeDays = subscription.assumed_days_of_month || [subscription.day_of_month];
-      if (chargeDays.some((chargeDay) => chargeDay && isDayOfMonth(date, chargeDay))) total = roundMoney(total + subscription.amount);
+      if (chargeDays.some((chargeDay) => chargeDay && isDayOfMonth(date, chargeDay))) charges.push({ date, name: subscription.name, amount: subscription.amount });
     }
     for (const fee of settings.annual_card_fees || []) {
-      if (fee.card === cardKey && Number(date.slice(5, 7)) === fee.month && isDayOfMonth(date, fee.day)) total = roundMoney(total + fee.amount);
+      if (fee.card === cardKey && Number(date.slice(5, 7)) === fee.month && isDayOfMonth(date, fee.day)) charges.push({ date, name: "Annual fee", amount: fee.amount });
     }
   }
-  return total;
+  return charges;
 }
 
 // What one card will most likely report at its next statement close.
@@ -150,12 +151,17 @@ function cardUtilizationPlan(settings, cardKey, targetPercent) {
   const closeDate = nextStatementCloseDate(card, asOfDate);
   const openStatement = card.balances_by_statement.find((statement) => statement.still_accumulating);
   const openBalanceNow = openStatement ? openStatement.amount : 0;
-  const projectedStatement = roundMoney(openBalanceNow + cardPurchasesBetween(settings, cardKey, asOfDate, closeDate));
+  const comingCharges = cardChargesBetween(settings, cardKey, asOfDate, closeDate);
+  const comingTotal = comingCharges.reduce((total, charge) => roundMoney(total + charge.amount), 0);
+  const projectedStatement = roundMoney(openBalanceNow + comingTotal);
   const targetAmount = roundMoney((card.credit_limit * targetPercent) / 100);
   return {
     closeDate,
     daysUntilClose: Math.round((new Date(closeDate) - new Date(asOfDate)) / 86400000),
     openBalanceIsGuess: !openStatement,
+    openBalanceNow,
+    comingCharges,
+    comingTotal,
     projectedStatement,
     projectedPercent: roundMoney((projectedStatement / card.credit_limit) * 100),
     targetAmount,
@@ -243,5 +249,5 @@ function totalAnnualFees(settings) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { daysUntilNextDayOfMonth, monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, hsaExpectedBetween, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
+  module.exports = { cardChargesBetween, daysUntilNextDayOfMonth, monthlyAmountOfSubscription, monthlyItemsForTab, totalsForItems, benefitRemaining, hsaMonthlyContribution, hsaMonthsUntilBillPaidOff, hsaBalanceAfterMonths, hsaExpectedBetween, nextStatementCloseDate, cardUtilizationPlan, netWorth, paydayForWorkDate, lowestBalanceFrom, settingsWithOvertime, nextYearlyDate, cardExpiryStatus, nextAnnualFeeFor, totalAnnualFees };
 }

@@ -257,13 +257,20 @@ function subscriptionsSectionHtml(settings) {
   return `${rows || '<div class="small">None yet.</div>'}${setupAddBox("Add a subscription", form)}`;
 }
 
+// The wizard's first-loan boxes (name, type, amount, rate, payment, first date). Loans are managed on the Loans tab.
+function loanWizardFieldsHtml() {
+  return `${setupSelect("setup-loan-kind", "Type of loan", Object.entries(LOAN_KINDS).map(([kind, [label]]) => [kind, label]), "car")}
+    ${setupField("setup-loan-name", "Name (optional)")}
+    ${setupField("setup-loan-amount", "Amount borrowed ($)", "number")}
+    ${setupField("setup-loan-rate", "Yearly interest rate (%)", "number")}
+    ${setupField("setup-loan-payment", "Monthly payment ($)", "number")}
+    ${setupField("setup-loan-first", "First payment date", "date")}`;
+}
+
+// Set up lists your loans; adding, changing and removing happen on the Loans tab.
 function loanSectionHtml(settings) {
-  const loan = settings.car_loan || {};
-  return `${setupField("setup-loan-amount", "Amount borrowed ($)", "number", loan.amount)}
-    ${setupField("setup-loan-rate", "Yearly interest rate (%)", "number", loan.annual_rate_percent)}
-    ${setupField("setup-loan-payment", "Monthly payment ($)", "number", loan.payment)}
-    ${setupField("setup-loan-first", "First payment date", "date", loan.first_payment_date)}
-    ${settings.car_loan ? '<button id="setup-remove-loan" class="small-button">Remove car loan</button>' : ""}`;
+  const rows = loansOf(settings).map((loan) => `<div class="tile-row small charge-row"><span>${escapeHtml(loan.name)}<br><span class="charge-card">${formatMoney(loan.payment)} a month \u00b7 ${loan.annual_rate_percent}%</span></span></div>`).join("");
+  return `${rows || '<div class="small">No loans yet.</div>'}<button id="setup-open-loans" class="small-button">Add or change loans on the Loans tab</button>`;
 }
 
 function overtimeSectionHtml(settings) {
@@ -320,7 +327,7 @@ function showSetupPage(settings) {
   if (wizardActive) return showWizard(settings, page);
   const bills = settings.monthly_bills_paid_from_checking.length;
   const subscriptions = settings.subscriptions_charged_to_cards.length;
-  const loan = settings.car_loan;
+  const loans = loansOf(settings);
   const overtimeRate = settings.overtime.gross_hourly_rate;
   const tabsHidden = settings.hidden_tabs.length;
   page.innerHTML = `<h2>Set up</h2>
@@ -334,7 +341,7 @@ function showSetupPage(settings) {
     ${setupSection("bills", "Bills", plural(bills, "bill"), billsSectionHtml(settings))}
     ${setupSection("subscriptions", "Subscriptions", plural(subscriptions, "subscription"), subscriptionsSectionHtml(settings))}
     ${setupSection("spendingtab", "Spending tab", "Paycheck match · ignored transfers", spendingTabSectionHtml(settings))}
-    ${setupSection("loan", "Car loan", loan ? `${formatMoney(loan.payment)} a month` : "None", loanSectionHtml(settings))}
+    ${setupSection("loan", "Loans", loans.length ? `${loans.length} loan${loans.length === 1 ? "" : "s"}` : "None", loanSectionHtml(settings))}
     ${setupSection("hsa", "HSA", settings.hsa && settings.hsa.provider ? escapeHtml(settings.hsa.provider) : "Not set", hsaSectionHtml(settings))}
     ${setupSection("pto", "Time off", "PTO, comp time, holiday", ptoSectionHtml(settings))}
     ${setupSection("tabs", "Menu tabs", tabsHidden ? `${tabsHidden} hidden` : "All shown", menuTabsSectionHtml(settings))}
@@ -367,7 +374,7 @@ const WIZARD_STEPS = [
   { icon: "&#128179;", title: "Add a credit card", hint: "What you owe on it helps the forecast plan the payments. Leave the name empty to skip. You can add more.", repeat: "card", fields: (s) => cardFormFieldsHtml(s), save: (s) => saveCardFromForm(s) },
   { icon: "&#129534;", title: "Add a monthly bill paid from checking", hint: "Rent, car payment, power. Leave the name empty to skip.", repeat: "bill", fields: () => billFormFieldsHtml(), save: (s) => saveBillFromForm(s) },
   { icon: "&#128257;", title: "Add a subscription charged to a card", hint: "Netflix, a gym, anything that bills a card each month. Leave the name empty to skip.", repeat: "subscription", needsCard: true, fields: (s) => subFormFieldsHtml(s), save: (s) => saveSubscriptionFromForm(s) },
-  { icon: "&#128663;", title: "Do you have a car loan?", hint: "Optional. Leave it empty to skip.", fields: (s) => loanSectionHtml(s), save: (s) => readLoanBoxes(s) },
+  { icon: "&#128663;", title: "Do you have a loan?", hint: "A car loan, mortgage or any other. Optional; leave it empty to skip. You can add more on the Loans tab.", fields: () => loanWizardFieldsHtml(), save: (s) => readLoanBoxes(s) },
   { icon: "&#9201;&#65039;", title: "Do you work overtime?", hint: "Optional. This powers the Planner tab. Leave it empty to skip.", fields: (s) => overtimeSectionHtml(s), save: (s) => readOvertimeBoxes(s) },
   { icon: "&#128722;", title: "About how much do you spend each month on everyday things?", hint: "Optional. Groceries, gas, going out. The forecast takes it out of checking in weekly pieces so the low point is realistic.", fields: (s) => setupField("wizard-allowance", "Everyday spending per month ($)", "number", s.optional_monthly_variable_spending_allowance ?? ""), save: (s) => { s.optional_monthly_variable_spending_allowance = inputNumber("wizard-allowance"); } },
   { icon: "&#128200;", title: "What is in your retirement account?", hint: "Optional. A bank link fills this in for you later.", fields: (s) => setupField("wizard-retirement", "Retirement balance ($)", "number", (s.retirement || {}).balance ?? ""), save: (s) => { s.retirement = { ...(s.retirement || {}), balance: inputNumber("wizard-retirement") }; } },
@@ -528,15 +535,13 @@ function readHiddenTabs(settings) {
   settings.hidden_tabs = hideableTabs().filter((name) => !document.querySelector(`[data-setup-tab="${name}"]`).checked);
 }
 
-// The car loan boxes. All blank leaves the loan alone; part-filled is refused (returns "invalid") unless say does nothing.
+// The wizard's loan boxes. All blank adds nothing; part-filled is refused (returns "invalid") with a message.
 function readLoanBoxes(settings, say = alert) {
-  const loanAmount = inputNumber("setup-loan-amount");
-  const loanPayment = inputNumber("setup-loan-payment");
-  const loanFirstPayment = inputText("setup-loan-first");
-  const anythingFilled = loanAmount != null || loanPayment != null || loanFirstPayment;
-  if (!anythingFilled) return;
-  if (loanAmount == null || loanPayment == null || !loanFirstPayment) { say("The car loan needs an amount, a monthly payment and a first payment date. Fill all three or clear them."); return "invalid"; }
-  settings.car_loan = { ...(settings.car_loan || {}), amount: loanAmount, annual_rate_percent: inputNumber("setup-loan-rate") ?? 0, payment: loanPayment, first_payment_date: loanFirstPayment, skipped_months: (settings.car_loan || {}).skipped_months || [] };
+  const values = { name: inputText("setup-loan-name"), kind: document.getElementById("setup-loan-kind").value, amount: inputText("setup-loan-amount"), rate: inputText("setup-loan-rate"), payment: inputText("setup-loan-payment"), first: inputText("setup-loan-first") };
+  if (!values.amount && !values.payment && !values.first) return;
+  const result = loanFromInputs(values);
+  if (result.error) { say(result.error); return "invalid"; }
+  saveLoansTo(settings, [...loansOf(settings), result.loan]);
 }
 
 // Copies every plain box on the page into the settings. Quiet mode (used before an Add or Remove button re-draws the page)
@@ -559,7 +564,6 @@ function readPlainBoxes(settings, quiet = false) {
   if (depositWords) settings.paycheck.deposit_text_contains = depositWords; else delete settings.paycheck.deposit_text_contains;
   settings.transfers_ignore_text = textHintsFromInput("setup-ignore-text") || [];
 
-  if (readLoanBoxes(settings, say) === "invalid" && !quiet) return "invalid";
   readOvertimeBoxes(settings);
   readHiddenTabs(settings);
 }
@@ -669,8 +673,5 @@ document.addEventListener("click", (event) => {
     return saveAndRefresh(settings);
   }
 
-  if (target.id === "setup-remove-loan" && confirm("Remove the car loan?")) {
-    settings.car_loan = null;
-    return saveAndRefresh(settings);
-  }
+  if (target.id === "setup-open-loans") return showPage("car");
 });

@@ -209,6 +209,21 @@ function shortMonthDay(dateText) {
   return new Date(dateText + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// "At close": what the statement should read when it closes = what is on the open statement now plus the
+// subscriptions and fees due before then. The bar shows both parts against the target; tap to see the list.
+function atCloseHtml(plan, targetPercent, cardColor, estimateMark) {
+  const scale = Math.max(plan.projectedStatement, plan.targetAmount, 1) * 1.15;
+  const percentOf = (amount) => Math.min(100, (amount / scale) * 100);
+  const coming = plan.comingCharges;
+  const comingRows = coming.map((charge) => `<div class="tile-row small"><span>${shortMonthDay(charge.date)} \u00b7 ${escapeHtml(charge.name)}</span><span>${formatMoney(charge.amount)}</span></div>`).join("");
+  const summary = `<div class="close-head"><span class="stat-label">Expected on the statement at close \u00b7 ${shortMonthDay(plan.closeDate)}</span><b class="close-total">${formatMoney(plan.projectedStatement)}${estimateMark}</b></div>
+    <div class="close-bar"><div class="close-open" style="width:${percentOf(plan.openBalanceNow)}%;background:${cardColor}"></div><div class="close-coming" style="width:${percentOf(plan.comingTotal)}%;--bar-color:${cardColor}"></div><div class="close-target" style="left:${percentOf(plan.targetAmount)}%"><span>${targetPercent}%</span></div></div>
+    <div class="close-legend"><span><span class="dot" style="background:${cardColor}"></span>On it now ${formatMoney(plan.openBalanceNow)}</span><span><span class="dot close-dot-coming" style="--bar-color:${cardColor}"></span>Still coming ${formatMoney(plan.comingTotal)}</span></div>`;
+  const chips = `<div class="close-chips"><span>Closes in <b>${plan.daysUntilClose} day${plan.daysUntilClose === 1 ? "" : "s"}</b></span><span>${targetPercent}% target <b>${formatMoney(plan.targetAmount)}</b></span></div>`;
+  if (!coming.length) return `<div class="close-box">${summary}<div class="small">No subscriptions or fees are due on this card before it closes.</div></div>${chips}`;
+  return `<details class="close-box">${`<summary>${summary}<div class="small close-hint">Tap to see the ${coming.length} charge${coming.length === 1 ? "" : "s"} still coming</div></summary>`}${comingRows}</details>${chips}`;
+}
+
 function showCreditPage(settings) {
   const targetPercent = settings.credit_utilization.target_percent;
   const cardTiles = Object.entries(settings.credit_cards).map(([cardKey, card]) => {
@@ -225,10 +240,7 @@ function showCreditPage(settings) {
       ${closedAndOpenBlocks(card)}
       ${pendingDetailsHtml(settings, cardKey)}
       <div class="verdict ${plan.payDownNeeded > 0 ? "verdict-bad" : "verdict-good"}">${verdict}</div>
-      <div class="stat-grid">
-        <div><div class="stat-label">Plus subs</div>${formatMoney(plan.projectedStatement)}${estimateMark}</div>
-        <div><div class="stat-label">Closes</div>${plan.daysUntilClose} days</div>
-        <div><div class="stat-label">${targetPercent}% spend</div>${formatMoney(plan.targetAmount)}</div></div>
+      ${atCloseHtml(plan, targetPercent, cardColor, estimateMark)}
       <div class="tile-row small card-facts"><span>${expiryText(settings.card_expirations[cardKey], settings)}</span><span>${annualFeeText(settings, cardKey)}</span></div></div>`;
   }).join("");
   const otherCardRows = settings.other_cards.map((otherCard) =>
@@ -376,51 +388,6 @@ function monthAndYear(dateText) {
   return new Date(dateText + "T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-function showCarPage(settings) {
-  const loan = settings.car_loan;
-  if (!loan) {
-    document.getElementById("car-summary").innerHTML = `<h2>Car loan</h2><div class="tile"><div class="small">No car loan set up. If you have one, add it in Settings → Set up in the app. If not, you can hide this tab there.</div></div>`;
-    document.getElementById("car-extra-result").innerHTML = "";
-    return;
-  }
-  const status = loanStatus(loan, todayText());
-  const baseline = loanPayoffPlan(loan, status.balance, status.paymentsMade);
-  const lumpSum = parseFloat(document.getElementById("car-extra-now").value) || 0;
-  const extraEachMonth = parseFloat(document.getElementById("car-extra-monthly").value) || 0;
-  const totalPayments = status.paymentsMade + baseline.paymentsLeft;
-  const percentPaid = Math.round((status.principalPaid / loan.amount) * 100);
-  const principalShare = status.totalPaid > 0 ? Math.round((status.principalPaid / status.totalPaid) * 100) : 0;
-  document.getElementById("car-summary").innerHTML = `<h2>Car loan</h2>
-    <div class="tile car-hero"><div class="small">Still owed (principal)</div><div class="huge-number">${formatMoney(status.balance)}</div>
-      <div class="bar goal-bar"><div class="bar-fill" style="width:${percentPaid}%"></div></div>
-      <div class="small">${percentPaid}% of the ${formatMoney(loan.amount)} loan paid off</div></div>
-    <div class="tile car-tile"><div class="small">Paid so far</div><div class="big-number">${formatMoney(status.totalPaid)}</div>
-      <div class="split-bar"><span class="split-loan" style="width:${principalShare}%"></span><span class="split-interest" style="width:${100 - principalShare}%"></span></div>
-      <div class="tile-row small"><span><span class="dot dot-loan"></span>Went to the loan</span><span>${formatMoney(status.principalPaid)}</span></div>
-      <div class="tile-row small"><span><span class="dot dot-interest"></span>Went to interest</span><span>${formatMoney(status.interestPaid)}</span></div>
-      <div class="small">${status.paymentsMade} of ${totalPayments} payments made</div></div>
-    <div class="tile car-tile"><div class="small">Paid off on</div><div class="big-number">${monthAndYear(baseline.payoffDate)}</div>
-      <div class="small">${baseline.paymentsLeft} payments left of ${formatMoney(loan.payment)}. About ${formatMoney(baseline.interestRemaining)} interest still to come.</div></div>
-    ${baseline.waivedPayment ? `<div class="tile result-hero"><div class="tile-row"><b>Last payment waived</b><b>${formatMoney(baseline.waivedPayment.amount)} off</b></div>
-      <div class="small">${escapeHtml(baseline.waivedPayment.reason)}. The ${monthAndYear(baseline.waivedPayment.date)} payment is null.</div></div>` : ""}
-    <div class="tile car-tile"><b>Loan facts</b>
-      <div class="facts-grid">
-        <div><span class="fact-icon">&#128663;</span><b>${formatMoney(loan.amount)}</b><span class="small">Loan amount</span></div>
-        <div><span class="fact-icon">&#128200;</span><b>${loan.annual_rate_percent}%</b><span class="small">Rate</span></div>
-        <div><span class="fact-icon">&#128197;</span><b>${totalPayments}</b><span class="small">Payments</span></div>
-        <div><span class="fact-icon">&#128184;</span><b>${formatMoney(status.interestPaid + baseline.interestRemaining)}</b><span class="small">Total interest</span></div>
-      </div></div>`;
-  const resultBox = document.getElementById("car-extra-result");
-  if (lumpSum <= 0 && extraEachMonth <= 0) { resultBox.innerHTML = ""; return; }
-  const plan = loanPayoffPlan(loan, status.balance, status.paymentsMade, lumpSum, extraEachMonth);
-  const monthsSaved = baseline.paymentsLeft - plan.paymentsLeft;
-  resultBox.innerHTML = `<div class="tile result-hero"><div class="verdict">${plan.paymentsLeft === 0 ? "Paid off right now" : "Paid off " + monthAndYear(plan.payoffDate)}</div>
-    <div class="tile-row"><b>Interest saved</b><b class="positive">${formatMoney(baseline.interestRemaining - plan.interestRemaining)}</b></div>
-    <div class="result-rows"><div class="tile-row small"><span>Owed after extra</span><span>${formatMoney(Math.max(0, status.balance - lumpSum))}</span></div>
-    <div class="tile-row small"><span>Payments left</span><span>${plan.paymentsLeft} (${monthsSaved} fewer)</span></div>
-    <div class="tile-row small"><span>Interest still to come</span><span>${formatMoney(plan.interestRemaining)}</span></div></div></div>`;
-}
-
 function showBillsTotal(settings) {
   const filter = loadBillsFilter();
   const monthlyTotal = totalsForItems(filteredItemsForTab(settings, "subscriptions")).monthlyTotal + totalsForItems(filteredItemsForTab(settings, "expenses")).monthlyTotal;
@@ -484,7 +451,7 @@ function showExtraPages(settings) {
   showCreditPage(settings);
   showHsaPage(settings);
   showPtoPage(settings);
-  showCarPage(settings);
+  showLoansPage(settings);
   showSpendingPage(settings);
   showSetupPage(settings);
   showTrackingPages(settings);
@@ -517,7 +484,7 @@ function addBenefitWithPrompts(settings) {
 }
 
 for (const inputId of ["car-extra-now", "car-extra-monthly"]) {
-  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showCarPage(settings); });
+  document.getElementById(inputId).addEventListener("input", () => { const settings = loadSettings(); if (settings) showLoansPage(settings); });
 }
 
 for (const pageName of PAGE_NAMES) {

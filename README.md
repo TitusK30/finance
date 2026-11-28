@@ -109,7 +109,7 @@ Tap **↻** (or open the app after 30 minutes away).
 
 ## What is in the app
 
-Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Car loan**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up.
+Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up.
 
 | Page | What it gives you |
 |---|---|
@@ -119,7 +119,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 | **Bills** | Bills from checking and subscriptions on cards, with one monthly total |
 | **Goals** | Savings goals with a finish-by-date planner |
 | **Planner** | Overtime planner and a what-if simulator |
-| **Tasks, HSA, PTO, Car loan** | Dated to-dos, HSA and PTO numbers (the HSA page also takes money you expect to put in or pay out on a date, and shows the balance after each), loan payoff |
+| **Tasks, HSA, PTO, Loans** | Dated to-dos, HSA and PTO numbers (the HSA page also takes money you expect to put in or pay out on a date, and shows the balance after each), loan payoff |
 | **Set up** | Every setting, in sections (Basics, Paycheck, Cards, Bills and more) |
 | **Settings** | Load a settings file, export a backup, back up and restore spending history, update the app, refresh, connect to the relay, show linked accounts, undo the last refresh, PIN |
 
@@ -132,7 +132,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 - **Earned this month** adds deposits to your bank accounts that the bank calls income or that mention payroll or direct deposit. If your pay is not picked up, add a word from its description under **Set up → Paycheck**.
 - **Bills are left out of Spending.** Bills and subscriptions are matched to charges by account, charge text and date (within 5 days of the due date), never by amount. If one slips through, tap **mark as bill** on it. If your bank writes a bill differently from its name, put the bank's wording in the bill's "text on the bank statement" box.
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
-- **Typed in by you:** savings (unless linked), rewards, benefits, car loan, goals, credit scores, PTO, tasks.
+- **Typed in by you:** savings (unless linked), rewards, benefits, loans, goals, credit scores, PTO, tasks.
 - Swipe left on a task, goal or Set up row to reveal **Delete**.
 
 ---
@@ -182,7 +182,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
 | `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
-| `car_loan` | `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months` |
+| `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. An older single `car_loan` with the same fields still shows up as the first loan |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
 
 Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`. The Set up page has a dropdown, so you only need these names for the file.
@@ -258,9 +258,10 @@ src/setup-page.js        Set up page and guided set-up
 src/plaid-sync.js        turns relay data into your settings
 src/app.js               pages, storage, refresh, auto-refresh
 src/lock.js              4-digit PIN lock
-src/loan.js              car-loan math
+src/loan.js              loan math (car, mortgage, any other)
 src/tracking*.js         goals, to-dos, credit score
-src/extra-pages.js       bills, rewards, HSA, PTO, car loan pages
+src/extra-pages.js       bills, rewards, HSA, PTO pages
+src/loans-page.js        Loans tab: one chip per loan, All overview, add and edit
 src/gestures.js          swipe to delete, menu swipe
 relay/worker.mjs         Cloudflare Worker
 finance_settings.example.json   fake data showing the file format
