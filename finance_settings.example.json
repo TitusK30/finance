@@ -49,7 +49,7 @@
   },
   "overtime": { "gross_hourly_rate": null, "take_home_per_overtime_hour": null, "paid_days_after_period_ends": 7 },
   "hsa": { "provider": "My HSA", "balance": null, "weekly_contribution": null, "monthly_bill_payment": null, "medical_bill_remaining": null },
-  "pto": { "pto_hours": null, "comp_time_hours": null, "holiday_hours": null },
+  "pto": { "buckets": [{ "name": "PTO", "hours": null }, { "name": "Comp Time", "hours": null }, { "name": "Holiday Hours", "hours": null }] },
   "retirement": { "balance": null },
   "hidden_tabs": []
 }

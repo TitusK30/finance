@@ -264,7 +264,7 @@ function hsaExpectedHtml(hsa) {
     const isOut = item.kind === "out";
     const counted = item.date > today;
     if (counted) running = Math.round((running + (isOut ? -item.amount : item.amount)) * 100) / 100;
-    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
+    return `<div class="tile expected-tile ${isOut ? "expected-out" : "expected-in"}" data-item-hold="hsa:${item.position}"><span class="timeline-icon ${isOut ? "timeline-out" : "timeline-in"}">${isOut ? "&#8595;" : "&#8593;"}</span>
       <div class="expected-body"><b>${escapeHtml(item.label || (isOut ? "Money going out" : "Money coming in"))}</b>
         <div class="small">${shortMonthDay(item.date)}${counted ? ` \u00b7 HSA then ${formatMoney(running)}` : " \u00b7 date has passed, not counted"}</div></div>
       <b class="${isOut ? "negative" : "positive"}">${isOut ? "-" : "+"}${formatMoney(item.amount)}</b>
@@ -342,14 +342,58 @@ document.addEventListener("click", (event) => {
   showHsaPage(settings);
 });
 
-function showPtoPage(settings) {
-  const blocks = [["PTO", "pto_hours", "&#127796;", "#4ade80"], ["Comp Time", "comp_time_hours", "&#128260;", "#5aa2ff"], ["Holiday Hours", "holiday_hours", "&#127876;", "#fb923c"]].map(([title, key, icon, color]) => {
-    const hours = settings.pto[key];
-    const shown = hours == null ? "Tap to set" : `${hours.toLocaleString("en-US")}<span class="hours-unit"> hrs</span>`;
-    return `<div class="tile pto-tile" style="--tile-accent:${color}"><span class="pto-icon">${icon}</span><div><div class="small">${title}</div><div class="huge-number"><span class="editable" data-edit-path="pto.${key}" data-edit-label="${title} (hours)">${shown}</span></div></div></div>`;
-  }).join("");
-  document.getElementById("page-pto").innerHTML = `<h2>Work time off</h2>${blocks}`;
+// Time off is a list of buckets ({ name, hours }). Older copies kept three fixed numbers; they read as the first three buckets.
+const PTO_STARTER_BUCKETS = [["PTO", "pto_hours"], ["Comp Time", "comp_time_hours"], ["Holiday Hours", "holiday_hours"]];
+function ptoBucketsOf(pto) {
+  if (pto && Array.isArray(pto.buckets)) return pto.buckets;
+  return PTO_STARTER_BUCKETS.map(([name, oldKey]) => ({ name, hours: pto && pto[oldKey] != null ? pto[oldKey] : null }));
 }
+
+// Icon and color by name, so the starter buckets keep their look and new ones get their own.
+function ptoLook(name, position) {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes("holiday")) return ["&#127876;", "#fb923c"];
+  if (lowerName.includes("comp")) return ["&#128260;", "#5aa2ff"];
+  if (lowerName.includes("pto") || lowerName.includes("vacation")) return ["&#127796;", "#4ade80"];
+  if (lowerName.includes("sick")) return ["&#129658;", "#f87171"];
+  return ["&#9201;&#65039;", ["#a78bfa", "#f472b6", "#2dd4bf", "#fbbf24"][position % 4]];
+}
+
+// Tap the hours to change them, hold a bucket to rename it, swipe it to delete.
+function showPtoPage(settings) {
+  if (!Array.isArray((settings.pto || {}).buckets)) { settings.pto = { buckets: ptoBucketsOf(settings.pto) }; saveSettings(settings); }
+  const blocks = settings.pto.buckets.map((bucket, position) => {
+    const [icon, color] = ptoLook(bucket.name, position);
+    const shown = bucket.hours == null ? "Tap to set" : `${bucket.hours.toLocaleString("en-US")}<span class="hours-unit"> hrs</span>`;
+    return `<div class="tile pto-tile" style="--tile-accent:${color}" data-item-hold="pto:${position}"><span class="pto-icon">${icon}</span><div><div class="small">${escapeHtml(bucket.name)}</div><div class="huge-number"><span class="editable" data-edit-path="pto.buckets.${position}.hours" data-edit-label="${escapeHtml(bucket.name)} (hours)">${shown}</span></div></div>
+      <button class="remove-link" data-remove-pto="${position}">remove</button></div>`;
+  }).join("");
+  document.getElementById("page-pto").innerHTML = `<h2>Work time off</h2>${blocks || `<div class="tile small">Nothing listed. Add PTO, sick time, comp time or anything you track in hours.</div>`}
+    <button id="add-pto-button">Add item</button>`;
+}
+
+document.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-pto]");
+  if (!removeButton && !event.target.closest("#add-pto-button")) return;
+  const settings = loadSettings();
+  if (!settings) return;
+  settings.pto = { buckets: ptoBucketsOf(settings.pto) };
+  if (removeButton) {
+    const [removed] = settings.pto.buckets.splice(Number(removeButton.dataset.removePto), 1);
+    saveSettings(settings);
+    showPtoPage(settings);
+    showToast(`${removed.name} removed.`);
+    return;
+  }
+  openSetupItemSheet({
+    title: "Add time off",
+    fields: [{ id: "name", label: "Name (for example: Sick time)", value: "" }, { id: "hours", label: "Hours you have now (optional)", isMoney: true, value: "" }],
+    save: (values) => {
+      if (!values.name) return "Give it a name.";
+      settings.pto.buckets.push({ name: values.name, hours: values.hours >= 0 ? values.hours : null });
+    },
+  }, () => saveAndRefresh(settings));
+});
 
 let plannedOvertime = [];
 

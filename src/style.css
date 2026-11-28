@@ -312,7 +312,7 @@ html, body { overflow-x: hidden; }
 #page-todo .todo-tile .remove-link { display: none; }
 /* Set up lists delete by swipe, like everywhere else: the remove control stays in the row (the swipe's Delete presses it) but is hidden. */
 #page-setup [data-setup-remove-card], #page-setup [data-setup-remove-bill], #page-setup [data-setup-remove-subscription], #page-setup [data-setup-remove-override], #page-setup [data-setup-remove-othercard], #page-setup [data-setup-remove-benefit], #page-setup [data-setup-remove-rule] { display: none; }
-#add-todo-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
+#add-todo-button, #add-pto-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
 
 /* Goals tab */
 #page-goals h2 { margin: 18px 0 8px; }
@@ -441,6 +441,7 @@ html, body { overflow-x: hidden; }
 #page-pto .pto-tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px; padding: 16px 16px 16px 20px; box-shadow: inset 5px 0 0 var(--tile-accent); background-image: linear-gradient(135deg, color-mix(in srgb, var(--tile-accent) 14%, transparent), transparent 60%); }
 #page-pto .pto-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; font-size: 28px; background: color-mix(in srgb, var(--tile-accent) 22%, transparent); }
 #page-pto .huge-number { font-size: 34px; font-weight: 800; line-height: 1.1; }
+#page-pto .pto-tile .remove-link { display: none; }
 .hours-unit { font-size: 16px; font-weight: 600; color: var(--muted-text); }
 #page-track .recap-tile { display: grid; gap: 8px; padding: 16px; }
 #page-track .leftover-row { background: var(--bar-track); border-radius: 12px; padding: 12px; margin-top: 4px; }

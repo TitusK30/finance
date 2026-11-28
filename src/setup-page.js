@@ -162,10 +162,9 @@ function hsaSectionHtml(settings) {
 }
 
 function ptoSectionHtml(settings) {
-  const pto = settings.pto || {};
-  return `${setupField("setup-pto-hours", "PTO (hours)", "number", pto.pto_hours)}
-    ${setupField("setup-pto-comp", "Comp time (hours)", "number", pto.comp_time_hours)}
-    ${setupField("setup-pto-holiday", "Holiday hours", "number", pto.holiday_hours)}`;
+  const buckets = ptoBucketsOf(settings.pto);
+  const fields = buckets.map((bucket, position) => setupField(`setup-pto-${position}`, `${escapeHtml(bucket.name)} (hours)`, "number", bucket.hours)).join("");
+  return `${fields || '<div class="small">Nothing listed.</div>'}<div class="small">Add, rename or delete these on the PTO tab.</div>`;
 }
 
 function closedAmountOf(card) {
@@ -524,7 +523,8 @@ function readHsaBoxes(settings) {
 }
 
 function readPtoBoxes(settings) {
-  settings.pto = { ...(settings.pto || {}), pto_hours: inputNumber("setup-pto-hours"), comp_time_hours: inputNumber("setup-pto-comp"), holiday_hours: inputNumber("setup-pto-holiday") };
+  const buckets = ptoBucketsOf(settings.pto);
+  settings.pto = { buckets: buckets.map((bucket, position) => document.getElementById(`setup-pto-${position}`) ? { ...bucket, hours: inputNumber(`setup-pto-${position}`) } : bucket) };
 }
 
 function readOvertimeBoxes(settings) {

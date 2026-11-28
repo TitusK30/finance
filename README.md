@@ -134,7 +134,7 @@ Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Plan
 - **Goals:** "Finish by a date" shows the weekly amount to save. "Save a set amount" shows what savings would be by a date. "Money coming and going" lists known amounts; money in counts toward both results and money out lowers them. Goals never change Home.
 - **Typed in by you:** savings (unless linked), rewards, benefits, loans, goals, credit scores, PTO, tasks.
 - Credit card payments never show on Spending. Moves to or from your savings (set your savings bank's name in Set up) show only in the **Savings** block near the bottom of Spending.
-- Swipe left on a task, goal, budget or Set up row to reveal **Delete**. Hold a budget on Spending, a task, a goal or an expected-money item to change it.
+- Swipe left on a task, goal, budget, PTO item, HSA item or Set up row to reveal **Delete**. Hold a budget on Spending, a task, a goal, an expected-money item (Goals or HSA) or a PTO item to change it. The PTO tab's **Add item** adds your own time-off buckets, like sick time.
 - Hold a Set up row (card, bill, subscription, one-time paycheck, category rule, other card, benefit) to edit it, the same way you hold a Bills item.
 
 ---
@@ -185,7 +185,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and your savings account's name on bank charges (moves to and from savings leave Spending and show in its Savings block) |
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
 | `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. `payment_text_contains` (optional words from the bank text of the payment, so the loan counts a payment only when your checking account shows it). An older single `car_loan` with the same fields still shows up as the first loan |
-| `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
+| `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA numbers, time-off buckets (`pto.buckets`: `name`, `hours`; older `pto_hours`-style numbers still read), retirement balance, and menu tabs to hide |
 
 Category names for rules: `FOOD_AND_DRINK`, `GROCERIES`, `AMAZON`, `TOLLS`, `GENERAL_MERCHANDISE`, `TRANSPORTATION`, `TRAVEL`, `ENTERTAINMENT`, `RENT_AND_UTILITIES`, `GENERAL_SERVICES`, `PERSONAL_CARE`, `MEDICAL`, `BANK_FEES`, `OTHER`. The Set up page has a dropdown, so you only need these names for the file.
 

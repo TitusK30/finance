@@ -1,7 +1,7 @@
 // Swipe left on a row to reveal Delete. The Delete button presses the row's own remove control,
 // so every existing "are you sure" check still applies.
 
-const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-remove-expected], [data-remove-benefit], [data-remove-overtime], [data-whatif-remove], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription], [data-setup-remove-override], [data-setup-remove-othercard], [data-setup-remove-benefit], [data-setup-remove-rule], [data-remove-typed-pay], [data-remove-hsa-item], [data-remove-budget]";
+const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-remove-expected], [data-remove-benefit], [data-remove-overtime], [data-whatif-remove], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription], [data-setup-remove-override], [data-setup-remove-othercard], [data-setup-remove-benefit], [data-setup-remove-rule], [data-remove-typed-pay], [data-remove-hsa-item], [data-remove-budget], [data-remove-pto]";
 const SWIPE_REVEAL_PIXELS = 90;
 const SWIPE_TO_OPEN_PIXELS = 50;
 let swipeRow = null;
@@ -86,7 +86,7 @@ let longPressStart = null;
 let longPressFired = false;
 
 document.addEventListener("touchstart", (event) => {
-  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-spending [data-budget-hold], #page-todo [data-item-hold], #page-goals [data-item-hold]");
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-spending [data-budget-hold], #page-todo [data-item-hold], #page-goals [data-item-hold], #page-hsa [data-item-hold], #page-pto [data-item-hold]");
   longPressFired = false;
   clearTimeout(longPressTimer);
   if (!row) return;

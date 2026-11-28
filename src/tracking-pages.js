@@ -300,7 +300,7 @@ document.addEventListener("click", async (event) => {
   showEverything();
 });
 
-// Hold a task, a goal or a "money coming in or going out" item to edit it in a sheet (the same sheet Set up uses).
+// Hold a task, a goal, a "money coming in or going out" item (Goals or HSA tab) or a time-off bucket to edit it in a sheet (the same sheet Set up uses).
 // holdKey is "kind:position", for example "todo:2".
 function editTrackedItem(holdKey) {
   const [kind, positionText] = holdKey.split(":");
@@ -335,6 +335,25 @@ function editTrackedItem(holdKey) {
       save: (values) => {
         if (!values.date || !(values.amount > 0)) return "Pick a date and an amount more than 0.";
         settings.expected_money[position] = { ...item, label: values.label, kind: values.kind, date: values.date, amount: values.amount };
+      },
+    }),
+    hsa: (item = settings.hsa.expected_items[position]) => ({
+      title: "Edit HSA money",
+      fields: [{ id: "label", label: "What is it (optional)", value: item.label || "" },
+        { id: "kind", label: "Direction", options: [["in", "Coming in"], ["out", "Going out"]], value: item.kind === "out" ? "out" : "in" },
+        { id: "date", label: "Date", type: "date", value: item.date }, { id: "amount", label: "Amount ($)", isMoney: true, value: item.amount }],
+      save: (values) => {
+        if (!values.date || !(values.amount > 0)) return "Pick a date and an amount more than 0.";
+        settings.hsa.expected_items[position] = { ...item, label: values.label, kind: values.kind, date: values.date, amount: values.amount };
+      },
+    }),
+    pto: (bucket = ptoBucketsOf(settings.pto)[position]) => ({
+      title: "Edit time off",
+      fields: [{ id: "name", label: "Name", value: bucket.name }, { id: "hours", label: "Hours", isMoney: true, value: bucket.hours ?? "" }],
+      save: (values) => {
+        if (!values.name) return "Give it a name.";
+        settings.pto = { buckets: ptoBucketsOf(settings.pto) };
+        settings.pto.buckets[position] = { ...bucket, name: values.name, hours: values.hours >= 0 ? values.hours : null };
       },
     }),
   };
