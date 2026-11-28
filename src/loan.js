@@ -61,7 +61,7 @@ function loanStatus(loan, todayDate, paidDueDates = null) {
 }
 
 // Checks each due date that has passed against the bank. loan.payment_text_contains = words that must all appear in the
-// bank's text for the payment (like ["zelle", "kevin"]). charges = money-out bank transactions; oldestKnownDate = the first
+// bank's text for the payment (like ["zelle", "jane"]). charges = money-out bank transactions; oldestKnownDate = the first
 // date the app has bank data for, so older due dates are assumed paid. A payment can post a few days early or late.
 // Returns null when no words are saved. Otherwise { paid: Set of due dates counted as paid, found: { due: charge },
 // waiting: due dates still inside the posting window, missed: due dates with no payment found }.

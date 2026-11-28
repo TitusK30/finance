@@ -148,7 +148,7 @@ function openLoanEditor(position) {
       ${input("loan-edit-rate", "Yearly interest rate (%)", "rate", 'inputmode="decimal"')}
       ${input("loan-edit-payment", "Monthly payment ($)", "payment", 'inputmode="decimal"')}
       ${input("loan-edit-first", "First payment date", "first", 'type="date"')}
-      <div class="filter-label">Bank text of your payment <span class="small">(optional, commas)</span></div><input id="loan-edit-words" value="${escapeHtml(values.words)}" placeholder="like: zelle, kevin" autocomplete="off" autocapitalize="off">
+      <div class="filter-label">Bank text of your payment <span class="small">(optional, commas)</span></div><input id="loan-edit-words" value="${escapeHtml(values.words)}" placeholder="like: zelle, jane" autocomplete="off" autocapitalize="off">
       <div class="small loan-hint">With this, the loan counts a payment only when a checking charge with all these words posts near its due date.</div>
       ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
       <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-loan-save><b>Save</b></button>${position === null ? "" : `<button class="choice-button is-wide" data-loan-remove><b>Remove this loan</b></button>`}<button class="choice-button is-wide" data-loan-cancel><b>Cancel</b></button></div></div>`;
