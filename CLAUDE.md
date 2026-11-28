@@ -4,10 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: Loans tab with several loans and bank-checked payments, swipe-down to close sheets, Spending tab tools (search, filter, pace, vs last month, budgets, merchant rules, recurring detector), "Expected at close" block on Cards.
-- Version tag 20261128y, 156 tests passing.
-- Confirmed on the phone: a card's close date moves to next month once its statement is issued; the Loans bank check works after saving payment text. Nothing waiting on the user.
-- Known gap: several lists still show a visible "remove" button (Set up bills, subscriptions, cards, overrides, rules, benefits, other cards; goals, to-dos, expected items, what-ifs, HSA items, overtime, typed paychecks) instead of swipe-to-delete.
+- Last built: swipe-to-delete fixes. Set up lists (cards, bills, subscriptions, one-time paychecks, category rules, other cards, benefits) now delete by swipe; their remove buttons are hidden. Tasks tiles swipe fully (their fade-in animation no longer holds the tile in place). A cancelled touch snaps a half-swiped row open or shut.
+- Version tag 20261128z, 156 tests passing.
+- Waiting on the user to confirm on the phone: swiping a task and a Set up row opens Delete fully.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
@@ -47,6 +46,7 @@ Classic `<script>` globals, loaded in this order: lock, forecast, summaries, spe
 - **bills.js**: `matchBills` links bank charges to bills/subscriptions by account, text words and a 5-day window (amount only breaks ties). Output per month: `seen`, `unseen`, `upcoming`, `neverCharged`.
 - **plaid-sync.js**: turns relay data into settings. **loan.js**: loan math, several loans (`loansOf`, `loanFromInputs`, `loanStatus`, `loanPayoffPlan`, `loanPaymentCheck` matches payments to checking charges, `loanOverview`).
 - **Pages**: spending-page.js (Spending tab), spending-extras.js (search/filter bar, pace, vs last month, budgets, recurring tile, merchant-rule prompt), tracking-pages.js (goals, planner, credit score, `askChoice` bottom-sheet chooser), extra-pages.js (Bills tab with filter and hold-to-edit, Cards/credit page, rewards, HSA, PTO), loans-page.js (Loans tab: chips, All overview, add/edit sheet), setup-page.js (Set up + guided wizard), app.js (storage, refresh, settings tab, toasts, cards page close dates), gestures.js (swipe-to-delete, edge-swipe menu, long-press, swipe-down to close sheets), lock.js (PIN).
+- **Swipe-to-delete**: gestures.js `DELETE_CONTROLS` lists each list's remove control; the row keeps that control but CSS hides it, and the swipe's Delete presses it (so confirms and toasts still run). A new list needs its control added to `DELETE_CONTROLS` and hidden in style.css. Never give a swipe row an animation with fill-mode `both`/`forwards` that sets `transform`: it overrides the swipe's inline transform (use `backwards`).
 - **Bottom sheets**: elements with class `date-cover category-picker`; closing = clicking the dimmed background, which every sheet treats as cancel.
 - **Menu**: Home, Spending, Cards, Bills (with Subscriptions and Expenses), Tasks, Goals, Planner, HSA, PTO, Loans, Set up, Settings. Tab keys are unchanged internally (`car` is the Loans tab).
 

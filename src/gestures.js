@@ -57,7 +57,7 @@ document.addEventListener("touchmove", (event) => {
   event.preventDefault(); // a sideways swipe on a row moves only the row, never the page
 }, { passive: false });
 
-document.addEventListener("touchend", () => {
+function finishSwipe() {
   if (!swipeRow || !swipeIsHorizontal) { swipeRow = null; return; }
   swipeRow.style.transition = "";
   const open = swipeDistance <= -SWIPE_TO_OPEN_PIXELS;
@@ -65,7 +65,9 @@ document.addEventListener("touchend", () => {
   swipeRow.style.transform = open ? `translateX(-${SWIPE_REVEAL_PIXELS}px)` : "";
   if (open && navigator.vibrate) navigator.vibrate(8);
   swipeRow = null;
-}, { passive: true });
+}
+document.addEventListener("touchend", finishSwipe, { passive: true });
+document.addEventListener("touchcancel", finishSwipe, { passive: true }); // iOS can cancel a touch mid-swipe; snap open or shut instead of sticking halfway
 
 document.addEventListener("click", (event) => {
   if (!event.target.classList.contains("swipe-delete")) return;

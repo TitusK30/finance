@@ -294,7 +294,7 @@ html, body { overflow-x: hidden; }
 /* Tasks */
 #page-todo .legend { gap: 6px; margin-bottom: 12px; flex-wrap: nowrap; }
 .legend-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--tile-background); border-radius: 999px; padding: 5px 9px; font-size: 11px; white-space: nowrap; }
-#page-todo .todo-tile { --todo-color: var(--bar-track); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px; padding: 14px 16px 14px 20px; border-left: 0; box-shadow: inset 5px 0 0 var(--todo-color); background-image: linear-gradient(135deg, color-mix(in srgb, var(--todo-color) 13%, transparent), transparent 60%); animation: todo-rise 0.25s ease both; transition: opacity 0.3s ease, transform 0.18s ease; }
+#page-todo .todo-tile { --todo-color: var(--bar-track); display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px; padding: 14px 16px 14px 20px; border-left: 0; box-shadow: inset 5px 0 0 var(--todo-color); background-image: linear-gradient(135deg, color-mix(in srgb, var(--todo-color) 13%, transparent), transparent 60%); animation: todo-rise 0.25s ease backwards; transition: opacity 0.3s ease, transform 0.18s ease; }
 #page-todo .todo-overdue, #page-todo .todo-soon { --todo-color: var(--bad); }
 #page-todo .todo-upcoming { --todo-color: var(--warning); }
 #page-todo .todo-later { --todo-color: var(--good); }
@@ -310,6 +310,8 @@ html, body { overflow-x: hidden; }
 #page-todo .todo-date { font-size: 13px; color: var(--muted-text); border: 0; text-decoration: none; background: var(--bar-track); border-radius: 999px; padding: 4px 11px; }
 #page-todo .todo-pill { font-size: 12px; font-weight: 600; color: var(--todo-color); background: color-mix(in srgb, var(--todo-color) 16%, transparent); border-radius: 999px; padding: 4px 10px; }
 #page-todo .todo-tile .remove-link { display: none; }
+/* Set up lists delete by swipe, like everywhere else: the remove control stays in the row (the swipe's Delete presses it) but is hidden. */
+#page-setup [data-setup-remove-card], #page-setup [data-setup-remove-bill], #page-setup [data-setup-remove-subscription], #page-setup [data-setup-remove-override], #page-setup [data-setup-remove-othercard], #page-setup [data-setup-remove-benefit], #page-setup [data-setup-remove-rule] { display: none; }
 #add-todo-button { width: 100%; margin: 4px 0 0; padding: 14px; border-radius: 14px; font-size: 16px; }
 
 /* Goals tab */
