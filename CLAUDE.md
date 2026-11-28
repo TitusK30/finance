@@ -1,0 +1,51 @@
+# Finance OS: notes for Claude
+
+Read this first in every session. Keep it current: when a change alters the architecture, the file list, a convention or the settings model, update this file in the same commit.
+
+## What it is
+A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
+
+## Rules that never change
+- The public repo must contain no personal names, employers, cities, account names, amounts or card numbers. Examples in the UI and docs use generic text.
+- Never put keys or secrets in chat, code or GitHub. Secrets live only in Cloudflare's Secrets box.
+- Never full card numbers or CVV in the app. Never add a paid service without asking.
+- Code style: minimal, surgical changes; simple human-readable code; very descriptive variable names.
+- UI style: keep the same information when restyling; swipe-to-delete only on lists (no visible remove buttons); show a toast when a button does something; everything configurable in the app's Set up page.
+- Finance advice: say you are not a financial advisor.
+
+## Publishing every change
+1. Edit the files, then `node --check src/*.js`.
+2. Run the tests (see below), all must pass before pushing.
+3. Personal-data scan (must print nothing; the repo handle `titusk30` and `currentTarget` are fine): `grep -rniE "<private word list kept in the project instructions>" index.html README.md src relay guide.html preview.html finance_settings.example.json`
+4. Bump the version tag in `index.html` (scripts and CSS load as `src/x.js?v=TAG`). Without a new tag the phone keeps old files. Check with `grep -o "v=20[0-9a-z]*" index.html | sort | uniq -c` that every line shows the new tag.
+5. Commit with `git -c user.name="Claude" -c user.email="noreply@anthropic.com"` and end the message with the attribution trailers the session gives, then `git push -q origin HEAD:main`.
+6. Tell the user to tap Update app, then fully close and reopen.
+Never `git commit --amend` to undo something: use `git revert --no-edit <hash>` (it does not accept `-q`).
+
+## Tests
+Node's built-in runner, CommonJS, files in `test/*.test.js` plus a fixture. They are kept private (they hold real-shaped data), so they are not in this repo. If `test/` is missing, restore it from the private bundle in the project files. Run: copy `src/*.js` next to the tests' `../src`, then `node --test test/*.test.js`. Pure modules end with `if (typeof module !== "undefined") module.exports = {...}`.
+
+## Architecture
+Classic `<script>` globals, loaded in this order: lock, forecast, summaries, spending, spending-tools, plaid-sync, loan, bills, spending-page, spending-extras, tracking, tracking-pages, extra-pages, loans-page, gestures, setup-page, app. Top-level names are shared, so check for name clashes before adding one (`grep -nE "(function|const|let|var) name\b" src/*.js`).
+- **forecast.js**: day-by-day checking forecast (`buildForecast`, `isPaydayOn` is the single source of truth for payday, card due dates, bills, subscriptions, optional weekly everyday-spending event).
+- **summaries.js**: statements, card utilization (`cardUtilizationPlan`, `cardChargesBetween`), net worth, bills/expense items for the Bills tab (`monthlyItemsForTab`), overtime.
+- **spending.js**: transaction merge, categories (`categoryOf`, `setMerchantRules`, per-charge overrides), pending math, transfers, earned, `monthlyBreakdown`, `monthComparison`.
+- **spending-tools.js**: pure search/filter (`filterCharges`), `dailyPace`, `budgetRows`, merchant rules from one charge, recurring-charge detector.
+- **bills.js**: `matchBills` links bank charges to bills/subscriptions by account, text words and a 5-day window (amount only breaks ties). Output per month: `seen`, `unseen`, `upcoming`, `neverCharged`.
+- **plaid-sync.js**: turns relay data into settings. **loan.js**: loan math, several loans (`loansOf`, `loanFromInputs`, `loanStatus`, `loanPayoffPlan`, `loanPaymentCheck` matches payments to checking charges, `loanOverview`).
+- **Pages**: spending-page.js (Spending tab), spending-extras.js (search/filter bar, pace, vs last month, budgets, recurring tile, merchant-rule prompt), tracking-pages.js (goals, planner, credit score, `askChoice` bottom-sheet chooser), extra-pages.js (Bills tab with filter and hold-to-edit, Cards/credit page, rewards, HSA, PTO), loans-page.js (Loans tab: chips, All overview, add/edit sheet), setup-page.js (Set up + guided wizard), app.js (storage, refresh, settings tab, toasts, cards page close dates), gestures.js (swipe-to-delete, edge-swipe menu, long-press, swipe-down to close sheets), lock.js (PIN).
+- **Bottom sheets**: elements with class `date-cover category-picker`; closing = clicking the dimmed background, which every sheet treats as cancel.
+- **Menu**: Home, Spending, Cards, Bills (with Subscriptions and Expenses), Tasks, Goals, Planner, HSA, PTO, Loans, Set up, Settings. Tab keys are unchanged internally (`car` is the Loans tab).
+
+## Settings model
+Stored on the phone, never in git. See `finance_settings.example.json` (fake data) and the README table. Key parts: `minimum_checking_floor`, `paycheck`, `credit_cards`, `card_masks`, `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` (optional `charge_text_contains`), `loans` (older single `car_loan` still reads as the first loan; saving moves it to `loans`), `merchant_rules`, `transaction_categories` (per-charge overrides), `category_budgets`, `transfers_ignore_text`, `hidden_tabs`. Bank refresh fills balances, statements and masks. Typed data is never wiped by loading a settings file; add new keys to the preserved list in `app.js` (the file-import handler) and do not put them in the defaults object if an older stored value must still be read.
+Browser-only extras: Bills filter, bill marks, dismissed recurring suggestions (localStorage). The Spending filter is memory-only on purpose.
+
+## Behaviors worth remembering
+- Bills: monthly items match charges by account/text/date, never by amount. A new subscription is not flagged missing before its first charge. Unpaid items past their day show a warning; items never charged after month end go to "Never charged (not counted)". Hold a Bills item to edit name, amount, day and card.
+- Cards: a closed statement stays until the bank shows it paid (the card's own statement is the trusted signal). The open statement's close date moves to next month once the bank shows that statement issued.
+- Loans: with `payment_text_contains` set, a due date counts as paid only if a checking charge with all those words posts 5 days before to 10 days after it; recent ones wait; older than the app's bank history are assumed paid. Without it, every due date is assumed paid.
+- Spending: transfers are excluded from spending lists; bills are split from everything else.
+
+## Known caveats
+Phone data is separate per phone and per browser. Plaid Trial allows about 10 linked logins. Some card balances lag a day. Old git history holds a few early commits with example text that was later made generic; history was not rewritten.
