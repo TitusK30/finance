@@ -181,6 +181,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `monthly_bills_paid_from_checking`, `subscriptions_charged_to_cards` | Name, amount, `day_of_month` (subscriptions also name the `card`). Optional `charge_text_contains` words to match the bank's wording |
 | `optional_monthly_variable_spending_allowance` | A monthly everyday-spending number for the forecast. `null` keeps it off |
 | `merchant_rules`, `transfers_ignore_text` | Your own category rules (`text`, `category`) and words for transfers to leave out of Spending |
+| `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
 | `car_loan` | `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months` |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA and PTO numbers, retirement balance, and menu tabs to hide |
 
@@ -251,6 +252,8 @@ src/summaries.js         statements, utilization, net worth
 src/spending.js          transactions: merge, categories, pending math
 src/bills.js             matches charges to your bills and subscriptions
 src/spending-page.js     Spending page
+src/spending-tools.js    Search, filter, pace, budgets, merchant rules, recurring detector (math)
+src/spending-extras.js   Their tiles and sheets on the Spending page
 src/setup-page.js        Set up page and guided set-up
 src/plaid-sync.js        turns relay data into your settings
 src/app.js               pages, storage, refresh, auto-refresh

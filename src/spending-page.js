@@ -176,11 +176,17 @@ function showSpendingPage(settings) {
   const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
 </summary>${pending.map((charge) => chargeRowHtml(settings, store, charge)).join("")}</details>` : "";
 
-  const categoryRows = month.categories.map((entry) => `<details class="tile category-tile spending-accent" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
+  const budgets = settings.category_budgets || {};
+  const categoryRows = month.categories.map((entry) => {
+    const limit = budgets[entry.category];
+    const overBudget = limit > 0 && entry.total > limit;
+    const budgetNote = limit > 0 ? ` · <span class="${overBudget ? "negative" : ""}">${formatMoney(entry.total)} of ${formatMoney(limit)} budget</span>` : "";
+    return `<details class="tile category-tile spending-accent" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
-      <div class="bar"><div class="bar-fill" style="width:${entry.share}%"></div></div>
-      <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}</div></summary>
-    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`).join("");
+      <div class="bar"><div class="bar-fill" style="width:${entry.share}%${overBudget ? ";background:var(--bad)" : ""}"></div></div>
+      <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}${budgetNote}</div></summary>
+    ${entry.charges.map((charge) => chargeRowHtml(settings, store, charge, `<button class="mark-button" data-mark-bill="${charge.transaction_id}">mark as bill</button>`)).join("")}</details>`;
+  }).join("");
 
   const isCurrentMonthShown = spendingMonthShown === todayText().slice(0, 7);
   const earned = earnedInMonth(store, spendingMonthShown, settings);
@@ -218,9 +224,11 @@ function showSpendingPage(settings) {
   const merchantRows = month.topMerchants.map((merchant, position) => `<div class="place-row"><div class="tile-row"><span><span class="place-rank">${position + 1}</span>${escapeHtml(merchant.name)}</span><b>${formatMoney(merchant.amount)}</b></div>
     <div class="bar"><div class="bar-fill" style="width:${Math.round((merchant.amount / biggestMerchant) * 100)}%"></div></div></div>`).join("");
 
+  const recurringTile = isCurrentMonthShown ? recurringTileHtml(settings, store) : "";
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>
-    <div class="tile"><div class="small">Total spent this month</div>
+    ${spendingToolbarHtml()}<div id="spending-results" hidden></div>
+    <div id="spending-main"><div class="tile"><div class="small">Total spent this month</div>
       <div class="huge-number">${formatMoney(Math.round((everythingElseTotal + billsTotal) * 100) / 100)}</div>
       <div class="split-bar"><div class="split-bills" style="width:${billsSharePercent}%"></div></div>
       <div class="split-columns">
@@ -230,8 +238,10 @@ function showSpendingPage(settings) {
       ${stillToPayLine}</div>
     ${earnedTile}
     ${leftTile}
-    ${pendingTile}${categoryRows}${billsTile}${transfersTile}
-    <div class="tile"><b>Top places</b>${merchantRows}</div>`;
+    ${paceTileHtml(allCharges, spendingMonthShown)}${vsLastMonthHtml(charges, spendingMonthShown)}${budgetsTileHtml(settings, month)}
+    ${pendingTile}${categoryRows}${billsTile}${transfersTile}${recurringTile}
+    <div class="tile"><b>Top places</b>${merchantRows}</div></div>`;
+  refreshSpendingResults(settings);
 }
 
 document.addEventListener("click", (event) => {
@@ -304,9 +314,12 @@ async function chooseCategoryForCharge(transactionId) {
   settings.transaction_categories = { ...overrides };
   if (category === "__auto__") delete settings.transaction_categories[transactionId];
   else settings.transaction_categories[transactionId] = category === "Other" ? "OTHER" : category;
+  const ruleSaved = category === "__auto__" ? "" : await askAboutMerchantRule(settings, charge, settings.transaction_categories[transactionId] || "OTHER");
   saveSettings(settings);
   setTransactionCategories(settings.transaction_categories);
+  setMerchantRules(settings.merchant_rules);
   showSpendingPage(settings);
   [...document.querySelectorAll("#page-spending details")].forEach((tile, position) => { tile.open = Boolean(openTiles[position]); });
-  showToast(category === "__auto__" ? "Back to automatic." : `Moved to ${categoryDisplayName(settings.transaction_categories[transactionId])}.`);
+  const movedTo = categoryDisplayName(settings.merchant_rules && ruleSaved ? settings.merchant_rules.find((rule) => rule.text === ruleSaved).category : settings.transaction_categories[transactionId]);
+  showToast(category === "__auto__" ? "Back to automatic." : ruleSaved ? `Rule saved: every \u201c${ruleSaved}\u201d charge goes to ${movedTo}.` : `Moved to ${movedTo}.`);
 }
