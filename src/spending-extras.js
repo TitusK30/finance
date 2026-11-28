@@ -281,9 +281,9 @@ function recurringCandidatesNow(settings, store) {
 function recurringTileHtml(settings, store) {
   const candidates = recurringCandidatesNow(settings, store);
   if (!candidates.length) return "";
-  const rows = candidates.map((candidate) => `<div class="place-row"><div class="tile-row"><span>${escapeHtml(candidate.name)}</span><b>${formatMoney(candidate.amount)}</b></div>
-      <div class="tile-row small"><span>around the ${candidate.day}${ordinalEnding(candidate.day)} · ${candidate.monthsSeen} months in a row · ${escapeHtml(cardNameForAccount(settings, store, candidate.accountId))}</span></div>
-      <div class="tile-row small"><button class="mark-button" data-add-recurring="${escapeHtml(candidate.key)}">add to Bills</button><button class="mark-button" data-dismiss-recurring="${escapeHtml(candidate.key)}">not recurring</button></div></div>`).join("");
+  const rows = candidates.map((candidate) => openRowHtml(badgeHtml("day", "~" + candidate.day), escapeHtml(candidate.name),
+      `${candidate.monthsSeen} months in a row · ${escapeHtml(cardNameForAccount(settings, store, candidate.accountId))}`, formatMoney(candidate.amount), ` class="open-row"`,
+      `<div class="open-row-actions"><button class="pill-button pill-button-main" data-add-recurring="${escapeHtml(candidate.key)}">Add to Bills</button><button class="pill-button" data-dismiss-recurring="${escapeHtml(candidate.key)}">Not recurring</button></div>`)).join("");
   return `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Looks recurring</b><b>${candidates.length}</b></div><div class="small">Charged every month, not in Bills yet</div></summary>${rows}</details>`;
 }
 

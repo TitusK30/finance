@@ -889,3 +889,29 @@ html, body { overflow-x: hidden; }
 #page-spending .charge-row { padding: 9px 0; border-top-color: var(--spend-line); }
 #page-spending .place-row .tile-row b { font-variant-numeric: tabular-nums; }
 #page-spending .spending-accent > summary > .small:first-child, #page-spending .tile.good > .small:first-child, #page-spending .tile.warning > .small:first-child { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; }
+
+/* ===== Opened blocks: each row gets a date badge, a name with a muted line, and the amount ===== */
+.open-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--spend-line, rgba(255, 255, 255, 0.06)); animation: open-row-in 0.28s ease backwards; }
+.category-tile[open] > summary + .open-row, .category-tile[open] > summary + .open-group-label { border-top: 0; }
+.date-badge { flex: 0 0 auto; width: 42px; height: 44px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+  background: color-mix(in srgb, var(--tile-accent, var(--accent)) 16%, transparent); color: color-mix(in srgb, var(--tile-accent, var(--accent)) 70%, var(--main-text)); }
+.date-badge span { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+.date-badge b { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.open-row-text { flex: 1; min-width: 0; }
+.open-row-title { font-size: 15px; font-weight: 500; line-height: 1.25; overflow-wrap: anywhere; }
+.open-row-sub { font-size: 12px; color: var(--muted-text); margin-top: 3px; }
+.open-row-amount { flex: 0 0 auto; text-align: right; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.open-row-faded .date-badge { background: rgba(255, 255, 255, 0.05); color: var(--muted-text); }
+.open-row-faded .open-row-amount { color: var(--muted-text); font-weight: 500; }
+.open-group-label { margin: 12px 0 2px; padding-top: 10px; border-top: 1px solid var(--spend-line, rgba(255, 255, 255, 0.06)); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-text); }
+.open-row .pending-tag { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--warning) 15%, transparent); font-size: 10px; font-weight: 600; }
+.open-row .overdue-tag { margin-left: 0; color: var(--bad); background: color-mix(in srgb, var(--bad) 15%, transparent); }
+.open-row-amount .mark-button { text-decoration: none; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); font-size: 11px; font-weight: 600; }
+.open-row-actions { display: flex; gap: 8px; margin-top: 10px; }
+.pill-button { width: auto; margin: 0; padding: 6px 12px; white-space: nowrap; border-radius: 999px; border: 1px solid var(--spend-line, rgba(255, 255, 255, 0.1)); background: rgba(255, 255, 255, 0.05); color: var(--main-text); font-size: 13px; font-weight: 600; }
+.pill-button-main { border-color: transparent; background: color-mix(in srgb, var(--accent) 20%, transparent); color: color-mix(in srgb, var(--accent) 75%, var(--main-text)); }
+@keyframes open-row-in { from { opacity: 0; transform: translateY(-4px); } }
+/* The open arrow: a soft round button that turns when the block opens */
+#page-spending .category-tile summary { padding-right: 38px; }
+#page-spending .category-tile summary::after { content: ""; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%; background: rgba(255, 255, 255, 0.06) center / 12px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%239ca3af' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); transition: transform 0.25s ease, background-color 0.25s ease; }
+#page-spending .category-tile[open] summary::after { transform: rotate(180deg); background-color: color-mix(in srgb, var(--tile-accent, var(--accent)) 22%, transparent); }

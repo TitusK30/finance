@@ -50,7 +50,21 @@ function cardNameForAccount(settings, store, accountId) {
 function chargeRowHtml(settings, store, charge, markButton = "") {
   const pendingTag = charge.pending ? ` <span class="pending-tag">pending</span>` : "";
   const cardName = cardNameForAccount(settings, store, charge.account_id);
-  return `<div class="tile-row small charge-row" data-charge-id="${charge.transaction_id}"><span>${shortMonthDay(charge.date)} · ${escapeHtml(merchantName(charge))}${pendingTag}<br><span class="charge-card">${escapeHtml(cardName)}</span></span><span>${formatMoney(charge.amount)}<br>${markButton}</span></div>`;
+  return openRowHtml(dateBadgeHtml(charge.date), escapeHtml(merchantName(charge)), escapeHtml(cardName) + pendingTag, formatMoney(charge.amount) + markButton, ` class="open-row charge-row" data-charge-id="${charge.transaction_id}"`);
+}
+
+// A small rounded badge: short month on top, the day number under it.
+function dateBadgeHtml(dateText) {
+  const date = new Date(dateText + "T00:00:00Z");
+  return badgeHtml(date.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }), date.getUTCDate());
+}
+function badgeHtml(topText, bigText) {
+  return `<div class="date-badge"><span>${topText}</span><b>${bigText}</b></div>`;
+}
+
+// One row inside an opened Spending block: badge, name with a muted line under it, amount on the right.
+function openRowHtml(badge, title, subtitle, amountHtml, rowAttributes = ` class="open-row"`, belowHtml = "") {
+  return `<div${rowAttributes}>${badge}<div class="open-row-text"><div class="open-row-title">${title}</div>${subtitle ? `<div class="open-row-sub">${subtitle}</div>` : ""}${belowHtml}</div><div class="open-row-amount">${amountHtml}</div></div>`;
 }
 
 function monthLabel(yearMonth) {
@@ -181,8 +195,8 @@ function showSpendingPage(settings) {
       const button = markedByHand ? `<button class="mark-button" data-unmark-bill="${charge.transaction_id}">not a bill</button>` : "";
       return chargeRowHtml(settings, store, { ...charge, merchant_name: billMatches.billCharges[charge.transaction_id] + " · " + merchantName(charge) }, button);
     }).join("")}
-    ${notSeen.length ? `<div class="small not-seen"><b>Still to pay this month</b>${notSeen.map((bill) => `<div class="tile-row small"><span>${bill.overdue ? "\u26a0\ufe0f " : ""}${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}
-    ${neverCharged.length ? `<div class="small not-seen"><b>\u26a0\ufe0f Never charged (not counted)</b>${neverCharged.map((bill) => `<div class="tile-row small"><span>${escapeHtml(bill.name)} (due ${shortMonthDay(bill.expected)})</span><span>${formatMoney(bill.amount)}</span></div>`).join("")}</div>` : ""}</details>` : "";
+    ${notSeen.length ? `<div class="open-group-label">Still to pay this month</div>${notSeen.map((bill) => openRowHtml(dateBadgeHtml(bill.expected), escapeHtml(bill.name), bill.overdue ? `<span class="pending-tag overdue-tag">\u26a0\ufe0f past due</span>` : `due ${shortMonthDay(bill.expected)}`, formatMoney(bill.amount), ` class="open-row open-row-faded"`)).join("")}` : ""}
+    ${neverCharged.length ? `<div class="open-group-label">\u26a0\ufe0f Never charged (not counted)</div>${neverCharged.map((bill) => openRowHtml(dateBadgeHtml(bill.expected), escapeHtml(bill.name), `due ${shortMonthDay(bill.expected)}`, formatMoney(bill.amount), ` class="open-row open-row-faded"`)).join("")}` : ""}</details>` : "";
 
   const pending = pendingCharges(store).filter((charge) => !isBill(charge) && !isMoneyMovedNotSpent(charge) && charge.date.startsWith(spendingMonthShown));
   const pendingTile = pending.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Pending</b><b class="amber-text">${formatMoney(pending.reduce((sum, charge) => sum + charge.amount, 0))}</b></div>
@@ -193,7 +207,7 @@ function showSpendingPage(settings) {
     const limit = budgets[entry.category];
     const overBudget = limit > 0 && entry.total > limit;
     const budgetNote = limit > 0 ? ` · <span class="${overBudget ? "negative" : ""}">${formatMoney(entry.total)} of ${formatMoney(limit)} budget</span>` : "";
-    return `<details class="tile category-tile spending-accent"\u{1F3F7}\uFE0F"}" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
+    return `<details class="tile category-tile spending-accent" style="--tile-accent:${CATEGORY_COLORS[entry.category] || "var(--muted-text)"}">
     <summary><div class="tile-row"><b>${entry.name}</b><b>${formatMoney(entry.total)}</b></div>
       <div class="bar"><div class="bar-fill" style="width:${entry.share}%${overBudget ? ";background:var(--bad)" : ""}"></div></div>
       <div class="small">${entry.share}% of the month · ${entry.charges.length} charge${entry.charges.length === 1 ? "" : "s"}${budgetNote}</div></summary>
@@ -227,7 +241,7 @@ function showSpendingPage(settings) {
     <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
     <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
 
-  const transferRows = transfers.items.map((transfer) => `<div class="tile-row small"><span>${shortMonthDay(transfer.date)} · ${escapeHtml(merchantName(transfer))}</span><span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span></div>`).join("");
+  const transferRows = transfers.items.map((transfer) => openRowHtml(dateBadgeHtml(transfer.date), escapeHtml(merchantName(transfer)), transfer.amount < 0 ? "money in" : "money out", `<span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span>`)).join("");
   const netTransfers = Math.round((transfers.totalIn - transfers.totalOut) * 100) / 100;
   const transfersTile = transfers.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:${netTransfers >= 0 ? "var(--good)" : "var(--bad)"}"><summary><div class="tile-row"><b>Transfers</b><b class="${netTransfers >= 0 ? "positive" : "negative"}">${netTransfers >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netTransfers))}</b></div>
     <div class="small">${transfers.items.length} transfer${transfers.items.length === 1 ? "" : "s"}</div></summary>${transferRows}</details>` : "";
@@ -235,7 +249,7 @@ function showSpendingPage(settings) {
   // Money moved to or from your savings (found by the savings words in Set up). Not spending, just shown here.
   const savingsMoves = savingsMovesInMonth(store, spendingMonthShown, settings);
   const netToSavings = Math.round((savingsMoves.toSavings - savingsMoves.fromSavings) * 100) / 100;
-  const savingsRows = savingsMoves.items.map((move) => `<div class="tile-row small"><span>${shortMonthDay(move.date)} · ${escapeHtml(merchantName(move))} · ${move.amount > 0 ? "to savings" : "from savings"}${move.pending ? ' <span class="amber-text">pending</span>' : ""}</span><span class="amount-nowrap">${formatMoney(Math.abs(move.amount))}</span></div>`).join("");
+  const savingsRows = savingsMoves.items.map((move) => openRowHtml(dateBadgeHtml(move.date), escapeHtml(merchantName(move)), (move.amount > 0 ? "to savings" : "from savings") + (move.pending ? ' <span class="pending-tag">pending</span>' : ""), `<span class="amount-nowrap">${formatMoney(Math.abs(move.amount))}</span>`)).join("");
   const savingsTile = savingsMoves.items.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Savings</b><b>${netToSavings >= 0 ? "+" : "&minus;"}${formatMoney(Math.abs(netToSavings))}</b></div>
     <div class="small">${formatMoney(savingsMoves.toSavings)} in · ${formatMoney(savingsMoves.fromSavings)} out · not counted as spending</div></summary>${savingsRows}</details>` : "";
 

@@ -4,11 +4,12 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: Spending restyle, trimmed to what the user kept: no duplicate "Spending" heading; month switcher as a pill with round arrows; hero total with small cents (`moneyHtml`), a split bar with a gap and still-to-pay as a pill; Earned and Left to spend with the calm Home look (caps labels, no bright outline); one thin border on every tile, slimmer bars, tabular numbers. Styles in the "Spending restyle" block at the end of style.css. Tried and removed (the user did not want them): section headers on Spending, icon badges on Spending blocks, Top places rank colors.
+- Last built: opened Spending blocks restyled. Rows inside every Spending collapsible (categories, pending, bills, transfers, savings, looks recurring, search results; also the Cards pending list) use `openRowHtml` + `dateBadgeHtml`/`badgeHtml` in spending-page.js: a tinted date badge in the tile's accent color, name with a muted line, amount on the right, pill tags and pill buttons (`.pill-button`), a soft fade-in. The open arrow is a round button that turns and tints when open. Styles in the "Opened blocks" block at the end of style.css. Charge rows keep `charge-row` and `data-charge-id`, so hold-to-edit still works.
+- Spending restyle (kept parts): no duplicate "Spending" heading; pill month switcher; hero total with small cents and split bar; calm Earned and Left to spend; thin tile borders. Tried and removed (the user did not want them): section headers on Spending, icon badges on Spending blocks, Top places rank colors.
 - Home restyle (the earlier trial) is KEPT: the user likes it.
 - Default Home order (for anyone who hasn't customized) is Left to spend, Savings transfer advice, Balances, Credit score, Credit cards, Checking chart, Next 40 days; it is the key order of `HOME_BLOCK_NAMES` and the wrapper order in index.html (keep both the same).
-- Version tag 20261128zs, 158 tests passing.
-- Waiting on the user to confirm on the phone: the trimmed Spending restyle; change triangles from tomorrow.
+- Version tag 20261128zt, 158 tests passing.
+- Waiting on the user to confirm on the phone: the opened-block rows on Spending; change triangles from tomorrow.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
