@@ -71,10 +71,14 @@ function showBalances(settings) {
 
 // ---- Customize Home: the order of the blocks and which are hidden live in settings.home_layout.
 const HOME_BLOCK_NAMES = { outlook: "Left to spend", transfer: "Savings transfer advice", balances: "Balances", score: "Credit score", cards: "Credit cards", chart: "Checking chart", calendar: "Next 40 days" }; // this order is the default Home order
+// A saved layout ({ order, hidden }) checked against the known blocks; new blocks join at the end.
+function blockLayoutOf(savedLayout, blockNames) {
+  const layout = savedLayout || {};
+  const savedOrder = (layout.order || []).filter((key) => blockNames[key]);
+  return { order: [...savedOrder, ...Object.keys(blockNames).filter((key) => !savedOrder.includes(key))], hidden: (layout.hidden || []).filter((key) => blockNames[key]) };
+}
 function homeLayoutOf(settings) {
-  const layout = settings.home_layout || {};
-  const savedOrder = (layout.order || []).filter((key) => HOME_BLOCK_NAMES[key]);
-  return { order: [...savedOrder, ...Object.keys(HOME_BLOCK_NAMES).filter((key) => !savedOrder.includes(key))], hidden: (layout.hidden || []).filter((key) => HOME_BLOCK_NAMES[key]) };
+  return blockLayoutOf(settings.home_layout, HOME_BLOCK_NAMES);
 }
 
 function applyHomeLayout(settings) {
@@ -92,26 +96,31 @@ const HOME_BLOCK_LOOKS = { outlook: ["&#128181;", "#4ade80"], balances: ["&#1281
 
 // Customize Home: drag a row by its handle to move it, flip the switch to show or hide it. Changes apply right away.
 function openCustomizeHome() {
+  openCustomizeSheet({ pageName: "Home", layoutKey: "home_layout", blockNames: HOME_BLOCK_NAMES, blockLooks: HOME_BLOCK_LOOKS, applyLayout: applyHomeLayout });
+}
+
+// The Customize sheet shared by Home and Spending. The layout is saved in settings[layoutKey].
+function openCustomizeSheet({ pageName, layoutKey, blockNames, blockLooks, applyLayout }) {
   const settings = loadSettings();
-  const layout = homeLayoutOf(settings);
+  const layout = blockLayoutOf(settings[layoutKey], blockNames);
   const cover = document.createElement("div");
   cover.className = "date-cover category-picker filter-sheet bill-editor customize-sheet";
   const draw = () => {
     const shownCount = layout.order.filter((key) => !layout.hidden.includes(key)).length;
-    cover.innerHTML = `<div class="date-box" style="--sheet-accent:var(--accent)"><div class="date-question sheet-title"><span class="sheet-badge" style="--badge-color:var(--accent)">&#9881;&#65039;</span><span>Customize Home</span></div>
+    cover.innerHTML = `<div class="date-box" style="--sheet-accent:var(--accent)"><div class="date-question sheet-title"><span class="sheet-badge" style="--badge-color:var(--accent)">&#9881;&#65039;</span><span>Customize ${pageName}</span></div>
       <div class="customize-summary"><span>${shownCount} of ${layout.order.length} blocks shown</span><span>Drag &#8801; to move</span></div>
       <div class="customize-list">${layout.order.map((key, position) => {
         const isShown = !layout.hidden.includes(key);
-        const [icon, color] = HOME_BLOCK_LOOKS[key] || ["&#9632;", "var(--accent)"];
+        const [icon, color] = blockLooks[key] || ["&#9632;", "var(--accent)"];
         return `<div class="customize-row${isShown ? "" : " is-hidden"}" data-block-key="${key}" style="--block-color:${color}">
           <span class="customize-handle" aria-label="Drag to move">&#8801;</span>
           <span class="customize-icon">${icon}</span>
-          <span class="customize-name"><b>${HOME_BLOCK_NAMES[key]}</b><span>${isShown ? `#${layout.order.slice(0, position + 1).filter((shownKey) => !layout.hidden.includes(shownKey)).length} on Home` : "Hidden on Home"}</span></span>
-          <button class="customize-switch${isShown ? " is-on" : ""}" data-toggle-block="${key}" role="switch" aria-checked="${isShown}" aria-label="Show ${HOME_BLOCK_NAMES[key]}"></button></div>`;
+          <span class="customize-name"><b>${blockNames[key]}</b><span>${isShown ? `#${layout.order.slice(0, position + 1).filter((shownKey) => !layout.hidden.includes(shownKey)).length} on ${pageName}` : `Hidden on ${pageName}`}</span></span>
+          <button class="customize-switch${isShown ? " is-on" : ""}" data-toggle-block="${key}" role="switch" aria-checked="${isShown}" aria-label="Show ${blockNames[key]}"></button></div>`;
       }).join("")}</div>
       <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-customize-done><b>Done</b></button><button class="choice-button is-wide" data-customize-reset><b>Back to the usual order</b></button></div></div>`;
   };
-  const saveLayout = () => { settings.home_layout = { order: layout.order, hidden: layout.hidden }; saveSettings(settings); applyHomeLayout(settings); };
+  const saveLayout = () => { settings[layoutKey] = { order: layout.order, hidden: layout.hidden }; saveSettings(settings); applyLayout(settings); };
   draw();
   cover.addEventListener("click", (event) => {
     const toggleButton = event.target.closest("[data-toggle-block]");
@@ -125,10 +134,10 @@ function openCustomizeHome() {
       return;
     }
     if (event.target.closest("[data-customize-reset]")) {
-      layout.order = Object.keys(HOME_BLOCK_NAMES); layout.hidden = [];
-      saveLayout(); draw(); showToast("Home is back to the usual order."); return;
+      layout.order = Object.keys(blockNames); layout.hidden = [];
+      saveLayout(); draw(); showToast(`${pageName} is back to the usual order.`); return;
     }
-    if (event.target.closest("[data-customize-done]") || event.target === cover) { cover.remove(); showToast("Home layout saved."); }
+    if (event.target.closest("[data-customize-done]") || event.target === cover) { cover.remove(); showToast(`${pageName} layout saved.`); }
   });
   // Dragging: the held row follows the finger, the others slide out of its way, and letting go drops it there.
   let drag = null;
@@ -494,7 +503,7 @@ document.getElementById("settings-file-input").addEventListener("change", async 
   const incomingSettings = JSON.parse(await chosenFile.text());
   // Keep what you typed into the Rewards and HSA pages if the file doesn't have it.
   const previousSettings = loadSettings();
-  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "loans", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "transaction_categories", "category_budgets", "other_points", "home_layout", "optional_monthly_variable_spending_allowance"]) {
+  for (const sectionName of ["rewards", "card_benefits", "hsa", "retirement", "credit_utilization", "overtime", "pto", "car_loan", "loans", "todo_items", "savings_goals", "net_worth_history", "credit_scores", "annual_card_fees", "card_expirations", "other_cards", "account_masks", "card_masks", "hidden_tabs", "expected_money", "transfers_ignore_text", "merchant_rules", "transaction_categories", "category_budgets", "other_points", "home_layout", "spending_layout", "optional_monthly_variable_spending_allowance"]) {
     if (!incomingSettings[sectionName] && previousSettings) incomingSettings[sectionName] = previousSettings[sectionName];
   }
   keepBankAndTypedData(incomingSettings, previousSettings);

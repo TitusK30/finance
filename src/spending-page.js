@@ -157,6 +157,20 @@ function showMonthOutlook(settings) {
   box.querySelector("details").addEventListener("toggle", (event) => localStorage.setItem(OUTLOOK_OPEN_KEY, event.target.open ? "yes" : "no"));
 }
 
+// ---- Customize Spending: the order of the blocks and which are hidden live in settings.spending_layout.
+const SPENDING_BLOCK_NAMES = { hero: "Total spent", earned: "Earned", left: "Left to spend", budgets: "Budgets", pending: "Pending", categories: "Categories",
+  bills: "Bills and subscriptions", transfers: "Transfers", savings: "Savings", recurring: "Looks recurring", places: "Top places", pace: "Spending pace", vslast: "Vs last month" }; // this order is the default Spending order
+const SPENDING_BLOCK_LOOKS = { hero: ["&#128184;", "#5aa2ff"], earned: ["&#128181;", "#34d399"], left: ["&#127919;", "#2dd4bf"], budgets: ["&#128203;", "#a78bfa"], pending: ["&#9203;", "#fbbf24"],
+  categories: ["&#128722;", "#fb923c"], bills: ["&#129534;", "#fbbf24"], transfers: ["&#128257;", "#5aa2ff"], savings: ["&#127974;", "#5aa2ff"], recurring: ["&#128260;", "#fbbf24"],
+  places: ["&#128205;", "#f472b6"], pace: ["&#128200;", "#5aa2ff"], vslast: ["&#9878;&#65039;", "#818cf8"] };
+function spendingLayoutOf(settings) {
+  return blockLayoutOf(settings.spending_layout, SPENDING_BLOCK_NAMES);
+}
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-customize-spending]")) return;
+  openCustomizeSheet({ pageName: "Spending", layoutKey: "spending_layout", blockNames: SPENDING_BLOCK_NAMES, blockLooks: SPENDING_BLOCK_LOOKS, applyLayout: showSpendingPage });
+});
+
 function showSpendingPage(settings) {
   const page = document.getElementById("page-spending");
   const store = loadTransactionStore();
@@ -187,7 +201,7 @@ function showSpendingPage(settings) {
   const neverCharged = (billMatches.byMonth[spendingMonthShown] || {}).neverCharged || [];
   const stillToPay = Math.round(notSeen.reduce((sum, bill) => sum + bill.amount, 0) * 100) / 100;
   const billsSharePercent = billsTotal > 0 ? Math.round((billsTotal / (billsTotal + everythingElseTotal)) * 100) : 0;
-  const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="small still-to-pay">${formatMoney(stillToPay)} of bills and subscriptions still to pay this month</div>` : "";
+  const stillToPayLine = spendingMonthShown === todayText().slice(0, 7) ? `<div class="still-to-pay"><span class="still-to-pay-icon">&#9203;</span><span><b>${formatMoney(stillToPay)}</b> of bills and subscriptions still to pay this month</span></div>` : "";
   const billsTile = billRows.length || notSeen.length || neverCharged.length ? `<details class="tile category-tile spending-accent" style="--tile-accent:var(--warning)"><summary><div class="tile-row"><b>Bills and subscriptions</b><b>${formatMoney(billsTotal)}</b></div>
       <div class="small">${billRows.length} charge${billRows.length === 1 ? "" : "s"}</div></summary>
     ${billRows.map((charge) => {
@@ -219,27 +233,40 @@ function showSpendingPage(settings) {
   const ahead = paydaysAhead(settings, store, spendingMonthShown);
   const paydaysLeft = ahead.count;
   const expectedPayLeft = ahead.amount;
-  const expectedLine = ahead.known ? `${earned.count} deposit${earned.count === 1 ? "" : "s"} \u00b7 ${formatMoney(earned.total + expectedPayLeft)} expected by month end` : `${earned.count} deposit${earned.count === 1 ? "" : "s"}`;
-  const payRow = (dateText, amount, extra = "", chips = "") => `<div class="pay-row${extra}"><span>${shortMonthDay(dateText)}${chips}</span><b class="positive">${formatMoney(amount)}</b></div>`;
-  const depositRows = earned.deposits.map((deposit) => payRow(deposit.date, -deposit.amount, "", deposit.pending ? `<span class="pay-chip">pending</span>` : "")).join("");
+  const depositCountText = `${earned.count} deposit${earned.count === 1 ? "" : "s"}`;
+  const expectedChip = ahead.known ? `<span class="earn-chip earn-chip-soft">${formatMoney(earned.total + expectedPayLeft)} expected by month end</span>` : "";
+  const weekdayOf = (dateText) => new Date(dateText + "T00:00:00Z").toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  const depositRows = earned.deposits.map((deposit) => openRowHtml(dateBadgeHtml(deposit.date), "Deposit", weekdayOf(deposit.date) + (deposit.pending ? ` <span class="pending-tag">pending</span>` : ""), `<span class="positive">+${formatMoney(-deposit.amount)}</span>`, ` class="open-row pay-row"`)).join("");
   // Paychecks typed in by hand: tap the chip to say whether the bank balance already holds it; swipe the row to delete.
-  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => `<div class="pay-row tile-row"><span>${shortMonthDay(entry.date)}<span class="pay-chip">upcoming</span><button class="pay-chip pay-chip-button${entry.in_balance ? " pay-chip-good" : ""}" data-toggle-typed-pay="${entry.date}">${entry.in_balance ? "in balance \u2713" : "arrives that day"}</button></span><b class="positive">${formatMoney(entry.amount)}</b><button class="remove-link" data-remove-typed-pay="${entry.date}">remove</button></div>`).join("") : "";
-  const typedPayForm = isCurrentMonthShown ? `<details class="add-pay"><summary>+ Add upcoming paycheck</summary>
-    <div class="add-pay-grid"><input id="typed-pay-date" type="date" value="${todayText()}"><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="Amount ($)"></div>
-    <select id="typed-pay-in-balance"><option value="">Arrives on that date</option><option value="yes">Already in my bank balance</option></select>
-    <button id="typed-pay-add">Add</button><div id="typed-pay-message" class="small"></div></details>` : "";
-  const earnedTile = `<details class="tile category-tile spending-accent no-swipe-parent" style="--tile-accent:var(--good)"${earnedTileOpen ? " open" : ""}><summary><div class="small">Earned this month</div><div class="big-number positive">${formatMoney(earned.total)}</div>
-    <div class="small">${expectedLine}</div></summary>${depositRows}${typedPayRows}${typedPayForm}</details>`;
+  const typedPayRows = isCurrentMonthShown ? expectedPaychecks(store, settings, todayText()).list.map((entry) => openRowHtml(dateBadgeHtml(entry.date), "Upcoming paycheck",
+    `<button class="pay-chip pay-chip-button${entry.in_balance ? " pay-chip-good" : ""}" data-toggle-typed-pay="${entry.date}">${entry.in_balance ? "in balance \u2713" : "arrives that day"}</button>`,
+    `<span class="positive">+${formatMoney(entry.amount)}</span><button class="remove-link" data-remove-typed-pay="${entry.date}">remove</button>`, ` class="open-row pay-row tile-row open-row-upcoming"`)).join("") : "";
+  const typedPayForm = isCurrentMonthShown ? `<details class="add-pay"><summary><span class="add-pay-plus">+</span>Add upcoming paycheck</summary>
+    <div class="add-pay-body">
+      <div class="add-pay-grid">
+        <label class="add-pay-field"><span>Pay date</span><input id="typed-pay-date" type="date" value="${todayText()}"></label>
+        <label class="add-pay-field"><span>Amount</span><span class="add-pay-money"><i>$</i><input id="typed-pay-amount" type="number" inputmode="decimal" placeholder="0.00"></span></label>
+      </div>
+      <input type="hidden" id="typed-pay-in-balance" value="">
+      <div class="pay-segment"><button class="is-on" data-pay-arrival="">Arrives that day</button><button data-pay-arrival="yes">Already in balance</button></div>
+      <button id="typed-pay-add" class="add-pay-save">Add paycheck</button><div id="typed-pay-message" class="small"></div>
+    </div></details>` : "";
+  const earnedTile = `<details class="tile category-tile spending-accent no-swipe-parent earned-tile" style="--tile-accent:#34d399"${earnedTileOpen ? " open" : ""}><summary><div class="hero-label">Earned this month</div><div class="earned-number">${moneyHtml(Math.round(earned.total * 100) / 100)}</div>
+    <div class="earn-chips"><span class="earn-chip">${depositCountText}</span>${expectedChip}</div></summary>${depositRows}${typedPayRows}${typedPayForm}</details>`;
 
   // Estimated month: pay earned plus paychecks still ahead, minus everything spent plus bills still to pay.
   const isCurrentMonth = spendingMonthShown === todayText().slice(0, 7);
   const estimatedEarned = earned.total + expectedPayLeft;
   const estimatedSpent = everythingElseTotal + billsTotal + (isCurrentMonth ? stillToPay : 0);
   const leftToSpend = Math.round((estimatedEarned - estimatedSpent) * 100) / 100;
-  const leftTile = `<div class="tile ${leftToSpend >= 0 ? "good" : "warning"}"><div class="small">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
-    <div class="big-number ${leftToSpend >= 0 ? "positive" : "negative"}">${formatMoney(leftToSpend)}</div>
-    <div class="tile-row small"><span>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><span>${formatMoney(estimatedEarned)}</span></div>
-    <div class="tile-row small"><span>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><span>&minus;${formatMoney(estimatedSpent)}</span></div></div>`;
+  const spentShareOfEarned = estimatedEarned > 0 ? Math.min(100, Math.round((estimatedSpent / estimatedEarned) * 100)) : 100;
+  const leftTile = `<div class="tile left-tile ${leftToSpend >= 0 ? "is-good" : "is-over"}"><div class="hero-label">${isCurrentMonth ? "Estimated left to spend this month" : "Left over this month"}</div>
+    <div class="left-number">${moneyHtml(leftToSpend)}</div>
+    <div class="left-meter"><div class="left-meter-fill" style="width:${spentShareOfEarned}%"></div></div>
+    <div class="left-rows">
+      <div class="left-row"><span><i class="dot dot-earned"></i>${isCurrentMonth ? "Estimated earned" : "Earned"}</span><b>${formatMoney(estimatedEarned)}</b></div>
+      <div class="left-row"><span><i class="dot dot-spent"></i>Total spent${isCurrentMonth ? " + unpaid bills" : ""}</span><b>&minus;${formatMoney(estimatedSpent)}</b></div>
+    </div></div>`;
 
   const transferRows = transfers.items.map((transfer) => openRowHtml(dateBadgeHtml(transfer.date), escapeHtml(merchantName(transfer)), transfer.amount < 0 ? "money in" : "money out", `<span class="amount-nowrap ${transfer.amount < 0 ? "positive" : "negative"}">${transfer.amount < 0 ? "+" : "&minus;"}${formatMoney(Math.abs(transfer.amount))}</span>`)).join("");
   const netTransfers = Math.round((transfers.totalIn - transfers.totalOut) * 100) / 100;
@@ -258,22 +285,24 @@ function showSpendingPage(settings) {
     <div class="bar"><div class="bar-fill" style="width:${Math.round((merchant.amount / biggestMerchant) * 100)}%"></div></div></div>`).join("");
 
   const recurringTile = isCurrentMonthShown ? recurringTileHtml(settings, store) : "";
+  const heroTile = `<div class="tile spend-hero"><div class="hero-label">Total spent this month</div>
+      <div class="huge-number">${moneyHtml(Math.round((everythingElseTotal + billsTotal) * 100) / 100)}</div>
+      <div class="split-bar"><div class="split-bills" style="width:${billsSharePercent}%"></div></div>
+      <div class="spend-split">
+        <div class="spend-split-card"><div class="spend-split-label"><span class="dot dot-bills"></span>Bills and subscriptions</div><div class="split-number">${formatMoney(billsTotal)}</div></div>
+        <div class="spend-split-card"><div class="spend-split-label"><span class="dot dot-else"></span>Everything else</div><div class="split-number">${formatMoney(everythingElseTotal)}</div>${month.pendingTotal > 0 ? `<div class="spend-split-note">incl. ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
+      </div>
+      ${stillToPayLine}</div>`;
+  // Every block by its key; Customize Spending decides the order and which are shown.
+  const spendingBlocks = { hero: heroTile, earned: earnedTile, left: leftTile, budgets: budgetsTileHtml(settings, month), pending: pendingTile, categories: categoryRows,
+    bills: billsTile, transfers: transfersTile, savings: savingsTile, recurring: recurringTile, places: merchantRows ? `<div class="tile places-tile"><b>Top places</b>${merchantRows}</div>` : "",
+    pace: paceTileHtml(allCharges, spendingMonthShown), vslast: vsLastMonthHtml(charges, spendingMonthShown) };
+  const layout = spendingLayoutOf(settings);
   page.innerHTML = `<h2>Spending</h2>
     <div class="tile-row month-nav">${monthButton("‹", olderMonth)}<b>${monthLabel(spendingMonthShown)}</b>${monthButton("›", newerMonth)}</div>
     ${spendingToolbarHtml()}<div id="spending-results" hidden></div>
-    <div id="spending-main"><div class="tile spend-hero"><div class="small">Total spent this month</div>
-      <div class="huge-number">${moneyHtml(Math.round((everythingElseTotal + billsTotal) * 100) / 100)}</div>
-      <div class="split-bar"><div class="split-bills" style="width:${billsSharePercent}%"></div></div>
-      <div class="split-columns">
-        <div><div class="small"><span class="dot dot-bills"></span>Bills and subscriptions</div><div class="split-number">${formatMoney(billsTotal)}</div></div>
-        <div class="split-right"><div class="small"><span class="dot dot-else"></span>Everything else</div><div class="split-number">${formatMoney(everythingElseTotal)}</div>${month.pendingTotal > 0 ? `<div class="small">incl. ${formatMoney(month.pendingTotal)} pending</div>` : ""}</div>
-      </div>
-      ${stillToPayLine}</div>
-    ${earnedTile}
-    ${leftTile}
-    ${paceTileHtml(allCharges, spendingMonthShown)}${vsLastMonthHtml(charges, spendingMonthShown)}${budgetsTileHtml(settings, month)}
-    ${pendingTile}${categoryRows}${billsTile}${transfersTile}${savingsTile}${recurringTile}
-    <div class="tile"><b>Top places</b>${merchantRows}</div></div>`;
+    <div id="spending-main">${layout.order.filter((key) => !layout.hidden.includes(key)).map((key) => spendingBlocks[key]).join("")}
+    <button class="customize-home" data-customize-spending>&#9881;&#65039; Customize Spending</button></div>`;
   refreshSpendingResults(settings);
 }
 
@@ -308,20 +337,35 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   const settings = loadSettings();
   const typed = (settings.paycheck.expected_paychecks || []).filter((entry) => entry.date >= new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  let toastText;
   if (addButton) {
     const date = document.getElementById("typed-pay-date").value;
     const amount = Number(document.getElementById("typed-pay-amount").value);
     if (!date || !(amount > 0)) { document.getElementById("typed-pay-message").textContent = "Pick the pay date and type the amount."; return; }
     settings.paycheck.expected_paychecks = [...typed.filter((entry) => entry.date !== date), { date, amount, in_balance: document.getElementById("typed-pay-in-balance").value === "yes" }];
+    toastText = `Paycheck of ${formatMoney(amount)} added for ${shortMonthDay(date)}.`;
   } else if (toggleButton) {
-    settings.paycheck.expected_paychecks = typed.map((entry) => entry.date === toggleButton.dataset.toggleTypedPay ? { ...entry, in_balance: !entry.in_balance } : entry);
+    const toggled = typed.find((entry) => entry.date === toggleButton.dataset.toggleTypedPay);
+    settings.paycheck.expected_paychecks = typed.map((entry) => entry === toggled ? { ...entry, in_balance: !entry.in_balance } : entry);
+    toastText = toggled && !toggled.in_balance ? "Marked as already in your balance." : "Marked as arriving that day.";
   } else {
     settings.paycheck.expected_paychecks = typed.filter((entry) => entry.date !== removeButton.dataset.removeTypedPay);
+    toastText = "Upcoming paycheck removed.";
   }
   saveSettings(settings);
   earnedTileOpen = true;
   showEverything();
   showSpendingPage(settings);
+  showToast(toastText);
+});
+
+// The two "arrives that day / already in my balance" buttons in the add-paycheck form.
+document.addEventListener("click", (event) => {
+  const arrivalButton = event.target.closest("[data-pay-arrival]");
+  if (!arrivalButton) return;
+  event.preventDefault();
+  document.getElementById("typed-pay-in-balance").value = arrivalButton.dataset.payArrival;
+  arrivalButton.parentElement.querySelectorAll("[data-pay-arrival]").forEach((button) => button.classList.toggle("is-on", button === arrivalButton));
 });
 
 // Pick a category for one charge. "Other..." asks for a new category name; "Back to automatic" clears your choice.

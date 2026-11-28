@@ -11,7 +11,8 @@ function loadDismissedRecurring() {
 
 // ---- Search box and Filter button, above everything else on the page.
 function spendingToolbarHtml() {
-  return `<div class="spend-tools"><input id="spending-search" type="search" placeholder="Search charges" autocomplete="off" autocapitalize="off" value="${escapeHtml(spendingFilter.search)}">
+  return `<div class="spend-tools"><div class="spend-search${spendingFilter.search ? " has-text" : ""}"><input id="spending-search" type="search" placeholder="Search charges" autocomplete="off" autocapitalize="off" value="${escapeHtml(spendingFilter.search)}">
+    <button class="spend-search-clear" data-clear-search aria-label="Clear search">&#10005;</button></div>
     <button id="spending-filter-button" class="filter-chip"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter</button></div>`;
 }
 
@@ -56,8 +57,22 @@ function refreshSpendingResults(settings) {
 document.addEventListener("input", (event) => {
   if (event.target.id !== "spending-search") return;
   spendingFilter.search = event.target.value;
+  event.target.parentElement.classList.toggle("has-text", event.target.value !== "");
   clearTimeout(spendingSearchTimer);
   spendingSearchTimer = setTimeout(() => refreshSpendingResults(loadSettings()), 150);
+});
+
+// The round x in the search box empties it in one tap and keeps the keyboard up for a new word.
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("[data-clear-search]")) return;
+  event.preventDefault();
+  const searchBox = document.getElementById("spending-search");
+  spendingFilter.search = "";
+  searchBox.value = "";
+  searchBox.parentElement.classList.remove("has-text");
+  searchBox.focus();
+  refreshSpendingResults(loadSettings());
+  showToast("Search cleared.");
 });
 
 // The filter sheet: cards, categories, an amount range, pending only and which months, then Show.
@@ -127,21 +142,31 @@ document.addEventListener("click", (event) => {
   if (settings) openSpendingFilter(settings);
 });
 
+// A small rounded pill for a change: up is soft red (more spending), down is soft green.
+function trendPillHtml(difference, text) {
+  const direction = difference > 0 ? "is-up" : difference < 0 ? "is-down" : "is-flat";
+  const arrow = difference > 0 ? "&#9650; " : difference < 0 ? "&#9660; " : "";
+  return `<span class="trend-pill ${direction}">${arrow}${text}</span>`;
+}
+
 // ---- This month against last month, by category (last month cut at the same day while this month is still going).
 function vsLastMonthHtml(charges, yearMonth) {
   const isCurrent = yearMonth === todayText().slice(0, 7);
   const upToDay = isCurrent ? Number(todayText().slice(8, 10)) : 31;
   const comparison = monthComparison(charges, yearMonth, upToDay);
   if (!comparison.hasPrevious) return "";
-  const up = comparison.difference > 0;
-  const percent = Math.round((Math.abs(comparison.difference) / comparison.previousTotal) * 100);
+  const percent = comparison.previousTotal > 0 ? Math.round((Math.abs(comparison.difference) / comparison.previousTotal) * 100) : 0;
+  const lastMonthName = monthLabel(comparison.previousMonth).slice(0, 3);
+  const headPill = comparison.difference === 0 ? trendPillHtml(0, "Same as last month") : trendPillHtml(comparison.difference, `${formatMoney(Math.abs(comparison.difference))} ${comparison.difference > 0 ? "more" : "less"} \u00b7 ${percent}%`);
   const biggest = Math.max(1, ...comparison.categories.map((entry) => Math.max(entry.total, entry.previousTotal)));
-  const headline = comparison.difference === 0 ? "Same as last month" : `<span class="${up ? "negative" : "positive"}">${up ? "▲" : "▼"} ${formatMoney(Math.abs(comparison.difference))} (${percent}%) ${up ? "more" : "less"}</span> than ${monthLabel(comparison.previousMonth)}${isCurrent ? ` by day ${upToDay}` : ""}`;
-  const rows = comparison.categories.slice(0, 6).map((entry) => `<div class="place-row"><div class="tile-row small"><span>${escapeHtml(entry.name)}</span><span class="${entry.difference > 0 ? "negative" : entry.difference < 0 ? "positive" : ""}">${entry.difference > 0 ? "▲ +" : entry.difference < 0 ? "▼ −" : ""}${formatMoney(Math.abs(entry.difference))}</span></div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.round((entry.total / biggest) * 100)}%;background:${CATEGORY_COLORS[entry.category] || "var(--accent)"}"></div></div>
-      <div class="bar"><div class="bar-fill compare-last" style="width:${Math.round((entry.previousTotal / biggest) * 100)}%"></div></div>
-      <div class="tile-row small"><span>This month ${formatMoney(entry.total)}</span><span>Last month ${formatMoney(entry.previousTotal)}</span></div></div>`).join("");
-  return `<details class="tile category-tile spending-accent" style="--tile-accent:var(--accent)"><summary><div class="tile-row"><b>Vs last month</b></div><div class="small">${headline}</div></summary>${rows}</details>`;
+  const rows = comparison.categories.slice(0, 6).map((entry) => `<div class="vs-row" style="--row-color:${CATEGORY_COLORS[entry.category] || "#9ca3af"}">
+      <div class="vs-row-head"><span class="vs-name"><i class="vs-dot"></i>${escapeHtml(entry.name)}</span>${entry.difference === 0 ? trendPillHtml(0, "same") : trendPillHtml(entry.difference, (entry.difference > 0 ? "+" : "&minus;") + formatMoney(Math.abs(entry.difference)))}</div>
+      <div class="vs-bars"><div class="vs-bar"><i style="width:${Math.round((entry.total / biggest) * 100)}%"></i></div><div class="vs-bar is-last"><i style="width:${Math.round((entry.previousTotal / biggest) * 100)}%"></i></div></div>
+      <div class="vs-row-foot"><span>${formatMoney(entry.total)} now</span><span>${formatMoney(entry.previousTotal)} in ${lastMonthName}</span></div></div>`).join("");
+  return `<details class="tile category-tile spending-accent insight-tile" style="--tile-accent:#818cf8"><summary><div class="insight-head"><b>Vs last month</b>${headPill}</div>
+      <div class="insight-stats"><div class="insight-stat"><span>${isCurrent ? "This month so far" : "This month"}</span><b>${formatMoney(comparison.total)}</b></div>
+        <div class="insight-stat"><span>${lastMonthName}${isCurrent ? ` by day ${upToDay}` : ""}</span><b>${formatMoney(comparison.previousTotal)}</b></div></div></summary>
+    ${rows}<div class="small insight-foot">Bright bar is this month, faded bar is ${lastMonthName}.</div></details>`;
 }
 
 // ---- Daily pace: a running total through the month, this month against last month.
@@ -149,22 +174,28 @@ function paceTileHtml(allCharges, yearMonth) {
   const pace = dailyPace(allCharges, yearMonth, todayText());
   if (pace.thisMonth.length === 0 || (!pace.hasLastMonth && pace.thisToDate <= 0)) return "";
   const width = 300;
-  const height = 110;
+  const height = 120;
   const pad = 8;
   const top = Math.max(1, ...pace.thisMonth, ...pace.lastMonth);
   const x = (day) => pad + ((day - 1) / Math.max(1, pace.daysInMonth - 1)) * (width - 2 * pad);
   const y = (amount) => height - pad - (Math.max(0, amount) / top) * (height - 2 * pad);
   const line = (series) => series.map((amount, position) => `${x(position + 1).toFixed(1)},${y(amount).toFixed(1)}`).join(" ");
-  const up = pace.difference > 0;
-  const compareLine = !pace.hasLastMonth ? "" : pace.difference === 0 ? "Right on last month's pace" : `<span class="${up ? "negative" : "positive"}">${up ? "▲" : "▼"} ${formatMoney(Math.abs(pace.difference))} ${up ? "ahead of" : "behind"}</span> last month's pace`;
   const lastPoint = pace.thisMonth.length;
-  return `<div class="tile pace-tile"><b>Spending pace</b><div class="small">${compareLine}</div>
+  const areaUnderThisMonth = `${line(pace.thisMonth)} ${x(lastPoint).toFixed(1)},${height - pad} ${x(1).toFixed(1)},${height - pad}`;
+  const headPill = !pace.hasLastMonth ? "" : pace.difference === 0 ? trendPillHtml(0, "On last month's pace") : trendPillHtml(pace.difference, `${formatMoney(Math.abs(pace.difference))} ${pace.difference > 0 ? "ahead" : "behind"}`);
+  const thisMonthName = monthLabel(yearMonth).slice(0, 3);
+  const lastMonthName = monthLabel(previousYearMonth(yearMonth)).slice(0, 3);
+  return `<div class="tile spending-accent insight-tile pace-tile" style="--tile-accent:var(--accent)"><div class="insight-head"><b>Spending pace</b>${headPill}</div>
+    <div class="small insight-sub">Running total through the month${pace.hasLastMonth ? `, against ${lastMonthName}` : ""}</div>
     <svg viewBox="0 0 ${width} ${height}" class="pace-chart" role="img" aria-label="Running spending total by day, this month and last month">
-      <polyline class="pace-last" points="${line(pace.lastMonth)}"/><polyline class="pace-this" points="${line(pace.thisMonth)}"/>
-      <circle class="pace-dot" cx="${x(lastPoint).toFixed(1)}" cy="${y(pace.thisToDate).toFixed(1)}" r="4"/></svg>
-    <div class="tile-row small"><span><span class="dot pace-key-this"></span>${monthLabel(yearMonth).split(" ")[0]} day ${pace.lastDayShown}</span><b>${formatMoney(pace.thisToDate)}</b></div>
-    ${pace.hasLastMonth ? `<div class="tile-row small"><span><span class="dot pace-key-last"></span>${monthLabel(previousYearMonth(yearMonth)).split(" ")[0]} by day ${pace.lastDayShown}</span><b>${formatMoney(pace.lastAtSameDay)}</b></div>` : ""}
-    <div class="small">Card and bank purchases. Transfers are left out.</div></div>`;
+      <defs><linearGradient id="pace-fill-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity="0.28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+      <polygon class="pace-area" points="${areaUnderThisMonth}"/>
+      ${pace.hasLastMonth ? `<polyline class="pace-last" points="${line(pace.lastMonth)}"/>` : ""}<polyline class="pace-this" points="${line(pace.thisMonth)}"/>
+      <circle class="pace-halo" cx="${x(lastPoint).toFixed(1)}" cy="${y(pace.thisToDate).toFixed(1)}" r="9"/><circle class="pace-dot" cx="${x(lastPoint).toFixed(1)}" cy="${y(pace.thisToDate).toFixed(1)}" r="4"/></svg>
+    <div class="pace-axis"><span>Day 1</span><span>Day ${pace.daysInMonth}</span></div>
+    <div class="insight-stats"><div class="insight-stat"><span><i class="dot pace-key-this"></i>${thisMonthName} by day ${pace.lastDayShown}</span><b>${formatMoney(pace.thisToDate)}</b></div>
+      ${pace.hasLastMonth ? `<div class="insight-stat"><span><i class="dot pace-key-last"></i>${lastMonthName} by day ${pace.lastDayShown}</span><b>${formatMoney(pace.lastAtSameDay)}</b></div>` : ""}</div>
+    <div class="small insight-foot">Card and bank purchases. Transfers are left out.</div></div>`;
 }
 
 // ---- Budgets: a monthly limit per category. Each budget is a small card: its bar fills in the category's color
@@ -179,14 +210,15 @@ function budgetsTileHtml(settings, month) {
   const daysInShownMonth = new Date(year, monthNumber, 0).getDate();
   const daysLeftIncludingToday = daysInShownMonth - today + 1;
   const monthPacePercent = Math.round((today / daysInShownMonth) * 100);
-  const stateColor = (row) => row.state === "over" ? "var(--bad)" : row.state === "near" ? "var(--warning)" : CATEGORY_COLORS[row.category] || "var(--accent)";
+  const stateColor = (row) => row.state === "over" ? "#e88b8b" : CATEGORY_COLORS[row.category] || "var(--accent)";
+  const statePill = (row) => row.state === "over" ? `<span class="budget-state">over</span>` : row.state === "near" ? `<span class="budget-state">close</span>` : "";
   const cards = rows.map((row) => {
     const color = stateColor(row);
     const perDay = isCurrentMonth && row.left > 0 ? ` \u00b7 about ${formatMoney(row.left / daysLeftIncludingToday)} a day for ${daysLeftIncludingToday} day${daysLeftIncludingToday === 1 ? "" : "s"}` : "";
-    return `<div class="charge-row budget-card" data-budget-hold="${escapeHtml(row.category)}" style="--budget-color:${color};--category-color:${CATEGORY_COLORS[row.category] || "#9ca3af"}">
+    return `<div class="charge-row budget-card budget-${row.state}" data-budget-hold="${escapeHtml(row.category)}" style="--budget-color:${color};--category-color:${CATEGORY_COLORS[row.category] || "#9ca3af"}">
       <div class="budget-head"><span class="budget-name"><i class="budget-dot"></i>${escapeHtml(row.name)}</span><span class="budget-amounts"><b>${formatMoney(row.spent)}</b> / ${formatMoney(row.limit)}</span></div>
       <div class="budget-track"><div class="budget-fill" style="width:${Math.min(100, row.percent)}%"></div>${isCurrentMonth ? `<i class="budget-pace" style="left:${monthPacePercent}%"></i>` : ""}</div>
-      <div class="budget-foot"><span class="${row.left < 0 ? "negative" : ""}">${row.left >= 0 ? formatMoney(row.left) + " left" : formatMoney(-row.left) + " over"}${perDay}</span><b class="budget-percent">${row.percent}%</b></div>
+      <div class="budget-foot"><span class="${row.left < 0 ? "negative" : ""}">${row.left >= 0 ? formatMoney(row.left) + " left" : formatMoney(-row.left) + " over"}${perDay}</span><b class="budget-percent">${statePill(row)}${row.percent}%</b></div>
       <button class="remove-link" data-remove-budget="${escapeHtml(row.category)}">remove</button></div>`;
   }).join("");
   const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
@@ -194,7 +226,7 @@ function budgetsTileHtml(settings, month) {
   const note = !rows.length ? "None set yet" : overCount ? `<span class="negative">${overCount} over budget</span>` : `<span class="positive">All on track</span>`;
   const totals = rows.length ? `<span class="budget-amounts"><b>${formatMoney(totalSpent)}</b> / ${formatMoney(totalLimit)}</span>` : "";
   const hint = rows.length ? `<div class="small budget-hint">Hold a budget to change it, swipe it to delete.${isCurrentMonth ? " The thin line is today." : ""}</div>` : "";
-  return `<details class="tile category-tile spending-accent budget-tile no-swipe-parent" style="--tile-accent:var(--good)"><summary><div class="tile-row"><b>Budgets</b>${totals}</div><div class="small">${note}</div></summary>
+  return `<details class="tile category-tile spending-accent budget-tile no-swipe-parent" style="--tile-accent:#8b9cf7"><summary><div class="tile-row"><b>Budgets</b>${totals}</div><div class="small">${note}</div></summary>
     ${cards}<button class="budget-add" data-add-budget="yes">+ Add a budget</button>${hint}</details>`;
 }
 

@@ -109,7 +109,7 @@ Tap **↻** (or open the app after 30 minutes away).
 
 ## What is in the app
 
-Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up. **Customize Home** (bottom of Home): drag a block by its handle to move it, and flip its switch to show or hide it.
+Menu: **Home**, **Spending**, **Cards**, **Bills**, **Tasks**, **Goals**, **Planner**, **HSA**, **PTO**, **Loans**, **Set up**, **Settings**. Open it with the top-left button or a swipe from the left edge. Tabs you do not use can be hidden in Set up. **Customize Home** (bottom of Home) and **Customize Spending** (bottom of Spending): drag a block by its handle to move it, and flip its switch to show or hide it. The Spending search box has a round x that clears the word in one tap.
 
 | Page | What it gives you |
 |---|---|
@@ -186,6 +186,7 @@ The same button loads a backup made with **Export backup**, which is how you mov
 | `category_budgets` | Optional monthly limit per spending category, like `{ "GROCERIES": 400 }`. Set from the Spending tab. |
 | `loans` | A list of loans: `name`, `kind` (`car`, `mortgage`, `personal`, `other`), `amount`, `annual_rate_percent`, `payment`, `first_payment_date`, `skipped_months`. `payment_text_contains` (optional words from the bank text of the payment, so the loan counts a payment only when your checking account shows it). An older single `car_loan` with the same fields still shows up as the first loan |
 | `home_layout` | Home block order and hidden blocks (`order`, `hidden`), set with Customize Home |
+| `spending_layout` | Spending block order and hidden blocks (`order`, `hidden`), set with Customize Spending |
 | `other_points` | Points accounts not tied to a credit card (`name`, `program`, `points_balance`) |
 | `overtime`, `hsa`, `pto`, `retirement`, `hidden_tabs` | Overtime rates, HSA numbers, time-off buckets (`pto.buckets`: `name`, `hours`; older `pto_hours`-style numbers still read), retirement balance, and menu tabs to hide |
 
