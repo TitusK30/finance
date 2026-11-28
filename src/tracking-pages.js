@@ -176,20 +176,35 @@ function shortMonthName(dateText) {
   return new Date(dateText + "T12:00:00").toLocaleDateString("en-US", { month: "short" });
 }
 
+// Where people usually get a score: the two scoring models, the three credit bureaus, and the most used free apps.
+const CREDIT_SCORE_SOURCES = ["FICO", "VantageScore", "Experian", "Equifax", "TransUnion", "Credit Karma", "Chase Credit Journey", "Capital One CreditWise"];
+function sameSourceName(first, second) {
+  const simplified = (name) => String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+  return simplified(first) === simplified(second);
+}
+
 // Log a score, or fix the one on a given date (one score per date). Same sheet style as the other edits.
 function openScoreSheet() {
   const settings = loadSettings();
   const latest = [...settings.credit_scores].sort((a, b) => (a.date < b.date ? -1 : 1)).pop();
-  const sources = [...new Set(["FICO", "VantageScore", ...settings.credit_scores.map((entry) => entry.source).filter(Boolean)])];
+  // Preset sources as buttons; names already in your history are added once, so "Vantage Score" and "VantageScore" are one button.
+  const sources = [];
+  for (const source of [...CREDIT_SCORE_SOURCES, ...settings.credit_scores.map((entry) => entry.source).filter(Boolean)]) {
+    if (!sources.some((existing) => sameSourceName(existing, source))) sources.push(source);
+  }
+  const latestSource = latest && latest.source ? sources.find((source) => sameSourceName(source, latest.source)) : "FICO";
   openSetupItemSheet({
     title: "Credit score", icon: "&#128200;", accent: "#4ade80", saveLabel: "Save score",
     fields: [{ id: "score", label: "Score (300 to 850)", isMoney: true, placeholder: "760", value: latest ? latest.score : "" },
-      { id: "source", label: "From", chips: sources.map((source) => [source, source, "var(--good)"]), value: (latest && latest.source) || "FICO" },
+      { id: "source", label: "From", chips: sources.map((source) => [source, source, "var(--good)"]), value: latestSource },
+      { id: "otherSource", label: "Or type another (optional)", placeholder: "for example: Discover", value: "" },
       { id: "date", label: "Date", type: "date", value: todayText() }],
     save: (values) => {
       if (!(values.score >= 300 && values.score <= 850)) return "Type a score from 300 to 850.";
       if (!values.date) return "Pick a date.";
-      settings.credit_scores = addEntryForDate(settings.credit_scores, { date: values.date, score: Math.round(values.score), source: values.source });
+      const typedSource = values.otherSource.trim();
+      const source = typedSource ? (CREDIT_SCORE_SOURCES.find((preset) => sameSourceName(preset, typedSource)) || typedSource) : values.source;
+      settings.credit_scores = addEntryForDate(settings.credit_scores, { date: values.date, score: Math.round(values.score), source });
     },
   }, () => saveAndRefresh(settings));
 }

@@ -4,9 +4,9 @@ Read this first in every session. Keep it current: when a change alters the arch
 
 ## Where we left off
 Update this section in every commit (generic wording, no personal data): the last thing built, the version tag, the test count, and anything unfinished or waiting for the user to confirm on the phone.
-- Last built: Home credit score tile: score in its band color with a band pill (Excellent / Very good / Good / Fair / Poor), a small 300-850 gauge, change since the previous month; tap for month-by-month history; hold to log or fix a score in the shared sheet (`openScoreSheet`, `data-item-hold="score:..."`). No more prompt boxes or tap-the-number. Before that: Home date, change triangles, Coming up, Customize Home.
-- Version tag 20261128zl, 158 tests passing.
-- Waiting on the user to confirm on the phone: the credit score tile and its hold sheet; change triangles from tomorrow; Coming up; Customize Home.
+- Last built: credit score sheet: preset source buttons (`CREDIT_SCORE_SOURCES`: FICO, VantageScore, the three bureaus, Credit Karma, Chase Credit Journey, Capital One CreditWise), names from history added once (spelling and spaces ignored by `sameSourceName`), plus an optional "type another" box. Before that: Home credit score tile with gauge and hold to log.
+- Version tag 20261128zm, 158 tests passing.
+- Waiting on the user to confirm on the phone: score sheet buttons; change triangles from tomorrow; Coming up; Customize Home.
 
 ## What it is
 A private cash-flow forecaster, a "weather forecast for a bank account". Plain HTML and JS, no frameworks, no build step, $0 a month. Runs as an iPhone Home Screen web app. All numbers live in the phone's localStorage; the repo is code only. A Cloudflare Worker (`relay/worker.mjs`) holds the Plaid keys. The live app is served by GitHub Pages from `main`.
