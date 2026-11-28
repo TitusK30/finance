@@ -1,7 +1,7 @@
 // Swipe left on a row to reveal Delete. The Delete button presses the row's own remove control,
 // so every existing "are you sure" check still applies.
 
-const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-remove-expected], [data-remove-benefit], [data-remove-overtime], [data-whatif-remove], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription], [data-setup-remove-override], [data-setup-remove-othercard], [data-setup-remove-benefit], [data-setup-remove-rule], [data-remove-typed-pay], [data-remove-hsa-item]";
+const DELETE_CONTROLS = "[data-remove-todo], [data-remove-goal], [data-remove-entry], [data-remove-expected], [data-remove-benefit], [data-remove-overtime], [data-whatif-remove], [data-setup-remove-card], [data-setup-remove-bill], [data-setup-remove-subscription], [data-setup-remove-override], [data-setup-remove-othercard], [data-setup-remove-benefit], [data-setup-remove-rule], [data-remove-typed-pay], [data-remove-hsa-item], [data-remove-budget]";
 const SWIPE_REVEAL_PIXELS = 90;
 const SWIPE_TO_OPEN_PIXELS = 50;
 let swipeRow = null;
@@ -86,14 +86,15 @@ let longPressStart = null;
 let longPressFired = false;
 
 document.addEventListener("touchstart", (event) => {
-  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold]");
+  const row = event.target.closest("#page-spending .charge-row[data-charge-id], #page-bills .bill-tile[data-bill-source], #page-setup [data-setup-hold], #page-spending [data-budget-hold]");
   longPressFired = false;
   clearTimeout(longPressTimer);
   if (!row) return;
   longPressStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
   longPressTimer = setTimeout(() => {
     longPressFired = true;
-    if (row.dataset.setupHold) editSetupItem(row.dataset.setupHold);
+    if (row.dataset.budgetHold) openBudgetSheet(row.dataset.budgetHold);
+    else if (row.dataset.setupHold) editSetupItem(row.dataset.setupHold);
     else if (row.dataset.billSource) editBillItem(row.dataset.billSource, Number(row.dataset.billIndex));
     else chooseCategoryForCharge(row.dataset.chargeId);
   }, LONG_PRESS_MS);
@@ -107,7 +108,7 @@ document.addEventListener("touchmove", (event) => {
 
 document.addEventListener("touchend", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
 document.addEventListener("touchcancel", () => { clearTimeout(longPressTimer); longPressTimer = null; }, { passive: true });
-document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile, #page-setup [data-setup-hold]")) event.preventDefault(); });
+document.addEventListener("contextmenu", (event) => { if (event.target.closest("#page-spending .charge-row, #page-bills .bill-tile, #page-setup [data-setup-hold], #page-spending [data-budget-hold]")) event.preventDefault(); });
 // The tap that ends a long-press must not also open or toggle anything.
 document.addEventListener("click", (event) => { if (longPressFired) { longPressFired = false; event.preventDefault(); event.stopPropagation(); } }, true);
 

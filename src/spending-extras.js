@@ -167,31 +167,85 @@ function paceTileHtml(allCharges, yearMonth) {
     <div class="small">Card and bank purchases. Transfers are left out.</div></div>`;
 }
 
-// ---- Budgets: set a monthly limit for a category; its bar fills and turns red when you pass it.
+// ---- Budgets: a monthly limit per category. Each budget is a small card: its bar fills in the category's color
+// (amber when close, red when over), a thin tick marks how far through the month you are, and the line under it
+// says what is left. Hold a card to edit it, swipe it to delete it.
 function budgetsTileHtml(settings, month) {
   const rows = budgetRows(settings, month);
   const overCount = rows.filter((row) => row.state === "over").length;
-  const note = rows.length ? (overCount ? `${overCount} over budget` : "All on track") : "None set yet";
-  const barColor = { ok: "var(--good)", near: "var(--warning)", over: "var(--bad)" };
-  const rowHtml = rows.map((row) => `<div class="place-row"><div class="tile-row"><span>${escapeHtml(row.name)}</span><span class="${row.state === "over" ? "negative" : ""}">${formatMoney(row.spent)} of ${formatMoney(row.limit)}</span></div>
-      <div class="bar"><div class="bar-fill" style="width:${Math.min(100, row.percent)}%;background:${barColor[row.state]}"></div></div>
-      <div class="tile-row small"><span>${row.left >= 0 ? formatMoney(row.left) + " left" : formatMoney(-row.left) + " over"}</span><button class="mark-button" data-edit-budget="${escapeHtml(row.category)}">edit</button></div></div>`).join("");
-  return `<details class="tile category-tile spending-accent" style="--tile-accent:var(--good)"><summary><div class="tile-row"><b>Budgets</b></div><div class="small">${note}</div></summary>${rowHtml}<button class="mark-button" data-add-budget="yes">+ Add a budget</button></details>`;
+  const isCurrentMonth = spendingMonthShown === todayText().slice(0, 7);
+  const today = Number(todayText().slice(8, 10));
+  const [year, monthNumber] = spendingMonthShown.split("-").map(Number);
+  const daysInShownMonth = new Date(year, monthNumber, 0).getDate();
+  const daysLeftIncludingToday = daysInShownMonth - today + 1;
+  const monthPacePercent = Math.round((today / daysInShownMonth) * 100);
+  const stateColor = (row) => row.state === "over" ? "var(--bad)" : row.state === "near" ? "var(--warning)" : CATEGORY_COLORS[row.category] || "var(--accent)";
+  const cards = rows.map((row) => {
+    const color = stateColor(row);
+    const perDay = isCurrentMonth && row.left > 0 ? ` \u00b7 about ${formatMoney(row.left / daysLeftIncludingToday)} a day for ${daysLeftIncludingToday} day${daysLeftIncludingToday === 1 ? "" : "s"}` : "";
+    return `<div class="charge-row budget-card" data-budget-hold="${escapeHtml(row.category)}" style="--budget-color:${color};--category-color:${CATEGORY_COLORS[row.category] || "#9ca3af"}">
+      <div class="budget-head"><span class="budget-name"><i class="budget-dot"></i>${escapeHtml(row.name)}</span><span class="budget-amounts"><b>${formatMoney(row.spent)}</b> / ${formatMoney(row.limit)}</span></div>
+      <div class="budget-track"><div class="budget-fill" style="width:${Math.min(100, row.percent)}%"></div>${isCurrentMonth ? `<i class="budget-pace" style="left:${monthPacePercent}%"></i>` : ""}</div>
+      <div class="budget-foot"><span class="${row.left < 0 ? "negative" : ""}">${row.left >= 0 ? formatMoney(row.left) + " left" : formatMoney(-row.left) + " over"}${perDay}</span><b class="budget-percent">${row.percent}%</b></div>
+      <button class="remove-link" data-remove-budget="${escapeHtml(row.category)}">remove</button></div>`;
+  }).join("");
+  const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
+  const totalLimit = rows.reduce((sum, row) => sum + row.limit, 0);
+  const note = !rows.length ? "None set yet" : overCount ? `<span class="negative">${overCount} over budget</span>` : `<span class="positive">All on track</span>`;
+  const totals = rows.length ? `<span class="budget-amounts"><b>${formatMoney(totalSpent)}</b> / ${formatMoney(totalLimit)}</span>` : "";
+  const hint = rows.length ? `<div class="small budget-hint">Hold a budget to change it, swipe it to delete.${isCurrentMonth ? " The thin line is today." : ""}</div>` : "";
+  return `<details class="tile category-tile spending-accent budget-tile no-swipe-parent" style="--tile-accent:var(--good)"><summary><div class="tile-row"><b>Budgets</b>${totals}</div><div class="small">${note}</div></summary>
+    ${cards}<button class="budget-add" data-add-budget="yes">+ Add a budget</button>${hint}</details>`;
 }
 
-async function setBudgetFor(category) {
-  const settings = loadSettings();
-  const current = (settings.category_budgets || {})[category];
-  const answer = prompt(`Monthly budget for ${categoryDisplayName(category)} ($). Leave blank to remove it.`, current || "");
-  if (answer === null) return;
-  const limit = Number(answer);
-  if (answer.trim() !== "" && !(limit >= 0)) { showToast("Type a number, like 250."); return; }
+// How much went to one category in a month (bills left out, like the budget bars).
+function categorySpentInMonth(settings, category, yearMonth) {
+  const store = loadTransactionStore();
+  const month = monthlyBreakdown(nonBillCharges(settings, store, matchBills(settings, store, loadBillMarks(), todayText())), yearMonth);
+  return (month.categories.find((entry) => entry.category === category) || {}).total || 0;
+}
+
+function saveBudget(settings, category, limit) {
   settings.category_budgets = { ...(settings.category_budgets || {}) };
-  if (answer.trim() === "" || limit === 0) delete settings.category_budgets[category];
-  else settings.category_budgets[category] = limit;
+  if (limit > 0) settings.category_budgets[category] = limit; else delete settings.category_budgets[category];
   saveSettings(settings);
   showSpendingKeepingOpen(settings);
-  showToast(settings.category_budgets[category] ? `Budget set: ${formatMoney(limit)} a month.` : "Budget removed.");
+}
+
+// Bottom sheet to set or change a category's monthly budget, with last month's spending as a one-tap suggestion.
+function openBudgetSheet(category) {
+  const settings = loadSettings();
+  const current = (settings.category_budgets || {})[category];
+  const lastMonthSpent = categorySpentInMonth(settings, category, previousYearMonth(spendingMonthShown || todayText().slice(0, 7)));
+  const suggestion = lastMonthSpent > 0 ? Math.ceil(lastMonthSpent / 50) * 50 : 0;
+  const color = CATEGORY_COLORS[category] || "#9ca3af";
+  const cover = document.createElement("div");
+  cover.className = "date-cover category-picker filter-sheet bill-editor";
+  let typed = current ? String(current) : "";
+  let errorText = "";
+  const draw = () => {
+    cover.innerHTML = `<div class="date-box"><div class="date-question"><i class="budget-dot" style="--category-color:${color}"></i>${escapeHtml(categoryDisplayName(category))} budget</div>
+      <div class="filter-label">Monthly limit ($)</div><input id="budget-sheet-amount" inputmode="decimal" placeholder="for example 300" value="${escapeHtml(typed)}" autocomplete="off">
+      ${suggestion ? `<div class="choice-list"><button class="choice-button is-wide budget-suggest" data-budget-suggest="${suggestion}"><b>Use ${formatMoney(suggestion)}</b><span class="small">Last month you spent ${formatMoney(lastMonthSpent)}</span></button></div>` : ""}
+      ${errorText ? `<div class="editor-error">${escapeHtml(errorText)}</div>` : ""}
+      <div class="choice-list filter-actions"><button class="choice-button is-wide is-apply" data-budget-save><b>Save</b></button><button class="choice-button is-wide" data-budget-cancel><b>Cancel</b></button></div></div>`;
+  };
+  draw();
+  cover.addEventListener("click", (event) => {
+    const suggestButton = event.target.closest("[data-budget-suggest]");
+    if (suggestButton) { typed = suggestButton.dataset.budgetSuggest; errorText = ""; draw(); return; }
+    if (event.target.closest("[data-budget-save]")) {
+      typed = cover.querySelector("#budget-sheet-amount").value.trim();
+      const limit = parseFloat(typed.replace(/[$,]/g, ""));
+      if (!(limit > 0)) { errorText = "Type an amount more than 0, like 250."; draw(); return; }
+      cover.remove();
+      saveBudget(settings, category, Math.round(limit * 100) / 100);
+      showToast(`${categoryDisplayName(category)}: ${formatMoney(limit)} a month.`);
+      return;
+    }
+    if (event.target.closest("[data-budget-cancel]") || event.target === cover) cover.remove();
+  });
+  document.body.appendChild(cover);
 }
 
 function showSpendingKeepingOpen(settings) {
@@ -201,16 +255,21 @@ function showSpendingKeepingOpen(settings) {
 }
 
 document.addEventListener("click", async (event) => {
-  const editButton = event.target.closest("[data-edit-budget]");
+  const removeButton = event.target.closest("[data-remove-budget]");
   const addButton = event.target.closest("[data-add-budget]");
-  if (!editButton && !addButton) return;
+  if (!removeButton && !addButton) return;
   event.preventDefault();
-  if (editButton) { setBudgetFor(editButton.dataset.editBudget); return; }
+  if (removeButton) {
+    const category = removeButton.dataset.removeBudget;
+    saveBudget(loadSettings(), category, 0);
+    showToast(`${categoryDisplayName(category)} budget removed.`);
+    return;
+  }
   const settings = loadSettings();
   const budgeted = Object.keys(settings.category_budgets || {});
   const choices = spendingCategoryChoices(settings).filter((category) => !budgeted.includes(category)).map((category) => ({ title: categoryDisplayName(category), detail: "", value: category, color: CATEGORY_COLORS[category] || "#9ca3af" }));
   const picked = await askChoice("Budget for which category?", choices, "category-picker");
-  if (picked) setBudgetFor(picked);
+  if (picked) openBudgetSheet(picked);
 });
 
 // ---- Recurring detector: charges that repeat every month and are not in Bills yet.
